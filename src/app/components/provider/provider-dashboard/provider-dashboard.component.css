@@ -1,0 +1,85 @@
+/* src/app/components/provider/provider-dashboard/provider-dashboard.component.css */
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  font-family: sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.calendar-container {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.calendar {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.calendar th,
+.calendar td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.calendar th {
+  background-color: #f0f0f0;
+}
+
+.appointment-list {
+  width: 100%;
+}
+
+.appointment-item {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.appointment-time {
+  font-weight: bold;
+}
+
+.statistics-container {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.statistic-widget {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+.quick-access-container {
+  display: flex;
+  justify-content: space-around;
+}
+
+.quick-access-button {
+  background-color: #4CAF50;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.quick-access-button:hover {
+  background-color: #367c39;
+}

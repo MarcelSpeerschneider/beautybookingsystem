@@ -1,0 +1,17 @@
+<div class="login-container">
+    <h2>Login</h2>
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" formControlName="email" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" formControlName="password" required>
+        </div>
+        <button type="submit" [disabled]="loginForm.invalid">Login</button>
+        <p>No account yet?
+            <button type="button" (click)="navigateToRegister()">Register</button>
+        </p>
+    </form>
+</div>

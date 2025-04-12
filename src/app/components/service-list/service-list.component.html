@@ -1,0 +1,16 @@
+<div class="service-list-container">
+  <h2>Unsere Dienstleistungen</h2>
+  <ul class="service-list">
+    <li *ngFor="let service of services" class="service-item">
+      <div class="service-card">
+        <h3>{{ service.name }}</h3>
+        <p>{{ service.description }}</p>
+        <div class="service-details">
+          <span class="price">Preis: {{ service.price }} €</span>
+          <span class="duration">Dauer: {{ service.duration }} Minuten</span>
+        </div>
+        <button class="book-button">Buchen</button>
+      </div>
+    </li>
+  </ul>
+</div>

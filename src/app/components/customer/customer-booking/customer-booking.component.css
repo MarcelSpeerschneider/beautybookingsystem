@@ -1,0 +1,69 @@
+/* src/app/components/customer/customer-booking/customer-booking.component.css */
+
+.customer-booking-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  font-family: sans-serif;
+}
+
+.booking-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.booking-steps {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.step {
+  background-color: #f0f0f0;
+  padding: 10px 15px;
+  border-radius: 5px;
+}
+
+.step.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.service-selection,
+.date-selection,
+.time-selection,
+.confirmation {
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.btn {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: #0056b3;
+}
