@@ -9,16 +9,19 @@ import { map } from 'rxjs/operators';
 @Injectable({
   providedIn: 'root'
 })
+
 export class ProviderService {
     private collectionName = 'providers';
     private businessHoursCollectionName = 'businessHours';
     private breaksCollectionName = 'breaks';
 
-    firestore: Firestore = inject(Firestore);
     private ngZone = inject(NgZone);
-    
-    constructor() { }
 
+    constructor(private firestore: Firestore) {
+        this.firestore = inject(Firestore);
+     }
+    
+  
     getProviders(): Observable<Provider[]> {
         return new Observable<Provider[]>(observer => {
             this.ngZone.run(() => {
@@ -126,11 +129,11 @@ export class ProviderService {
         });
     }
     
-    createProvider(provider: Provider): Promise<DocumentReference> {
+    addProvider(provider: Partial<Provider>): Promise<DocumentReference> {
         return this.ngZone.run(async () => {
             try {
                 console.log('Creating new provider:', provider);
-                const myCollection = collection(this.firestore, this.collectionName);
+                const myCollection = collection(this.firestore, 'providers');
                 const docRef = await addDoc(myCollection, provider);
                 console.log('Provider created successfully with ID:', docRef.id);
                 return docRef;

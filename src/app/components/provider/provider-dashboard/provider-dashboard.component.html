@@ -1,27 +1,106 @@
-<div class="provider-dashboard">
-  <h1>Provider Dashboard</h1>
-  <div class="overview">
-    <h2>Today's Appointments</h2>
-    <ul class="appointments">
-      <li>Appointment 1 - 10:00 AM</li>
-      <li>Appointment 2 - 11:30 AM</li>
-      <li>Appointment 3 - 2:00 PM</li>
-    </ul>
-  </div>
-  <div class="statistics">
-    <h2>Statistics</h2>
-    <div class="stat-item">
-      <h3>Total Appointments</h3>
-      <p>50</p>
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <h1>Beauty Booking</h1>
+    <div class="user-info" *ngIf="provider">
+      <span>{{ provider.businessName }}</span>
     </div>
-    <div class="stat-item">
-      <h3>New Customers</h3>
-      <p>10</p>
+  </header>
+
+  <nav class="nav-tabs">
+    <button class="nav-tab" [ngClass]="{'active': currentTab === 'dashboard'}" (click)="changeTab('dashboard')">Dashboard</button>
+    <button class="nav-tab" [ngClass]="{'active': currentTab === 'appointments'}" (click)="changeTab('appointments')">Termine</button>
+    <button class="nav-tab" [ngClass]="{'active': currentTab === 'services'}" (click)="changeTab('services')">Dienstleistungen</button>
+    <button class="nav-tab" [ngClass]="{'active': currentTab === 'customers'}" (click)="changeTab('customers')">Kunden</button>
+    <button class="nav-tab" [ngClass]="{'active': currentTab === 'statistics'}" (click)="changeTab('statistics')">Statistik</button>
+  </nav>
+
+  <!-- Dashboard Tab -->
+  <div class="tab-content" *ngIf="currentTab === 'dashboard'">
+    <h2 class="section-title">Dashboard <span class="date">{{ formatDate(today) }}</span></h2>
+    
+    <div class="stats-container">
+      <div class="stat-card">
+        <h3>Termine heute</h3>
+        <div class="value">{{ todayAppointments.length }}</div>
+      </div>
+      <div class="stat-card">
+        <h3>Umsatz heute</h3>
+        <div class="value">{{ todayRevenue }} €</div>
+      </div>
+      <div class="stat-card">
+        <h3>Buchungsanfragen</h3>
+        <div class="value requests">{{ pendingAppointments }}</div>
+      </div>
+    </div>
+    
+    <div class="schedule-container">
+      <h3>Tagesplanung</h3>
+      
+      <div class="timeline" *ngIf="todayAppointments.length > 0">
+        <div class="time-slot" *ngFor="let appointment of todayAppointments">
+          <div class="time-label">{{ formatTime(appointment.startTime) }}</div>
+          <div class="appointment" 
+               [ngClass]="{
+                 'pending': appointment.status === 'pending',
+                 'confirmed': appointment.status === 'confirmed',
+                 'completed': appointment.status === 'completed',
+                 'canceled': appointment.status === 'canceled'
+               }">
+            <div class="appointment-header">
+              <div class="client-name">{{ appointment.customerName || 'Kunde' }}</div>
+              <div class="appointment-status" *ngIf="appointment.status === 'pending'">
+                <button class="btn-confirm" (click)="confirmAppointment(appointment.appointmentId)">Bestätigen</button>
+              </div>
+            </div>
+            <div class="service-details">
+              {{ appointment.serviceName || 'Service' }} · 
+              {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }} · 
+              {{ getAppointmentDuration(appointment) }} Min.
+            </div>
+            <div class="appointment-notes" *ngIf="appointment.notes">
+              <strong>Notizen:</strong> {{ appointment.notes }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="cleaning-break" *ngFor="let appointment of todayAppointments">
+          <div class="time-label">{{ formatTime(appointment.endTime) }}</div>
+          <div class="break-content">{{ appointment.cleaningTime }} Min. Reinigungspause</div>
+        </div>
+      </div>
+      
+      <div class="no-appointments" *ngIf="todayAppointments.length === 0">
+        <p>Keine Termine für heute</p>
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="btn btn-primary" (click)="createAppointment()">+ Neuer Termin</button>
+      <button class="btn btn-secondary" (click)="createBreak()">Pause eintragen</button>
     </div>
   </div>
-  <div class="quick-actions">
-    <h2>Quick Actions</h2>
-    <button>Add New Appointment</button>
-    <button>View Calendar</button>
+
+  <!-- Appointments Tab -->
+  <div class="tab-content" *ngIf="currentTab === 'appointments'">
+    <h2 class="section-title">Termine</h2>
+    <p>Hier werden alle Termine angezeigt. Diese Funktion wird noch implementiert.</p>
+  </div>
+
+  <!-- Services Tab -->
+  <div class="tab-content" *ngIf="currentTab === 'services'">
+    <h2 class="section-title">Dienstleistungen</h2>
+    <p>Hier können Sie Ihre angebotenen Dienstleistungen verwalten. Diese Funktion wird noch implementiert.</p>
+  </div>
+
+  <!-- Customers Tab -->
+  <div class="tab-content" *ngIf="currentTab === 'customers'">
+    <h2 class="section-title">Kunden</h2>
+    <p>Hier finden Sie eine Übersicht Ihrer Kunden. Diese Funktion wird noch implementiert.</p>
+  </div>
+
+  <!-- Statistics Tab -->
+  <div class="tab-content" *ngIf="currentTab === 'statistics'">
+    <h2 class="section-title">Statistik</h2>
+    <p>Hier finden Sie statistische Auswertungen. Diese Funktion wird noch implementiert.</p>
   </div>
 </div>

@@ -14,7 +14,7 @@ export class ServiceListComponent implements OnInit {
 
   services: Service[] = [];
 
-  constructor(private serviceService: ServiceService) { }
+  constructor(public serviceService: ServiceService) { }
 
   ngOnInit(): void {
     this.loadServices();

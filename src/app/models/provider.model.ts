@@ -1,9 +1,20 @@
-export interface Provider { 
+export interface Provider {
   providerId: string;
   userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
   businessName: string;
   address?: string;
   description: string;
   logo: string;
-  openingHours: string; 
+  website?: string;
+  socialMedia?: {
+    instagram?: string;
+    facebook?: string;
+  };
+  openingHours: string;
+  specialties?: string[];
+  acceptsOnlinePayments?: boolean;
 }

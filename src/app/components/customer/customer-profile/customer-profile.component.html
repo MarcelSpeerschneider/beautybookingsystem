@@ -1,0 +1,11 @@
+<div class="profile-container">
+    <h2>Profile</h2>
+      <div *ngIf="isLoading" class="loading-message">Loading...</div>
+      <div *ngIf="!isLoading" class="profile-info">
+          <p><strong>Name:</strong> {{ customer?.firstName }} {{ customer?.lastName }}</p>
+          <p><strong>Email:</strong> {{ customer?.email }}</p>
+          <p><strong>Phone Number:</strong> {{ customer?.phone }}</p>
+      </div>
+    <button (click)="editProfile()">Edit Profile</button>
+    <button (click)="logout()">Logout</button>
+  </div>

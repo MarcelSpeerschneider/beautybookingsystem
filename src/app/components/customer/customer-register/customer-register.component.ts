@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthenticationService } from '../../services/authentication.service';
+import { AuthenticationService } from '../../../services/authentication.service';
 
 
 
@@ -14,13 +14,13 @@ export interface UserWithData {
 }
 
 @Component({
-  selector: 'app-register',
-  templateUrl: './register.component.html',
-  styleUrls: ['./register.component.css'],
+  selector: 'app-customer-register',
+  templateUrl: './customer-register.component.html',
+  styleUrls: ['./customer-register.component.css'],
   standalone: true,
   imports: [ReactiveFormsModule],
 })
-export class RegisterComponent implements OnInit {
+export class CustomerRegisterComponent implements OnInit {
   registerForm!: FormGroup;
 
   constructor(

@@ -1,25 +1,28 @@
-import { Component, OnInit, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthenticationService } from '../../services/authentication.service';
+import { AuthenticationService } from '../../../services/authentication.service';
 import { User, updateProfile } from '@angular/fire/auth';
 import { Subscription } from 'rxjs';
-import { Customer } from '../../models/customer.model';
+import { Customer } from '../../../models/customer.model';
+import { Router } from '@angular/router';
 
 
 @Component({
-    selector: 'app-profile',
-    templateUrl: './profile.component.html',
-    styleUrls: ['./profile.component.css'],
+    encapsulation: ViewEncapsulation.None,
+    selector: 'app-customer-profile',
+    templateUrl: './customer-profile.component.html',
+    styleUrls: ['./customer-profile.component.css'],
     standalone: true,
     imports: [CommonModule]
 })
-export class ProfileComponent implements OnInit, OnDestroy {
+export class CustomerProfileComponent implements OnInit, OnDestroy {
     customer: Customer | null = null;
     user: User | null = null;
     private auth: AuthenticationService = inject(AuthenticationService);
     private userSubscription: Subscription | undefined;
     isLoading: boolean = true;
     private customerSubscription: Subscription | undefined;
+    private router = inject(Router)
 
     constructor() { }
 
@@ -46,6 +49,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
 
     editProfile() {
-      
+
+    }
+
+    logout() {
+        this.auth.logout().then(() => {
+            this.router.navigate(['/customer-login']);
+        });
     }
 }

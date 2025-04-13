@@ -1,15 +1,31 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './components/login/login.component';
-import { RegisterComponent } from './components/register/register.component';
-import { ProfileComponent } from './components/profile/profile.component';
+import { CustomerLoginComponent } from './components/customer/customer-login/customer-login.component';
+import { CustomerRegisterComponent } from './components/customer/customer-register/customer-register.component';
+import { CustomerProfileComponent } from './components/customer/customer-profile/customer-profile.component';
 import { CustomerBookingComponent } from './components/customer/customer-booking/customer-booking.component';
 import { AuthGuard } from './guards/auth.guard';
 import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
+// Provider Components
+import { ProviderRegistrationComponent } from './components/provider/provider-registration/provider-registration.component';
+import { ProviderDashboardComponent } from './components/provider/provider-dashboard/provider-dashboard.component';
+
+// Public Booking Flow
+import { PublicServiceListComponent } from './components/public/public-service-list/public-service-list.component';
+import { AppointmentSelectionComponent } from './components/public/appointment-selection/appointment-selection.component';
+
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-  { path: 'profile', component: ProfileComponent, canActivate: [AuthGuard] },
-  { path: 'customer-booking', component: CustomerBookingComponent, canActivate: [AuthGuard] }
+  { path: '', redirectTo: '/customer-login', pathMatch: 'full' },
+  { path: 'customer-login', component: CustomerLoginComponent },
+  { path: 'customer-register', component: CustomerRegisterComponent },
+  { path: 'customer-profile', component: CustomerProfileComponent, canActivate: [AuthGuard] },
+  { path: 'customer-booking', component: CustomerBookingComponent, canActivate: [AuthGuard] },
+
+    // Provider routes
+    { path: 'provider-registration', component: ProviderRegistrationComponent },
+    { path: 'provider-dashboard', component: ProviderDashboardComponent, canActivate: [AuthGuard] },
+    
+    // Public booking flow
+    { path: 'services/:providerId', component: PublicServiceListComponent },
+    { path: 'appointment-selection/:providerId', component: AppointmentSelectionComponent },
 ];

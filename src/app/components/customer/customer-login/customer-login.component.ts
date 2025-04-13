@@ -1,18 +1,18 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthenticationService } from '../../services/authentication.service';
+import { AuthenticationService } from '../../../services/authentication.service';
 import { CommonModule } from '@angular/common';
-import { LoadingService } from '../../services/loading.service';
+import { LoadingService } from '../../../services/loading.service';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-customer-login',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  templateUrl: './customer-login.component.html',
+  styleUrls: ['./customer-login.component.css']
 })
-export class LoginComponent implements OnInit {
+export class CustomerLoginComponent implements OnInit {
   loginForm!: FormGroup;
   error: string | null = null;
   
@@ -55,6 +55,6 @@ export class LoginComponent implements OnInit {
   }
 
   navigateToRegister(): void {
-    this.router.navigate(['/register']);
+    this.router.navigate(['/customer-register']);
   }
 }

@@ -1,0 +1,135 @@
+<div class="registration-container">
+    <h2>Dienstleister-Registrierung</h2>
+    
+    <div class="stepper">
+      <div class="step" [ngClass]="{'active': step === 1, 'completed': step > 1}">
+        <div class="step-number">{{step > 1 ? '✓' : '1'}}</div>
+        <div class="step-label">Benutzerkonto</div>
+      </div>
+      <div class="step" [ngClass]="{'active': step === 2, 'completed': step > 2}">
+        <div class="step-number">{{step > 2 ? '✓' : '2'}}</div>
+        <div class="step-label">Geschäftsinformationen</div>
+      </div>
+    </div>
+    
+    <!-- Step 1: Authentication -->
+    <div *ngIf="step === 1" class="form-container">
+      <form [formGroup]="authForm" (ngSubmit)="nextStep()">
+        <div class="form-group">
+          <label for="email">E-Mail-Adresse <span class="required">*</span></label>
+          <input type="email" id="email" formControlName="email" required>
+          <div *ngIf="authForm.get('email')?.invalid && authForm.get('email')?.touched" class="error-message">
+            Bitte geben Sie eine gültige E-Mail-Adresse ein.
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Passwort <span class="required">*</span></label>
+          <input type="password" id="password" formControlName="password" required>
+          <div *ngIf="authForm.get('password')?.invalid && authForm.get('password')?.touched" class="error-message">
+            Passwort muss mindestens 6 Zeichen enthalten.
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="confirmPassword">Passwort bestätigen <span class="required">*</span></label>
+          <input type="password" id="confirmPassword" formControlName="confirmPassword" required>
+          <div *ngIf="authForm.hasError('passwordMismatch') && authForm.get('confirmPassword')?.touched" class="error-message">
+            Passwörter stimmen nicht überein.
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="authForm.invalid">Weiter</button>
+        </div>
+        
+        <div class="login-link">
+          Bereits registriert? <a routerLink="/provider-login">Hier anmelden</a>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Step 2: Provider Information -->
+    <div *ngIf="step === 2" class="form-container">
+      <form [formGroup]="providerForm" (ngSubmit)="onSubmit()">
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="firstName">Vorname <span class="required">*</span></label>
+            <input type="text" id="firstName" formControlName="firstName" required>
+            <div *ngIf="providerForm.get('firstName')?.invalid && providerForm.get('firstName')?.touched" class="error-message">
+              Bitte geben Sie Ihren Vornamen ein.
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="lastName">Nachname <span class="required">*</span></label>
+            <input type="text" id="lastName" formControlName="lastName" required>
+            <div *ngIf="providerForm.get('lastName')?.invalid && providerForm.get('lastName')?.touched" class="error-message">
+              Bitte geben Sie Ihren Nachnamen ein.
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="phone">Telefonnummer <span class="required">*</span></label>
+          <input type="tel" id="phone" formControlName="phone" required>
+          <div *ngIf="providerForm.get('phone')?.invalid && providerForm.get('phone')?.touched" class="error-message">
+            Bitte geben Sie eine gültige Telefonnummer ein.
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="businessName">Geschäftsname <span class="required">*</span></label>
+          <input type="text" id="businessName" formControlName="businessName" required>
+          <div *ngIf="providerForm.get('businessName')?.invalid && providerForm.get('businessName')?.touched" class="error-message">
+            Bitte geben Sie einen Geschäftsnamen ein.
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Beschreibung <span class="required">*</span></label>
+          <textarea id="description" formControlName="description" rows="4" required></textarea>
+          <div *ngIf="providerForm.get('description')?.invalid && providerForm.get('description')?.touched" class="error-message">
+            Bitte geben Sie eine Beschreibung ein.
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="address">Adresse</label>
+          <input type="text" id="address" formControlName="address">
+        </div>
+        
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="website">Website</label>
+            <input type="text" id="website" formControlName="website">
+          </div>
+          
+          <div class="form-group">
+            <label for="instagram">Instagram</label>
+            <input type="text" id="instagram" formControlName="instagram">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="facebook">Facebook</label>
+          <input type="text" id="facebook" formControlName="facebook">
+        </div>
+        
+        <div class="form-group">
+          <label for="specialties">Spezialisierungen (durch Komma getrennt)</label>
+          <input type="text" id="specialties" formControlName="specialties" placeholder="z.B. Maniküre, Pediküre, Wimpernverlängerung">
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="acceptsOnlinePayments" formControlName="acceptsOnlinePayments">
+          <label for="acceptsOnlinePayments">Online-Zahlungen akzeptieren</label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="previousStep()">Zurück</button>
+          <button type="submit" class="btn btn-primary" [disabled]="providerForm.invalid">Registrieren</button>
+        </div>
+      </form>
+    </div>
+  </div>

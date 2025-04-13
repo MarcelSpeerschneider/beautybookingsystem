@@ -1,6 +1,8 @@
 export {}
 
 export interface Appointment {
+serviceName: any;
+customerName: any;
     appointmentId: string;
     customerId: string;
     providerId: string;

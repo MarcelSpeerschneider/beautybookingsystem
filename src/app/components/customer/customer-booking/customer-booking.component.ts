@@ -20,7 +20,7 @@ import { Observable, of, Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
 })
-export class CustomerBookingComponent implements OnInit, OnDestroy {
+export class CustomerBookingComponent implements OnInit, OnDestroy{
   currentStep = 1;
   bookingForm: FormGroup;  // ACHTUNG: Kein ! mehr, da wir es im Konstruktor initialisieren
   services: Service[] = [];
