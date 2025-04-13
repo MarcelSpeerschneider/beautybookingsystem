@@ -1,0 +1,124 @@
+<div class="container">
+    <div class="provider-header" *ngIf="provider">
+      <div class="logo-container">
+        <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
+        <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
+        <div class="brand">
+          <h1>{{ provider.businessName }}</h1>
+          <p>Online Termin buchen</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="stepper">
+      <div class="step completed">
+        <div class="step-number">✓</div>
+        <div class="step-label">Dienstleistung</div>
+      </div>
+      <div class="step completed">
+        <div class="step-number">✓</div>
+        <div class="step-label">Termin</div>
+      </div>
+      <div class="step active">
+        <div class="step-number">3</div>
+        <div class="step-label">Kontakt</div>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-label">Bestätigung</div>
+      </div>
+    </div>
+    
+    <div class="booking-summary">
+      <h3 class="summary-title">Buchungsübersicht</h3>
+      
+      <div *ngFor="let item of cartItems" class="summary-item">
+        <div class="summary-label">{{ item.name }}</div>
+        <div class="summary-details">
+          <span class="summary-duration">{{ formatDuration(item.duration) }}</span>
+          <span class="summary-price">{{ formatPrice(item.price) }}</span>
+        </div>
+      </div>
+      
+      <div class="summary-time" *ngIf="selectedDate && selectedTime">
+        <div class="summary-label">Termin</div>
+        <div class="summary-details">
+          <span>{{ formatDate(selectedDate) }} um {{ selectedTime }} Uhr</span>
+        </div>
+      </div>
+      
+      <div class="summary-total">
+        <div class="summary-label">Gesamt</div>
+        <div class="summary-details">
+          <span class="summary-duration">{{ formatDuration(totalDuration) }}</span>
+          <span class="summary-price">{{ formatPrice(totalPrice) }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="contact-form-container">
+      <h2 class="section-title">Ihre Kontaktdaten</h2>
+      
+      <form [formGroup]="contactForm" (ngSubmit)="onSubmit()">
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="firstName">Vorname <span class="required">*</span></label>
+            <input type="text" id="firstName" formControlName="firstName" required>
+            <div *ngIf="contactForm.get('firstName')?.invalid && contactForm.get('firstName')?.touched" class="error-message">
+              Vorname ist erforderlich
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="lastName">Nachname <span class="required">*</span></label>
+            <input type="text" id="lastName" formControlName="lastName" required>
+            <div *ngIf="contactForm.get('lastName')?.invalid && contactForm.get('lastName')?.touched" class="error-message">
+              Nachname ist erforderlich
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="email">E-Mail <span class="required">*</span></label>
+            <input type="email" id="email" formControlName="email" required>
+            <div *ngIf="contactForm.get('email')?.invalid && contactForm.get('email')?.touched" class="error-message">
+              Gültige E-Mail-Adresse erforderlich
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="phone">Telefon <span class="required">*</span></label>
+            <input type="tel" id="phone" formControlName="phone" required>
+            <div *ngIf="contactForm.get('phone')?.invalid && contactForm.get('phone')?.touched" class="error-message">
+              Telefonnummer ist erforderlich
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="notes">Anmerkungen</label>
+          <textarea id="notes" formControlName="notes" rows="4"></textarea>
+        </div>
+        
+        <div class="form-notice">
+          <p>
+            Mit dem Absenden der Buchung stimmen Sie unseren
+            <a href="#" target="_blank">AGB</a> und
+            <a href="#" target="_blank">Datenschutzbestimmungen</a> zu.
+          </p>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="back-btn" (click)="goBack()">
+            <span class="arrow-left">←</span>
+            Zurück
+          </button>
+          <button type="submit" class="confirm-btn" [disabled]="contactForm.invalid">
+            Buchung bestätigen
+            <span class="arrow-right">→</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>

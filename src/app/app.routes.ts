@@ -12,20 +12,27 @@ import { ProviderDashboardComponent } from './components/provider/provider-dashb
 // Public Booking Flow
 import { PublicServiceListComponent } from './components/public/public-service-list/public-service-list.component';
 import { AppointmentSelectionComponent } from './components/public/appointment-selection/appointment-selection.component';
-
+import { PublicProviderComponent } from './components/public/public-provider/public-provider.component';
+import { BookingConfirmationComponent } from './components/public/booking-confirmation/booking-confirmation.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/customer-login', pathMatch: 'full' },
+  
+  // Customer routes
   { path: 'customer-login', component: CustomerLoginComponent },
   { path: 'customer-register', component: CustomerRegisterComponent },
   { path: 'customer-profile', component: CustomerProfileComponent, canActivate: [AuthGuard] },
   { path: 'customer-booking', component: CustomerBookingComponent, canActivate: [AuthGuard] },
 
-    // Provider routes
-    { path: 'provider-registration', component: ProviderRegistrationComponent },
-    { path: 'provider-dashboard', component: ProviderDashboardComponent, canActivate: [AuthGuard] },
-    
-    // Public booking flow
-    { path: 'services/:providerId', component: PublicServiceListComponent },
-    { path: 'appointment-selection/:providerId', component: AppointmentSelectionComponent },
+  // Provider routes
+  { path: 'provider-registration', component: ProviderRegistrationComponent },
+  { path: 'provider-dashboard', component: ProviderDashboardComponent, canActivate: [AuthGuard] },
+  
+  // Public booking flow
+  { path: 'services/:providerId', component: PublicServiceListComponent },
+  { path: 'appointment-selection/:providerId', component: AppointmentSelectionComponent },
+  { path: 'booking-confirmation', component: BookingConfirmationComponent },
+  
+  // Provider public page - this should be the last route to avoid conflicts
+  { path: ':businessName', component: PublicProviderComponent }
 ];

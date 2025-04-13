@@ -1,0 +1,201 @@
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+  
+  .logo-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .logo {
+    width: 80px;
+    height: 80px;
+    background-color: #f8e6ff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4a148c;
+    font-weight: bold;
+    margin-right: 20px;
+    font-size: 2rem;
+  }
+  
+  .brand {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .brand h1 {
+    color: #333;
+    margin-bottom: 5px;
+  }
+  
+  .brand p {
+    color: #666;
+  }
+  
+  .login-btn, .profile-btn {
+    background-color: #4a148c;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    transition: background-color 0.3s;
+  }
+  
+  .login-btn:hover, .profile-btn:hover {
+    background-color: #6a1b9a;
+  }
+  
+  .provider-info {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  
+  .provider-description {
+    margin-bottom: 15px;
+    line-height: 1.6;
+  }
+  
+  .provider-details, .provider-times {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  
+  .booking-container {
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+    text-align: center;
+  }
+  
+  .welcome-title {
+    color: #4a148c;
+    margin-bottom: 10px;
+  }
+  
+  .welcome-text {
+    color: #666;
+    margin-bottom: 30px;
+  }
+  
+  .features {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 30px;
+  }
+  
+  .feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .feature-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+  
+  .feature-text {
+    color: #666;
+  }
+  
+  .booking-btn {
+    background-color: #4a148c;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    transition: background-color 0.3s;
+  }
+  
+  .booking-btn:hover {
+    background-color: #6a1b9a;
+  }
+  
+  .arrow {
+    margin-left: 10px;
+  }
+  
+  .section-title {
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .services-preview {
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+  }
+  
+  .specialties {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .specialty {
+    background-color: #f8e6ff;
+    color: #4a148c;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+  }
+  
+  .reviews-container {
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  
+  .reviews-placeholder {
+    text-align: center;
+    color: #888;
+    padding: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    .features {
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .login-btn, .profile-btn {
+      margin-top: 20px;
+      align-self: flex-end;
+    }
+  }

@@ -1,0 +1,68 @@
+<div class="container" *ngIf="provider">
+    <div class="header">
+      <div class="logo-container">
+        <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
+        <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
+        <div class="brand">
+          <h1>{{ provider.businessName }}</h1>
+          <p>Online Termin buchen</p>
+        </div>
+      </div>
+      <button class="login-btn" *ngIf="!isLoggedIn" (click)="login()">Login</button>
+      <a class="profile-btn" *ngIf="isLoggedIn" routerLink="/customer-profile">Mein Profil</a>
+    </div>
+    
+    <div class="provider-info">
+      <div class="provider-description">
+        <p>{{ provider.description }}</p>
+      </div>
+      <div class="provider-details" *ngIf="provider.address">
+        <p><strong>Adresse:</strong> {{ provider.address }}</p>
+      </div>
+      <div class="provider-times">
+        <p><strong>Öffnungszeiten:</strong> {{ provider.openingHours }}</p>
+      </div>
+    </div>
+    
+    <div class="booking-container">
+      <h2 class="welcome-title">Willkommen bei {{ provider.businessName }}</h2>
+      <p class="welcome-text">Buchen Sie einfach und schnell Ihren Wunschtermin online!</p>
+      
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">🕒</div>
+          <div class="feature-text">Termine 24/7 buchen</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📅</div>
+          <div class="feature-text">Aktuelle Verfügbarkeit</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📱</div>
+          <div class="feature-text">Termin-Erinnerungen</div>
+        </div>
+      </div>
+      
+      <button class="booking-btn" (click)="viewServices()">
+        Termin buchen
+        <span class="arrow">→</span>
+      </button>
+    </div>
+    
+    <div class="services-preview" *ngIf="provider.specialties && provider.specialties.length > 0">
+      <h2 class="section-title">Unsere Spezialitäten</h2>
+      <div class="specialties">
+        <div class="specialty" *ngFor="let specialty of provider.specialties">
+          {{ specialty }}
+        </div>
+      </div>
+    </div>
+    
+    <div class="reviews-container">
+      <h2 class="section-title">Das sagen unsere Kunden</h2>
+      
+      <div class="reviews-placeholder">
+        <p>Bewertungen werden geladen...</p>
+      </div>
+    </div>
+  </div>
