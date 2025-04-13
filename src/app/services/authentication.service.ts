@@ -19,8 +19,8 @@ export class AuthenticationService {
     return response;
   }
 
-  login({ email, password }: any) {
-    return signInWithEmailAndPassword(this.auth, email, password);
+  login({ email, password }: any): Promise<any> {
+    return new Promise((resolve, reject) => signInWithEmailAndPassword(this.auth, email, password).then(resolve).catch(reject))
   }
 
   logout() {

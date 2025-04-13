@@ -12,7 +12,8 @@
       <div class="step" [ngClass]="{'active': currentStep === 5}">5. Bestätigen</div>
     </div>
   
-    <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()">
+    <!-- Formular nur anzeigen wenn es initialisiert ist -->
+    <form *ngIf="bookingForm" [formGroup]="bookingForm" (ngSubmit)="onSubmit()">
       <!-- Schritt 1: Service-Auswahl -->
       <div class="service-selection" *ngIf="currentStep === 1">
         <h2>Wählen Sie einen Service</h2>
@@ -33,7 +34,7 @@
           <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('serviceId')?.valid" (click)="nextStep()">Weiter</button>
         </div>
       </div>
-  
+
       <!-- Schritt 2: Anbieter-Auswahl -->
       <div class="provider-selection" *ngIf="currentStep === 2">
         <h2>Wählen Sie einen Anbieter</h2>

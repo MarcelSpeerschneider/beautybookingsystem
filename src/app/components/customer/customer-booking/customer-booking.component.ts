@@ -20,7 +20,7 @@ import { Observable, of } from 'rxjs';
 })
 export class CustomerBookingComponent implements OnInit {
   currentStep = 1;
-  bookingForm!: FormGroup;
+  bookingForm: FormGroup;  // ACHTUNG: Kein ! mehr, da wir es im Konstruktor initialisieren
   services: Service[] = [];
   providers: Provider[] = [];
   availableDates: Date[] = [];
@@ -34,23 +34,29 @@ export class CustomerBookingComponent implements OnInit {
   private providerService = inject(ProviderService);
   private router = inject(Router);
 
+  constructor() {
+    // Formular bereits im Konstruktor initialisieren - VOR dem Template-Rendering
+    this.bookingForm = this.formBuilder.group({
+      serviceId: ['', Validators.required],
+      providerId: ['', Validators.required],
+      date: ['', Validators.required],
+      time: ['', Validators.required],
+      notes: ['']
+    });
+  }
+
   ngOnInit(): void {
-      // Formular initialisieren
-      this.bookingForm = this.formBuilder.group({
-          serviceId: ['', Validators.required],
-          providerId: ['', Validators.required],
-          date: ['', Validators.required],
-          time: ['', Validators.required],
-          notes: ['']
-      });
-      // Überprüfen, ob der Benutzer angemeldet ist
+    
+    console.log("User: ", this.authService.getUser());
+    
+    // Überprüfen, ob der Benutzer angemeldet ist
     if (!this.authService.getUser()) {
+      console.log("User not logged in. Redirecting to login.");
       this.router.navigate(['/login']);
       return;
-    }    
-
-   
-    // Dienstleistungen laden
+    } else {
+      console.log("User logged in.");
+    }
     this.loadServices();
   }
 
