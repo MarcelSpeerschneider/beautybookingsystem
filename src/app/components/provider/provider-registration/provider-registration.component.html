@@ -1,6 +1,6 @@
 <div class="registration-container">
     <h2>Dienstleister-Registrierung</h2>
-    
+  
     <div class="stepper">
       <div class="step" [ngClass]="{'active': step === 1, 'completed': step > 1}">
         <div class="step-number">{{step > 1 ? '✓' : '1'}}</div>
@@ -11,7 +11,10 @@
         <div class="step-label">Geschäftsinformationen</div>
       </div>
     </div>
-    
+  
+    <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+    <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  
     <!-- Step 1: Authentication -->
     <div *ngIf="step === 1" class="form-container">
       <form [formGroup]="authForm" (ngSubmit)="nextStep()">
@@ -22,7 +25,7 @@
             Bitte geben Sie eine gültige E-Mail-Adresse ein.
           </div>
         </div>
-        
+  
         <div class="form-group">
           <label for="password">Passwort <span class="required">*</span></label>
           <input type="password" id="password" formControlName="password" required>
@@ -30,7 +33,7 @@
             Passwort muss mindestens 6 Zeichen enthalten.
           </div>
         </div>
-        
+  
         <div class="form-group">
           <label for="confirmPassword">Passwort bestätigen <span class="required">*</span></label>
           <input type="password" id="confirmPassword" formControlName="confirmPassword" required>
@@ -38,17 +41,17 @@
             Passwörter stimmen nicht überein.
           </div>
         </div>
-        
+  
         <div class="form-actions">
           <button type="submit" class="btn btn-primary" [disabled]="authForm.invalid">Weiter</button>
         </div>
-        
+  
         <div class="login-link">
           Bereits registriert? <a routerLink="/provider-login">Hier anmelden</a>
         </div>
       </form>
     </div>
-    
+  
     <!-- Step 2: Provider Information -->
     <div *ngIf="step === 2" class="form-container">
       <form [formGroup]="providerForm" (ngSubmit)="onSubmit()">
@@ -60,7 +63,7 @@
               Bitte geben Sie Ihren Vornamen ein.
             </div>
           </div>
-          
+  
           <div class="form-group">
             <label for="lastName">Nachname <span class="required">*</span></label>
             <input type="text" id="lastName" formControlName="lastName" required>
@@ -69,7 +72,7 @@
             </div>
           </div>
         </div>
-        
+  
         <div class="form-group">
           <label for="phone">Telefonnummer <span class="required">*</span></label>
           <input type="tel" id="phone" formControlName="phone" required>
@@ -77,7 +80,7 @@
             Bitte geben Sie eine gültige Telefonnummer ein.
           </div>
         </div>
-        
+  
         <div class="form-group">
           <label for="businessName">Geschäftsname <span class="required">*</span></label>
           <input type="text" id="businessName" formControlName="businessName" required>
@@ -85,7 +88,7 @@
             Bitte geben Sie einen Geschäftsnamen ein.
           </div>
         </div>
-        
+  
         <div class="form-group">
           <label for="description">Beschreibung <span class="required">*</span></label>
           <textarea id="description" formControlName="description" rows="4" required></textarea>
@@ -95,41 +98,92 @@
         </div>
         
         <div class="form-group">
-          <label for="address">Adresse</label>
-          <input type="text" id="address" formControlName="address">
+          <label for="street">Straße:</label>
+          <input type="text" id="street" formControlName="street" class="form-control">
         </div>
-        
-        <div class="form-group-row">
-          <div class="form-group">
-            <label for="website">Website</label>
-            <input type="text" id="website" formControlName="website">
-          </div>
-          
-          <div class="form-group">
-            <label for="instagram">Instagram</label>
-            <input type="text" id="instagram" formControlName="instagram">
-          </div>
+  
+        <div class="form-group">
+          <label for="zip">PLZ:</label>
+          <input type="text" id="zip" formControlName="zip" class="form-control">
         </div>
-        
+  
+        <div class="form-group">
+          <label for="city">Ort:</label>
+          <input type="text" id="city" formControlName="city" class="form-control">
+        </div>
+  
+        <div class="form-group">
+          <label for="logo">Logo URL:</label>
+          <input type="text" id="zip" formControlName="zip" class="form-control">
+        </div>
+  
+        <div class="form-group">
+          <label for="website">Webseite</label>
+          <input type="text" id="website" formControlName="website">
+        </div>
+  
+        <div class="form-group">
+          <label for="instagram">Instagram</label>
+          <input type="text" id="instagram" formControlName="instagram">
+        </div>
+  
         <div class="form-group">
           <label for="facebook">Facebook</label>
           <input type="text" id="facebook" formControlName="facebook">
         </div>
-        
+  
+        <div class="form-group">
+          <label for="openingHours">Öffnungszeiten</label>
+          
+          <div class="business-hours-container">
+            <div class="business-hours-header">
+              <div class="day-column">Tag</div>
+              <div class="time-column">Öffnungszeit</div>
+              <div class="time-column">Schließzeit</div>
+              <div class="closed-column">Geschlossen</div>
+            </div>
+            
+            <div class="business-hours-row" *ngFor="let day of businessDays">
+              <div class="day-column">{{ day.label }}</div>
+              
+              <div class="time-column">
+                <select [disabled]="day.closed" [(ngModel)]="day.openTime" [ngModelOptions]="{standalone: true}">
+                  <option *ngFor="let time of timeSlots" [value]="time">{{ time }}</option>
+                </select>
+              </div>
+              
+              <div class="time-column">
+                <select [disabled]="day.closed" [(ngModel)]="day.closeTime" [ngModelOptions]="{standalone: true}">
+                  <option *ngFor="let time of timeSlots" [value]="time">{{ time }}</option>
+                </select>
+              </div>
+              
+              <div class="closed-column">
+                <input type="checkbox" [(ngModel)]="day.closed" [ngModelOptions]="{standalone: true}" (change)="updateClosedStatus(day)">
+              </div>
+            </div>
+          </div>
+          
+          <div class="business-hours-preview">
+            <p><strong>Vorschau:</strong></p>
+            <p>{{ formatBusinessHours() }}</p>
+          </div>
+        </div>
+
         <div class="form-group">
           <label for="specialties">Spezialisierungen (durch Komma getrennt)</label>
           <input type="text" id="specialties" formControlName="specialties" placeholder="z.B. Maniküre, Pediküre, Wimpernverlängerung">
         </div>
-        
+  
         <div class="form-group checkbox-group">
           <input type="checkbox" id="acceptsOnlinePayments" formControlName="acceptsOnlinePayments">
           <label for="acceptsOnlinePayments">Online-Zahlungen akzeptieren</label>
         </div>
-        
+  
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" (click)="previousStep()">Zurück</button>
           <button type="submit" class="btn btn-primary" [disabled]="providerForm.invalid">Registrieren</button>
         </div>
       </form>
     </div>
-  </div>
+  </div>  

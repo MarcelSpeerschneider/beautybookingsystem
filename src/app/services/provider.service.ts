@@ -129,7 +129,7 @@ export class ProviderService {
         });
     }
     
-    addProvider(provider: Partial<Provider>): Promise<DocumentReference> {
+    addProvider(provider: Partial<Provider>): Promise<DocumentReference> { 
         return this.ngZone.run(async () => {
             try {
                 console.log('Creating new provider:', provider);

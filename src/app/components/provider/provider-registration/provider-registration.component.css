@@ -197,3 +197,79 @@
   .login-link a:hover {
     text-decoration: underline;
   }
+
+  /* Add these styles to your provider-registration.component.css */
+
+.business-hours-container {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 15px;
+  }
+  
+  .business-hours-header {
+    display: flex;
+    background-color: #f5f5f5;
+    padding: 10px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .business-hours-row {
+    display: flex;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+  }
+  
+  .business-hours-row:last-child {
+    border-bottom: none;
+  }
+  
+  .business-hours-row:nth-child(even) {
+    background-color: #fafafa;
+  }
+  
+  .day-column {
+    flex: 1;
+    min-width: 100px;
+  }
+  
+  .time-column {
+    flex: 1;
+    padding: 0 10px;
+  }
+  
+  .time-column select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .time-column select:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+  }
+  
+  .closed-column {
+    flex: 0 0 80px;
+    text-align: center;
+  }
+  
+  .closed-column input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .business-hours-preview {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+  
+  .business-hours-preview p {
+    margin: 0;
+  }

@@ -176,4 +176,12 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
         }
       });
   }
+
+  logout(): void {
+    this.authService.logout()
+      .then(() => {
+        this.router.navigate(['/home']);
+      });
+  }
+
 }
