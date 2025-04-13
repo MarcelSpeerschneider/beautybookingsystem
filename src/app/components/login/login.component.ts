@@ -1,23 +1,25 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthenticationService } from '../../services/authentication.service';
+import { CommonModule } from '@angular/common';
+import { LoadingService } from '../../services/loading.service';
 
 @Component({
   selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css'],
-  imports: [ReactiveFormsModule],
-  standalone: true
+  styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit {
   loginForm!: FormGroup;
-
-  constructor(
-    private formBuilder: FormBuilder,
-    private router: Router,
-    private authService: AuthenticationService
-  ) {}
+  error: string | null = null;
+  
+  private formBuilder = inject(FormBuilder);
+  private router = inject(Router);
+  private authService = inject(AuthenticationService);
+  private loadingService = inject(LoadingService);
 
   ngOnInit(): void {
     this.loginForm = this.formBuilder.group({
@@ -28,13 +30,26 @@ export class LoginComponent implements OnInit {
 
   onSubmit(): void {
     if (this.loginForm.valid) {
+      this.error = null;
       const { email, password } = this.loginForm.value;
+      
       this.authService.login({email, password})
         .then(() => {
-          this.router.navigate(['/profile']);
+          // Nach dem Login prüfen, ob eine Weiterleitungs-URL in sessionStorage vorhanden ist
+          const redirectUrl = sessionStorage.getItem('redirectUrl') || '/profile';
+          console.log('Login successful, redirecting to:', redirectUrl);
+          
+          // Verzögerung hinzufügen, um sicherzustellen, dass Customer-Daten geladen sind
+          setTimeout(() => {
+            this.loadingService.setLoading(false);
+            this.router.navigateByUrl(redirectUrl);
+            // Weiterleitungs-URL aus sessionStorage entfernen
+            sessionStorage.removeItem('redirectUrl');
+          }, 500);
         })
         .catch((error) => {
-          alert('Login failed: ' + error.message);
+          this.error = 'Anmeldung fehlgeschlagen: ' + error.message;
+          console.error('Login failed:', error);
         });
     }
   }

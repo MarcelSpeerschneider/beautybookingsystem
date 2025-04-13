@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,8 +8,10 @@ import { AuthenticationService } from '../../../services/authentication.service'
 import { ProviderService } from '../../../services/provider.service';
 import { Service } from '../../../models/service.model';
 import { Provider } from '../../../models/provider.model';
-import { Appointment } from '../../../models/appointment.model';
-import { Observable, of } from 'rxjs';
+import { User, updateProfile } from '@angular/fire/auth';
+import { Customer } from '../../../models/customer.model';
+import { Appointment } from '../../../models/appointment.model'; 
+import { Observable, of, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-customer-booking',
@@ -18,7 +20,7 @@ import { Observable, of } from 'rxjs';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
 })
-export class CustomerBookingComponent implements OnInit {
+export class CustomerBookingComponent implements OnInit, OnDestroy {
   currentStep = 1;
   bookingForm: FormGroup;  // ACHTUNG: Kein ! mehr, da wir es im Konstruktor initialisieren
   services: Service[] = [];
@@ -34,6 +36,10 @@ export class CustomerBookingComponent implements OnInit {
   private providerService = inject(ProviderService);
   private router = inject(Router);
 
+  private userSubscription: Subscription | undefined;
+  private _customer: Customer | null = null;
+  private _user: User | null = null;
+
   constructor() {
     // Formular bereits im Konstruktor initialisieren - VOR dem Template-Rendering
     this.bookingForm = this.formBuilder.group({
@@ -47,17 +53,29 @@ export class CustomerBookingComponent implements OnInit {
 
   ngOnInit(): void {
     
-    console.log("User: ", this.authService.getUser());
+      this.userSubscription = this.authService.user.subscribe((userWithCustomer) => {
+      if (!userWithCustomer.user || !userWithCustomer.customer) {
+        this._user = null;
+        this._customer = null;
+        console.log("User not logged in. Redirecting to login.");
+        this.router.navigate(["/login"]); 
+        return;
+      } else {
+        console.log("User logged in.");
+        this._user = userWithCustomer.user;
+        this._customer = userWithCustomer.customer
+        console.log('customer found: ', this._customer);
+
+      }
+      this.loadServices();
+
+
+    });
     
-    // Überprüfen, ob der Benutzer angemeldet ist
-    if (!this.authService.getUser()) {
-      console.log("User not logged in. Redirecting to login.");
-      this.router.navigate(['/login']);
-      return;
-    } else {
-      console.log("User logged in.");
-    }
-    this.loadServices();
+  }
+
+  ngOnDestroy(): void {
+    this.userSubscription?.unsubscribe();
   }
 
   loadServices(): void {
@@ -155,8 +173,7 @@ export class CustomerBookingComponent implements OnInit {
 
   onSubmit(): void {
     if (this.bookingForm.valid) {
-      const userId = this.authService.getUser()?.uid;
-      if (!userId) {
+      if (!this._user?.uid) {
         console.error('Kein Benutzer angemeldet');
         return;
       }
@@ -184,7 +201,7 @@ export class CustomerBookingComponent implements OnInit {
       const cleaningTime = 15;
       
       const appointment: Partial<Appointment> = {
-        customerId: userId,
+        customerId: this._user.uid,
         providerId: formValues.providerId,
         serviceId: formValues.serviceId,
         startTime: dateObj,

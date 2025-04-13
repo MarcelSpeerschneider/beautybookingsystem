@@ -43,15 +43,18 @@ export class RegisterComponent implements OnInit {
   onSubmit(): void {
     if (this.registerForm.valid) {
       const { firstName, lastName, phone, email, password } = this.registerForm.value;
-      const user: UserWithData = {firstName, lastName, phone, email, password}
         if(password === this.registerForm.get('passwordAgain')?.value) {
-          this.authService.register(user)
+          this.authService.register({ firstName, lastName, phone, email, password })
             .then(() => {
-              this.router.navigate(['/customer-booking']);
+              this.router.navigate(['/customer-booking']); // Corrected from /costumer-booking
             })
             .catch((error) => {
-              console.error('Registration failed: ', error);
-              alert('Registration failed: ' + error.message);
+              console.error('Registration failed: ', error);   
+              if(error.code === 'auth/email-already-in-use'){
+                alert('The email address is already in use');
+              } else {
+                alert('Registration failed: ' + error.message);
+              }
             });
         } else {
           alert("The passwords are not the same")

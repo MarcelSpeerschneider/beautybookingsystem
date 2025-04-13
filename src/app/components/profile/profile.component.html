@@ -1,10 +1,10 @@
 <div class="profile-container">
   <h2>Profile</h2>
-  <div class="profile-info">
-    <p><strong>Name:</strong> {{ user?.firstName }} {{ user?.lastName }}</p>
-    <p><strong>Email:</strong> {{ user?.email }}</p>
-    <p><strong>Role:</strong> {{ user?.role }}</p>
-    <p><strong>Subscription Status:</strong> {{ user?.subscriptionStatus }}</p>
-  </div>
+    <div *ngIf="isLoading" class="loading-message">Loading...</div>
+    <div *ngIf="!isLoading" class="profile-info">
+        <p><strong>Name:</strong> {{ customer?.firstName }} {{ customer?.lastName }}</p>
+        <p><strong>Email:</strong> {{ customer?.email }}</p>
+        <p><strong>Phone Number:</strong> {{ customer?.phone }}</p>
+    </div>
   <button (click)="editProfile()">Edit Profile</button>
 </div>
