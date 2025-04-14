@@ -105,15 +105,22 @@ export class AppointmentService {
         });
     }
 
+    // FIXED: Make sure we're querying with the correct field name
     getAppointmentsByUser(userId: string): Observable<Appointment[]> {
         return new Observable<Appointment[]>(observer => {
             this.ngZone.run(() => {
                 try {
+                    console.log("AppointmentService: Getting appointments for user ID:", userId);
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    const q = query(appointmentsCollection, where('userId', '==', userId));
+                    // IMPORTANT: Use 'customerId' here, not 'userId'
+                    const q = query(appointmentsCollection, where('customerId', '==', userId));
                     collectionData(q, { idField: 'appointmentId' }).pipe(
-                        map(data => data as Appointment[]),
+                        map(data => {
+                            console.log("AppointmentService: Raw results:", data);
+                            return data as Appointment[];
+                        }),
                         catchError(error => {
+                            console.error(`Error fetching appointments for user ${userId}:`, error);
                             return of([]);
                         })
                     ).subscribe({
@@ -122,7 +129,7 @@ export class AppointmentService {
                         complete: () => observer.complete()
                     });
                 } catch (error) {
-                    console.error('Error in getAppointmentsByProvider:', error);
+                    console.error('Error in getAppointmentsByUser:', error);
                     observer.next([]);
                     observer.complete();
                 }
@@ -135,7 +142,8 @@ export class AppointmentService {
             this.ngZone.run(() => {
                 try {
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    const q = query(appointmentsCollection, where('userId', '==', userId));
+                    // FIXED: Use 'customerId' here as well
+                    const q = query(appointmentsCollection, where('customerId', '==', userId));
                     collectionData(q, { idField: 'appointmentId' }).pipe(
                         map(data => {
                             const appointments = data as Appointment[];
@@ -176,6 +184,7 @@ export class AppointmentService {
             });
         });
     }
+    
     getAvailableAppointments(userId: string, date: Date, serviceId: string): Observable<Appointment[]> {
         return this.ngZone.run(() => {
             // TODO: Implementieren Sie die Logik für verfügbare Termine

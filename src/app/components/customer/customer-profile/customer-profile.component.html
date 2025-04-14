@@ -1,20 +1,144 @@
 <div class="profile-container">
-    <h2>Profile</h2>
-    <div *ngIf="isLoading" class="loading-message">Loading...</div>
-    <div *ngIf="!isLoading" class="profile-info">
-        <p><strong>Name:</strong> {{ customer?.firstName }} {{ customer?.lastName }}</p>
-        <p><strong>Email:</strong> {{ customer?.email }}</p>
-        <div *ngIf="!isEditing; else editPhone">
-          <p><strong>Phone Number:</strong> {{ customer?.phone }}</p>
-        </div>
-        <ng-template #editPhone>
-          <div class="edit-phone">
-              <label for="phone">Phone Number:</label>
-              <input type="text" id="phone" name="phone" [(ngModel)]="editedPhone">
-          </div>
-        </ng-template>
+  <div class="profile-header">
+    <div class="profile-info">
+      <div class="profile-avatar">
+        <div class="avatar-placeholder" *ngIf="customer">{{ getInitials() }}</div>
+      </div>
+      <div class="profile-details">
+        <h2 class="profile-name" *ngIf="customer">{{ customer.firstName }} {{ customer.lastName }}</h2>
+        <p class="profile-email" *ngIf="customer">{{ customer.email }}</p>
+        <p class="profile-phone" *ngIf="customer">{{ customer.phone }}</p>
+      </div>
     </div>
-    <button *ngIf="!isEditing" (click)="editProfile()">Edit Phone</button>
-    <button *ngIf="isEditing" (click)="saveChanges()">Save Changes</button>
+    <div class="profile-actions">
+      <button class="edit-btn" (click)="editProfile()">
+        <span class="btn-icon">✎</span>
+        Profil bearbeiten
+      </button>
+      <button class="logout-btn" (click)="logout()">
+        <span class="btn-icon">↪</span>
+        Abmelden
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading indicator -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-spinner"></div>
+    <p>Daten werden geladen...</p>
+  </div>
+
+  <!-- Profile edit form (shown when editing) -->
+  <div class="profile-edit-form" *ngIf="isEditing && !isLoading">
+    <h3>Profil bearbeiten</h3>
+    <div class="form-group">
+      <label for="phone">Telefonnummer</label>
+      <input type="text" id="phone" name="phone" [(ngModel)]="editedPhone">
+    </div>
+    <div class="form-actions">
+      <button class="cancel-btn" (click)="isEditing = false">Abbrechen</button>
+      <button class="save-btn" (click)="saveChanges()">Speichern</button>
+    </div>
+  </div>
+
+  <!-- Upcoming appointments section -->
+  <div class="appointments-section upcoming-appointments" *ngIf="!isLoading && upcomingAppointments.length > 0">
+    <h3 class="section-title">
+      <span class="title-icon">📅</span>
+      Bevorstehende Termine
+    </h3>
     
-    <button (click)="logout()">Logout</button>
+    <div class="appointment-cards">
+      <div class="appointment-card" *ngFor="let appointment of upcomingAppointments">
+        <div class="appointment-status {{ appointment.status }}">
+          <span class="status-icon">{{ getStatusIcon(appointment.status) }}</span>
+          <span class="status-text">{{ getStatusText(appointment.status) }}</span>
+        </div>
+        <div class="appointment-header">
+          <div class="appointment-service">{{ appointment.serviceName }}</div>
+          <div class="appointment-price">{{ calculatePrice(appointment) }} €</div>
+        </div>
+        <div class="appointment-datetime">
+          <div class="appointment-date">
+            <span class="date-icon">📆</span>
+            {{ formatDate(appointment.startTime) }}
+          </div>
+          <div class="appointment-time">
+            <span class="time-icon">🕒</span>
+            {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}
+          </div>
+        </div>
+        <div class="appointment-provider" *ngIf="appointment.providerName">
+          <span class="provider-icon">💼</span>
+          {{ appointment.providerName }}
+        </div>
+        <div class="appointment-actions">
+          <button class="cancel-appointment-btn" *ngIf="canCancelAppointment(appointment)" (click)="cancelAppointment(appointment)">
+            Termin stornieren
+          </button>
+          <button class="reschedule-btn" *ngIf="canRescheduleAppointment(appointment)" (click)="rescheduleAppointment(appointment)">
+            Termin verschieben
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="no-appointments" *ngIf="!isLoading && upcomingAppointments.length === 0">
+    <div class="empty-state">
+      <div class="empty-icon">📅</div>
+      <h3>Keine bevorstehenden Termine</h3>
+      <p>Sie haben derzeit keine bevorstehenden Termine.</p>
+    </div>
+  </div>
+
+  <!-- Past appointments section -->
+  <div class="appointments-section past-appointments" *ngIf="!isLoading && pastAppointments.length > 0">
+    <h3 class="section-title">
+      <span class="title-icon">📚</span>
+      Vergangene Termine
+    </h3>
+    
+    <div class="appointment-list">
+      <div class="appointment-list-item" *ngFor="let appointment of pastAppointments">
+        <div class="appointment-list-date">{{ formatDate(appointment.startTime) }}</div>
+        <div class="appointment-list-time">{{ formatTime(appointment.startTime) }}</div>
+        <div class="appointment-list-service">{{ appointment.serviceName || 'Unbekannter Service' }}</div>
+        <div class="appointment-list-status {{ appointment.status }}">
+          {{ getStatusText(appointment.status) }}
+        </div>
+        <div class="appointment-list-actions">
+          <button class="review-btn" *ngIf="canReviewAppointment(appointment)" (click)="reviewAppointment(appointment)">
+            Bewerten
+          </button>
+          <button class="rebook-btn" (click)="rebookAppointment(appointment)">
+            Erneut buchen
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics section -->
+  <div class="statistics-section" *ngIf="!isLoading && pastAppointments.length > 0">
+    <h3 class="section-title">
+      <span class="title-icon">📊</span>
+      Ihre Statistik
+    </h3>
+    
+    <div class="statistics-cards">
+      <div class="statistic-card">
+        <div class="statistic-value">{{ totalAppointments }}</div>
+        <div class="statistic-label">Gebuchte Termine</div>
+      </div>
+      <div class="statistic-card">
+        <div class="statistic-value">{{ formatCurrency(totalSpent) }}</div>
+        <div class="statistic-label">Gesamtausgaben</div>
+      </div>
+      <div class="statistic-card">
+        <div class="statistic-value">{{ favoriteService }}</div>
+        <div class="statistic-label">Beliebteste Behandlung</div>
+      </div>
+    </div>
+  </div>
+</div>

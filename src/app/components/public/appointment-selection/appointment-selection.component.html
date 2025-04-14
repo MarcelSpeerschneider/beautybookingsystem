@@ -1,15 +1,16 @@
 <div class="appointment-container">
-    <div class="provider-header" *ngIf="provider">
-      <div class="logo-container">
-        <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
-        <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
-        <div class="brand">
-          <h1>{{ provider.businessName }}</h1>
-          <p>Online Termin buchen</p>
-        </div>
+  <div class="provider-header" *ngIf="provider">
+    <div class="logo-container">
+      <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
+      <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
+      <div class="brand">
+        <h1>{{ provider.businessName }}</h1>
+        <p>Online Termin buchen</p>
       </div>
     </div>
-    
+  </div>
+  
+  <div class="booking-container">
     <div class="stepper">
       <div class="step completed">
         <div class="step-number">✓</div>
@@ -29,23 +30,17 @@
       </div>
     </div>
     
-    <div class="booking-summary">
-      <h3 class="summary-title">Ausgewählte Dienstleistungen</h3>
-      
-      <div *ngFor="let item of cartItems" class="summary-item">
-        <div class="summary-label">{{ item.name }}</div>
-        <div class="summary-details">
-          <span class="summary-duration">{{ formatDuration(item.duration) }}</span>
-          <span class="summary-price">{{ formatPrice(item.price) }}</span>
-        </div>
+    <div class="selected-service">
+      <h3>Ausgewählte Dienstleistungen</h3>
+      <div *ngFor="let item of cartItems" class="service-info">
+        <div><strong>{{ item.name }}</strong> - {{ item.description }}</div>
+        <div><strong>Dauer:</strong> {{ formatDuration(item.duration) }}</div>
+        <div><strong>Preis:</strong> {{ formatPrice(item.price) }}</div>
       </div>
-      
-      <div class="summary-total">
-        <div class="summary-label">Gesamt</div>
-        <div class="summary-details">
-          <span class="summary-duration">{{ formatDuration(getTotalDuration()) }}</span>
-          <span class="summary-price">{{ formatPrice(getTotalPrice()) }}</span>
-        </div>
+      <div *ngIf="cartItems.length > 1" class="service-info total">
+        <div><strong>Gesamt:</strong></div>
+        <div><strong>Dauer:</strong> {{ formatDuration(getTotalDuration()) }}</div>
+        <div><strong>Preis:</strong> {{ formatPrice(getTotalPrice()) }}</div>
       </div>
     </div>
     
@@ -53,45 +48,81 @@
     
     <div class="appointment-grid">
       <div class="calendar-container">
-        <h3 class="date-selection-title">Verfügbare Tage</h3>
-        <div class="dates-grid">
-          <div *ngFor="let date of availableDates" 
-              class="date-card" 
-              [class.selected]="selectedDate && selectedDate.getTime() === date.getTime()"
-              (click)="selectDate(date)">
-            {{ formatDate(date) }}
-          </div>
-        </div>
-      </div>
-      
-      <div class="times-container" *ngIf="selectedDate">
-        <h3 class="time-selection-title">Verfügbare Zeiten am {{ formatDate(selectedDate) }}</h3>
-        <div class="times-grid">
-          <div *ngFor="let time of availableTimeSlots" 
-              class="time-card" 
-              [class.selected]="selectedTime === time"
-              (click)="selectTime(time)">
-            {{ formatTime(time) }}
+        <div class="calendar-header">
+          <div class="month-title" id="month-year">{{ currentMonthYear }}</div>
+          <div class="month-nav">
+            <button id="prev-month" (click)="prevMonth()">&lt;</button>
+            <button id="next-month" (click)="nextMonth()">&gt;</button>
           </div>
         </div>
         
-        <div *ngIf="availableTimeSlots.length === 0" class="no-times">
-          <p>Keine Termine verfügbar für diesen Tag</p>
+        <div class="weekdays">
+          <div>Mo</div>
+          <div>Di</div>
+          <div>Mi</div>
+          <div>Do</div>
+          <div>Fr</div>
+          <div>Sa</div>
+          <div>So</div>
+        </div>
+        
+        <div class="calendar-days">
+          <!-- Empty cells for days before start of month -->
+          <div class="calendar-day" *ngFor="let empty of emptyDaysAtStart"></div>
+          
+          <!-- Actual days of the month -->
+          <div *ngFor="let day of daysInMonth" 
+               class="calendar-day" 
+               [class.past]="isPastDay(day)"
+               [class.today]="isToday(day)"
+               [class.unavailable]="isUnavailableDay(day)"
+               [class.selected]="isSelectedDay(day)"
+               (click)="selectCalendarDay(day)">
+            {{ day }}
+          </div>
         </div>
       </div>
       
-      <div class="instructions-container" *ngIf="!selectedDate">
-        <p>Bitte wählen Sie zuerst ein Datum</p>
+      <div class="times-container">
+        <div class="selected-date" *ngIf="selectedDate">{{ formatFullDate(selectedDate) }}</div>
+        <div class="selected-date" *ngIf="!selectedDate">Bitte wählen Sie ein Datum</div>
+        
+        <div class="slots-grid" *ngIf="selectedDate">
+          <div *ngFor="let slot of availableTimeSlots"
+               class="time-slot"
+               [class.unavailable]="isUnavailableTime(slot)"
+               [class.selected]="selectedTime === slot"
+               (click)="selectTimeSlot(slot)">
+            {{ slot }}
+          </div>
+        </div>
+        
+        <div *ngIf="selectedDate && availableTimeSlots.length === 0" class="no-times">
+          <p>Keine Termine verfügbar für diesen Tag</p>
+        </div>
+        
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color unavailable"></div>
+            <span>Nicht verfügbar</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color selected"></div>
+            <span>Ausgewählt</span>
+          </div>
+        </div>
       </div>
     </div>
-   
-    <div class="action-buttons"> 
-      <button type="button" class="back-btn" (click)="goBack()">
-          <span class="arrow-left">←</span>Zurück
+    
+    <div class="action-buttons">
+      <button class="back-btn" (click)="goBack()">
+        <span class="arrow-left">&larr;</span>
+        Zurück
       </button>
-      <button type="button" class="next-btn" [disabled]="!selectedDate || !selectedTime" (click)="navigateToBookingLogin()" >
-          Weiter <span class="arrow-right">→</span>
+      <button class="next-btn" [disabled]="!selectedDate || !selectedTime" (click)="navigateToBookingLogin()">
+        Weiter 
+        <span class="arrow-right">&rarr;</span>
       </button>
     </div>
-
   </div>
+</div>

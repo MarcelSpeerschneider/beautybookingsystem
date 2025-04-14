@@ -1,185 +1,186 @@
 <div class="container">
-    <div class="provider-header" *ngIf="provider">
-      <div class="logo-container">
-        <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
-        <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
-        <div class="brand">
-          <h1>{{ provider.businessName }}</h1>
-          <p>Online Termin buchen</p>
-        </div>
+  <div class="provider-header" *ngIf="provider">
+    <div class="logo-container">
+      <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
+      <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
+      <div class="brand">
+        <h1>{{ provider.businessName }}</h1>
+        <p>Online Termin buchen</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="booking-container" *ngIf="!showSuccessMessage">
+    <div class="stepper">
+      <div class="step completed">
+        <div class="step-number">✓</div>
+        <div class="step-label">Dienstleistung</div>
+      </div>
+      <div class="step completed">
+        <div class="step-number">✓</div>
+        <div class="step-label">Termin</div>
+      </div>
+      <div class="step completed">
+        <div class="step-number">✓</div>
+        <div class="step-label">Kontakt</div>
+      </div>
+      <div class="step active">
+        <div class="step-number">4</div>
+        <div class="step-label">Bestätigung</div>
       </div>
     </div>
     
-    <div class="booking-container" *ngIf="!showSuccessMessage">
-      <div class="stepper">
-        <div class="step completed">
-          <div class="step-number">✓</div>
-          <div class="step-label">Dienstleistung</div>
-        </div>
-        <div class="step completed">
-          <div class="step-number">✓</div>
-          <div class="step-label">Termin</div>
-        </div>
-        <div class="step completed">
-          <div class="step-number">✓</div>
-          <div class="step-label">Kontakt</div>
-        </div>
-        <div class="step active">
-          <div class="step-number">4</div>
-          <div class="step-label">Bestätigung</div>
-        </div>
-      </div>
-      
-      <div class="confirmation-card">
-        <h3 class="card-title">Fast geschafft! Bitte überprüfen Sie Ihre Buchungsdetails</h3>
-        <div class="confirmation-details">
-          <div class="detail-column">
-            <div class="detail-group">
-              <h4 class="detail-title">Dienstleistung</h4>
-              <div class="detail-item" *ngFor="let service of cartItems">
-                <div class="detail-label">Behandlung:</div>
-                <div class="detail-value">{{ service.name }}</div>
-              </div>
-              <div class="detail-item" *ngIf="cartItems.length > 0 && cartItems[0].description">
-                <div class="detail-label">Beschreibung:</div>
-                <div class="detail-value">{{ cartItems[0].description }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Dauer:</div>
-                <div class="detail-value">{{ getTotalDuration() }} Minuten</div>
-              </div>
+    <div class="confirmation-card">
+      <h3 class="card-title">Fast geschafft! Bitte überprüfen Sie Ihre Buchungsdetails</h3>
+      <div class="confirmation-details">
+        <div class="detail-column">
+          <div class="detail-group">
+            <h4 class="detail-title">Dienstleistung</h4>
+            <div class="detail-item" *ngFor="let service of cartItems">
+              <div class="detail-label">Behandlung:</div>
+              <div class="detail-value">{{ service.name }}</div>
             </div>
-            
-            <div class="detail-group">
-              <h4 class="detail-title">Termin</h4>
-              <div class="detail-item" *ngIf="selectedDate">
-                <div class="detail-label">Datum:</div>
-                <div class="detail-value">{{ formatDate(selectedDate) }}</div>
-              </div>
-              <div class="detail-item" *ngIf="selectedTime">
-                <div class="detail-label">Uhrzeit:</div>
-                <div class="detail-value">{{ selectedTime }} Uhr</div>
-              </div>
+            <div class="detail-item" *ngIf="cartItems.length > 0 && cartItems[0].description">
+              <div class="detail-label">Beschreibung:</div>
+              <div class="detail-value">{{ cartItems[0].description }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Dauer:</div>
+              <div class="detail-value">{{ getTotalDuration() }} Minuten</div>
             </div>
           </div>
           
-          <div class="detail-column">
-            <div class="detail-group">
-              <h4 class="detail-title">Ihre Daten</h4>
-              <div class="detail-item" *ngIf="customer">
-                <div class="detail-label">Name:</div>
-                <div class="detail-value">{{ customer.firstName }} {{ customer.lastName }}</div>
-              </div>
-              <div class="detail-item" *ngIf="customer">
-                <div class="detail-label">E-Mail:</div>
-                <div class="detail-value">{{ customer.email }}</div>
-              </div>
-              <div class="detail-item" *ngIf="customer">
-                <div class="detail-label">Telefon:</div>
-                <div class="detail-value">{{ customer.phone }}</div>
-              </div>
+          <div class="detail-group">
+            <h4 class="detail-title">Termin</h4>
+            <div class="detail-item" *ngIf="selectedDate">
+              <div class="detail-label">Datum:</div>
+              <div class="detail-value">{{ formatDate(selectedDate) }}</div>
             </div>
-            
-            <div class="price-summary">
-              <div class="price-row" *ngFor="let service of cartItems">
-                <div class="price-label">{{ service.name }}</div>
-                <div class="price-value">{{ formatPrice(service.price) }}</div>
-              </div>
-              <div class="price-row total">
-                <div class="price-label">Gesamtbetrag</div>
-                <div class="price-value">{{ formatPrice(getTotalPrice()) }}</div>
-              </div>
+            <div class="detail-item" *ngIf="selectedTime">
+              <div class="detail-label">Uhrzeit:</div>
+              <div class="detail-value">{{ selectedTime }} Uhr</div>
             </div>
           </div>
         </div>
         
-        <div class="cancellation-policy">
-          <div class="cancellation-title">Stornierungsbedingungen</div>
-          <p>Sie können Ihren Termin bis zu 24 Stunden vorher kostenlos stornieren oder verschieben. Bei kurzfristigeren Absagen oder Nichterscheinen behalten wir uns vor, 50% des Behandlungspreises in Rechnung zu stellen.</p>
+        <div class="detail-column">
+          <div class="detail-group">
+            <h4 class="detail-title">Ihre Daten</h4>
+            <div class="detail-item" *ngIf="customer">
+              <div class="detail-label">Name:</div>
+              <div class="detail-value">{{ customer.firstName }} {{ customer.lastName }}</div>
+            </div>
+            <div class="detail-item" *ngIf="customer">
+              <div class="detail-label">E-Mail:</div>
+              <div class="detail-value">{{ customer.email }}</div>
+            </div>
+            <div class="detail-item" *ngIf="customer">
+              <div class="detail-label">Telefon:</div>
+              <div class="detail-value">{{ customer.phone }}</div>
+            </div>
+          </div>
+          
+          <div class="price-summary">
+            <div class="price-row" *ngFor="let service of cartItems">
+              <div class="price-label">{{ service.name }}</div>
+              <div class="price-value">{{ formatPrice(service.price) }}</div>
+            </div>
+            <div class="price-row total">
+              <div class="price-label">Gesamtbetrag</div>
+              <div class="price-value">{{ formatPrice(getTotalPrice()) }}</div>
+            </div>
+          </div>
         </div>
       </div>
       
-      <div class="payment-methods">
-        <h3 class="payment-title">Zahlungsmethode auswählen</h3>
-        <div class="payment-options">
-          <div class="payment-option" 
-               [class.selected]="selectedPayment === 'vor-ort'"
-               (click)="selectPayment('vor-ort')">
-            <div class="payment-radio"></div>
-            <div class="payment-label">Vor Ort bezahlen</div>
-          </div>
-          <div class="payment-option disabled"
-               [class.selected]="selectedPayment === 'kreditkarte'">
-            <div class="payment-radio"></div>
-            <div class="payment-label">Kreditkarte</div>
-          </div>
-          <div class="payment-option disabled"
-               [class.selected]="selectedPayment === 'paypal'">
-            <div class="payment-radio"></div>
-            <div class="payment-label">PayPal</div>
-          </div>
-          <div class="payment-option disabled"
-               [class.selected]="selectedPayment === 'sofort'">
-            <div class="payment-radio"></div>
-            <div class="payment-label">Sofortüberweisung</div>
-          </div>
-        </div>
-        <p style="color: #666; font-size: 0.9rem;">Die Online-Zahlungsoptionen stehen nur Premium-Nutzern zur Verfügung.</p>
-      </div>
-      
-      <div class="terms-container">
-        <h3 class="terms-title">Geschäftsbedingungen</h3>
-        <div class="terms-content">
-          <p>Mit der Buchung dieses Termins akzeptieren Sie unsere allgemeinen Geschäftsbedingungen. Dies beinhaltet:</p>
-          <br>
-          <p>1. <strong>Terminvereinbarung:</strong> Alle Termine sind verbindlich. Sollten Sie einen Termin nicht wahrnehmen können, bitten wir um rechtzeitige Absage (mindestens 24 Stunden vorher).</p>
-          <br>
-          <p>2. <strong>No-Show-Regelung:</strong> Bei Nichterscheinen ohne vorherige Absage behalten wir uns vor, 50% des Behandlungspreises in Rechnung zu stellen.</p>
-          <br>
-          <p>3. <strong>Verspätungen:</strong> Bitte erscheinen Sie pünktlich zu Ihrem Termin. Bei Verspätungen kann die Behandlungszeit entsprechend verkürzt werden, um nachfolgende Termine nicht zu verzögern.</p>
-          <br>
-          <p>4. <strong>Gesundheitszustand:</strong> Bitte informieren Sie uns vor der Behandlung über relevante gesundheitliche Einschränkungen oder Allergien.</p>
-        </div>
-        
-        <div class="checkbox-field">
-          <input type="checkbox" id="terms-acceptance" name="termsAcceptance" [(ngModel)]="termsAccepted">
-          <label for="terms-acceptance">Ich habe die Geschäftsbedingungen und Stornierungsregeln gelesen und akzeptiere diese.</label>
-        </div>
-      </div>
-      
-      <div class="action-buttons">
-        <button type="button" class="back-btn" (click)="goBack()">
-          <span class="arrow-left">←</span>
-          Zurück
-        </button>
-        <button type="button" class="confirm-btn" [disabled]="!termsAccepted" (click)="confirmBooking()">
-          Buchung bestätigen
-          <span class="check-icon">✓</span>
-        </button>
+      <div class="cancellation-policy">
+        <div class="cancellation-title">Stornierungsbedingungen</div>
+        <p>Sie können Ihren Termin bis zu 24 Stunden vorher kostenlos stornieren oder verschieben. Bei kurzfristigeren Absagen oder Nichterscheinen behalten wir uns vor, 50% des Behandlungspreises in Rechnung zu stellen.</p>
       </div>
     </div>
     
-    <!-- Erfolgsseite -->
-    <div class="booking-container success-message" *ngIf="showSuccessMessage">      
-        <div *ngIf="provider">
-            <div class="success-icon">✓</div>
-            <h2 class="success-title">Deine Buchungsanfrage wurde erfolgreich gestellt.</h2>
-            <p class="success-text">
-                Wir haben deine Buchungsanfrage erhalten. Sobald dein Termin von {{ provider.businessName }} bestätigt wurde, erhältst du eine Buchungsbestätigung.
-            </p>
-            <div class="appointment-summary">
-                <p class="success-text"><strong>Termin Zusammenfassung:</strong></p>
-                <p class="success-text">
-                  <strong *ngIf="selectedDate">Datum:</strong> {{ formatDate(selectedDate) }}<br/>
-                  <strong>Uhrzeit:</strong> {{ savedAppointment.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }} Uhr
-                </p>
-            <p>
-              <strong>Dienstleistung(en):</strong> 
-                <span *ngFor="let service of cartItems; let last = last">{{ service.name }}{{ last ? '' : ', ' }}</span>
-            </p>
-          </div>    
-            <button class="home-btn" (click)="navigateHome()">Zur Startseite</button>
+    <div class="payment-methods">
+      <h3 class="payment-title">Zahlungsmethode auswählen</h3>
+      <div class="payment-options">
+        <div class="payment-option" 
+             [class.selected]="selectedPayment === 'vor-ort'"
+             (click)="selectPayment('vor-ort')">
+          <div class="payment-radio"></div>
+          <div class="payment-label">Vor Ort bezahlen</div>
         </div>
-        
+        <div class="payment-option disabled"
+             [class.selected]="selectedPayment === 'kreditkarte'">
+          <div class="payment-radio"></div>
+          <div class="payment-label">Kreditkarte</div>
+        </div>
+        <div class="payment-option disabled"
+             [class.selected]="selectedPayment === 'paypal'">
+          <div class="payment-radio"></div>
+          <div class="payment-label">PayPal</div>
+        </div>
+        <div class="payment-option disabled"
+             [class.selected]="selectedPayment === 'sofort'">
+          <div class="payment-radio"></div>
+          <div class="payment-label">Sofortüberweisung</div>
+        </div>
+      </div>
+      <p style="color: #666; font-size: 0.9rem;">Die Online-Zahlungsoptionen stehen nur Premium-Nutzern zur Verfügung.</p>
+    </div>
+    
+    <div class="terms-container">
+      <h3 class="terms-title">Geschäftsbedingungen</h3>
+      <div class="terms-content">
+        <p>Mit der Buchung dieses Termins akzeptieren Sie unsere allgemeinen Geschäftsbedingungen. Dies beinhaltet:</p>
+        <br>
+        <p>1. <strong>Terminvereinbarung:</strong> Alle Termine sind verbindlich. Sollten Sie einen Termin nicht wahrnehmen können, bitten wir um rechtzeitige Absage (mindestens 24 Stunden vorher).</p>
+        <br>
+        <p>2. <strong>No-Show-Regelung:</strong> Bei Nichterscheinen ohne vorherige Absage behalten wir uns vor, 50% des Behandlungspreises in Rechnung zu stellen.</p>
+        <br>
+        <p>3. <strong>Verspätungen:</strong> Bitte erscheinen Sie pünktlich zu Ihrem Termin. Bei Verspätungen kann die Behandlungszeit entsprechend verkürzt werden, um nachfolgende Termine nicht zu verzögern.</p>
+        <br>
+        <p>4. <strong>Gesundheitszustand:</strong> Bitte informieren Sie uns vor der Behandlung über relevante gesundheitliche Einschränkungen oder Allergien.</p>
+      </div>
+      
+      <div class="checkbox-field">
+        <input type="checkbox" id="terms-acceptance" name="termsAcceptance" [(ngModel)]="termsAccepted">
+        <label for="terms-acceptance">Ich habe die Geschäftsbedingungen und Stornierungsregeln gelesen und akzeptiere diese.</label>
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <button type="button" class="back-btn" (click)="goBack()">
+        <span class="arrow-left">←</span>
+        Zurück
+      </button>
+      <button type="button" class="confirm-btn" [disabled]="!termsAccepted" (click)="confirmBooking()">
+        Buchung bestätigen
+        <span class="check-icon">✓</span>
+      </button>
     </div>
   </div>
+  
+  <!-- Erfolgsseite -->
+  <div class="booking-container success-message" *ngIf="showSuccessMessage">      
+    <div *ngIf="provider">
+      <div class="success-icon">✓</div>
+      <h2 class="success-title">Deine Buchungsanfrage wurde erfolgreich gestellt.</h2>
+      <p class="success-text">
+        Wir haben deine Buchungsanfrage erhalten. Sobald dein Termin von {{ provider.businessName }} bestätigt wurde, erhältst du eine Buchungsbestätigung.
+      </p>
+      <div class="appointment-summary">
+        <p class="success-text"><strong>Termin Zusammenfassung:</strong></p>
+        <p class="success-text">
+          <ng-container *ngIf="selectedDate">
+            <strong>Datum:</strong> {{ formatDate(selectedDate) }}<br/>
+          </ng-container>
+          <strong>Uhrzeit:</strong> {{ savedAppointment.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }} Uhr
+        </p>
+        <p>
+          <strong>Dienstleistung(en):</strong> 
+          <span *ngFor="let service of cartItems; let last = last">{{ service.name }}{{ last ? '' : ', ' }}</span>
+        </p>
+      </div>    
+      <button class="home-btn" (click)="navigateHome()">Zur Startseite</button>
+    </div>
+  </div>
+</div>

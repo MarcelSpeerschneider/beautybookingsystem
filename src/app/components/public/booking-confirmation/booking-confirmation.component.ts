@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 // Services
@@ -37,20 +37,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   termsAccepted: boolean = false;
   showSuccessMessage: boolean = false;
   bookingNumber: string = '';
-  savedAppointment: Appointment = {
-    notes: '',
-    appointmentId: '',
-    customerId: '',
-    providerId: '',
-    serviceIds: [],
-    startTime: new Date(),
-    endTime: new Date(),
-    status: 'pending',
-    cleaningTime: 0,
-    createdAt: new Date(),
-    serviceName: '',
-    customerName: ''
-  };
+  savedAppointment: Appointment;
   
   // Subscriptions
   private subscriptions: Subscription[] = [];
@@ -63,16 +50,29 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   private providerService = inject(ProviderService);
   private loadingService = inject(LoadingService);
   
+  constructor() {
+    // Initialize savedAppointment with default values
+    this.savedAppointment = {
+      notes: '',
+      appointmentId: '',
+      customerId: '',
+      providerId: '',
+      serviceIds: [],
+      startTime: new Date(),
+      endTime: new Date(),
+      status: 'pending',
+      cleaningTime: 0,
+      createdAt: new Date(),
+      serviceName: '',
+      customerName: ''
+    };
+  }
+  
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Buchungsdetails...');
     
-    console.log('cartItems before filter:', this.cartService.getItems());
-
     // Load cart items
     this.cartItems = this.cartService.getItems();
-
-    console.log('cartItems after filter:', this.cartItems);
-
     
     if (this.cartItems.length === 0) {
       alert('Keine Dienstleistungen ausgewählt.');
@@ -89,13 +89,16 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     }
     
     // Load provider details
-    const providerSub = this.providerService.getProviderByUserId(providerId).subscribe(provider => {
-      this.provider = provider;
-      this.loadingService.setLoading(false);
-    }, error => {
-      console.error('Error loading provider:', error);
-      this.loadingService.setLoading(false);
-      alert('Fehler beim Laden der Dienstleister-Details.');
+    const providerSub = this.providerService.getProviderByUserId(providerId).subscribe({
+      next: (provider) => {
+        this.provider = provider;
+        this.loadingService.setLoading(false);
+      },
+      error: (error) => {
+        console.error('Error loading provider:', error);
+        this.loadingService.setLoading(false);
+        alert('Fehler beim Laden der Dienstleister-Details.');
+      }
     });
     this.subscriptions.push(providerSub);
     
@@ -133,11 +136,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
       if (userWithCustomer.customer) {
         this.customer = userWithCustomer.customer;
       }
-            this.loadingService.setLoading(false);
-
-      //check how items are added to cart
-      const items = this.cartService.getItems();
-      console.log("Items in Cart:", items)
+      this.loadingService.setLoading(false);
     });
     this.subscriptions.push(userSub);
   }
@@ -163,32 +162,13 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
 
     // Parse time string to create appointment date
     const [hours, minutes] = this.selectedTime.split(':').map(Number);
-      const appointmentDate = new Date(this.selectedDate);
+    const appointmentDate = new Date(this.selectedDate);
     appointmentDate.setHours(hours, minutes, 0, 0);
     
     // Calculate end time based on service duration
     const totalDuration = this.getTotalDuration();
     const endTime = new Date(appointmentDate);
-    if (totalDuration) {
-      endTime.setMinutes(endTime.getMinutes() + totalDuration);
-    }
-  
-    // check cart data
-    console.log("cartItems:", this.cartItems);
-    for(let i = 0; i < this.cartItems.length; i++) {
-      const service = this.cartItems[i];      
-      
-      if (!service.id || !service.name || service.duration === undefined || service.duration === null) {
-        console.error("Error in cartItems, item is missing: ", service);
-        this.loadingService.setLoading(false);
-        alert('Fehler in den Buchungsdaten.');
-      } else if(service.duration === undefined || service.duration === null) {
-        console.error("Error in cartItems, item is missing or duration is undefined: ", service);
-        this.loadingService.setLoading(false);
-        alert('Fehler in den Buchungsdaten.');
-        return;
-      }
-    }
+    endTime.setMinutes(endTime.getMinutes() + totalDuration);
   
     // Create appointment object
     const serviceIds = this.cartItems.map(service => service.id);
@@ -210,15 +190,12 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     };
       
     this.savedAppointment = appointment;
-    console.log("savedAppointment:", this.savedAppointment);
     
     // Save appointment to Firestore
     this.appointmentService.createAppointment(appointment)
       .then(() => {
         // Show success message
-        if (this.selectedDate) {
-          this.showSuccessMessage = true;
-        }
+        this.showSuccessMessage = true;
 
         // Clear cart and session storage
         this.cartService.clearCart();
@@ -240,8 +217,8 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
   
-  // Helper methods
-  formatDate(date: Date): string {
+  // Helper methods - make all methods used in the template public
+  public formatDate(date: Date | null): string {
     if (!date) return '';
     return date.toLocaleDateString('de-DE', {
       weekday: 'long',
@@ -251,11 +228,11 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     });
   }
   
-  formatPrice(price: number): string {
+  public formatPrice(price: number): string {
     return price.toFixed(2).replace('.', ',') + ' €';
   }
   
-  formatDuration(minutes: number): string {
+  public formatDuration(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     
@@ -266,27 +243,27 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     }
   }
   
-  getTotalPrice(): number {
+  public getTotalPrice(): number {
     return this.cartItems.reduce((total, item) => total + item.price, 0);
   }
   
-  getTotalDuration(): number {
+  public getTotalDuration(): number {
     return this.cartItems.reduce((total, item) => total + item.duration, 0);
   }
   
   // UI interaction methods
-  selectPayment(payment: string): void {
+  public selectPayment(payment: string): void {
     // For now, only allow "vor-ort" payment
     if (payment === 'vor-ort') {
       this.selectedPayment = payment;
     }
   }
   
-  goBack(): void {
+  public goBack(): void {
     this.router.navigate(['/booking-overview']);
   }
   
-  navigateHome(): void {
+  public navigateHome(): void {
     // If provider is available, navigate to provider page
     if (this.provider) {
       this.router.navigate(['/', this.provider.businessName]);

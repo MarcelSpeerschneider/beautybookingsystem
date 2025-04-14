@@ -24,11 +24,22 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   provider: Provider | null = null;
   cartItems: Service[] = [];
   
+  // Calendar and date selection
   currentDate: Date = new Date();
+  currentMonth: number = this.currentDate.getMonth();
+  currentYear: number = this.currentDate.getFullYear();
+  currentMonthYear: string = '';
+  daysInMonth: number[] = [];
+  emptyDaysAtStart: number[] = [];
+  
+  // Selection state
   selectedDate: Date | null = null;
   selectedTime: string | null = null;
-  availableDates: Date[] = [];
   availableTimeSlots: string[] = [];
+  
+  // Random unavailable days for demo
+  unavailableDays: Set<number> = new Set<number>();
+  unavailableTimeSlots: Set<string> = new Set<string>();
   
   private subscriptions: Subscription[] = [];
   
@@ -41,6 +52,8 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
 
   constructor(private router: Router) {
+    // Initialize calendar
+    this.updateCalendar();
   }
   
   ngOnInit(): void {
@@ -71,8 +84,8 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
         // Load provider details
         this.loadProvider(this.userId);
         
-        // Generate available dates
-        this.generateAvailableDates();
+        // Generate random unavailable days and time slots for demo
+        this.generateRandomUnavailableDays();
       } else {
         this.loadingService.setLoading(false);
         this.router.navigate(['/services']); // Redirect if no provider ID
@@ -87,6 +100,7 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
   
+  // Provider loading methods
   loadProvider(userId: string): void {
     const providerSub = this.providerService.getProviderByUserId(userId)
       .subscribe(provider => {
@@ -97,81 +111,180 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
     this.subscriptions.push(providerSub);
   }
   
-  generateAvailableDates(): void {
-    const dates: Date[] = [];
+  // Calendar methods
+  updateCalendar(): void {
+    // Generate days in month
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+    
+    // Update month and year display
+    this.currentMonthYear = this.formatMonthYear(firstDay);
+    
+    // Get the day of the week for the first day (0-6, 0 is Sunday in JS)
+    let firstDayOfWeek = firstDay.getDay();
+    // Adjust for European calendar (Monday is first day)
+    firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    
+    // Calculate empty days at start
+    this.emptyDaysAtStart = Array(firstDayOfWeek).fill(0);
+    
+    // Generate days of month array
+    this.daysInMonth = Array.from(
+      { length: lastDay.getDate() }, 
+      (_, i) => i + 1
+    );
+  }
+  
+  prevMonth(): void {
+    if (this.currentMonth === 0) {
+      this.currentMonth = 11;
+      this.currentYear--;
+    } else {
+      this.currentMonth--;
+    }
+    this.updateCalendar();
+    this.generateRandomUnavailableDays();
+  }
+  
+  nextMonth(): void {
+    if (this.currentMonth === 11) {
+      this.currentMonth = 0;
+      this.currentYear++;
+    } else {
+      this.currentMonth++;
+    }
+    this.updateCalendar();
+    this.generateRandomUnavailableDays();
+  }
+  
+  // Calendar helper methods
+  isPastDay(day: number): boolean {
+    const date = new Date(this.currentYear, this.currentMonth, day);
     const today = new Date();
-    
-    // Generate dates for the next 14 days
-    for (let i = 1; i <= 14; i++) {
-      const date = new Date();
-      date.setDate(today.getDate() + i);
-      
-      // Skip weekends if provider doesn't work weekends
-      // This is a simple example - you'd need to check the actual provider's business hours
-      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip weekends
-        dates.push(date);
-      }
-    }
-    
-    this.availableDates = dates;
+    today.setHours(0, 0, 0, 0);
+    return date < today;
   }
   
-  generateTimeSlots(date: Date): void {
-    if (!this.userId) return;
-    
-    // In a real implementation, you'd check the provider's business hours
-    // and existing appointments to determine available slots
-    
-    // For now, we'll generate slots from 9 AM to 5 PM every 30 minutes
-    const slots: string[] = [];
-    const startHour = 9;
-    const endHour = 17;
-    
-    for (let hour = startHour; hour <= endHour; hour++) {
-      for (let minute of [0, 30]) {
-        // Skip lunch hour (12-1 PM)
-        if (hour === 12 && minute === 0) continue;
-        if (hour === 12 && minute === 30) continue;
-        
-        const hourString = hour.toString().padStart(2, '0');
-        const minuteString = minute.toString().padStart(2, '0');
-        slots.push(`${hourString}:${minuteString}`);
-      }
-    }
-    
-    // Random unavailable slots for demo
-    this.availableTimeSlots = slots.filter(() => Math.random() > 0.3);
+  isToday(day: number): boolean {
+    const today = new Date();
+    return (
+      day === today.getDate() &&
+      this.currentMonth === today.getMonth() &&
+      this.currentYear === today.getFullYear()
+    );
   }
   
-  selectDate(date: Date): void {
-    this.selectedDate = date;
+  isUnavailableDay(day: number): boolean {
+    return this.unavailableDays.has(day);
+  }
+  
+  isSelectedDay(day: number): boolean {
+    if (!this.selectedDate) return false;
+    
+    return (
+      day === this.selectedDate.getDate() &&
+      this.currentMonth === this.selectedDate.getMonth() &&
+      this.currentYear === this.selectedDate.getFullYear()
+    );
+  }
+  
+  isUnavailableTime(time: string): boolean {
+    return this.unavailableTimeSlots.has(time);
+  }
+  
+  // Selection methods
+  selectCalendarDay(day: number): void {
+    if (this.isPastDay(day) || this.isUnavailableDay(day)) return;
+    
+    this.selectedDate = new Date(this.currentYear, this.currentMonth, day);
     this.selectedTime = null;
-    this.generateTimeSlots(date);
+    this.generateTimeSlots();
   }
   
-  selectTime(time: string): void {
+  selectTimeSlot(time: string): void {
+    if (this.isUnavailableTime(time)) return;
     this.selectedTime = time;
   }
   
+  generateTimeSlots(): void {
+    // In a real implementation, you'd check the provider's business hours
+    // and existing appointments to determine available slots
+    
+    // Generate time slots from 9 AM to 6 PM every 15 minutes
+    const slots: string[] = [];
+    const startHour = 9;
+    const endHour = 18;
+    const intervalMinutes = 15;
+    
+    for (let hour = startHour; hour <= endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += intervalMinutes) {
+        // Skip lunch hour (13:00-13:30)
+        if (hour === 13 && minute < 30) continue;
+        
+        // Don't add slots past end time
+        if (hour === endHour && minute > 0) continue;
+        
+        const formattedHour = hour.toString().padStart(2, '0');
+        const formattedMinute = minute.toString().padStart(2, '0');
+        slots.push(`${formattedHour}:${formattedMinute}`);
+      }
+    }
+    
+    this.availableTimeSlots = slots;
+    this.generateRandomUnavailableTimeSlots();
+  }
+  
+  // Demo data generation
+  generateRandomUnavailableDays(): void {
+    // Reset unavailable days
+    this.unavailableDays = new Set<number>();
+    
+    // Get the number of days in current month
+    const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+    
+    // Make some random days unavailable
+    for (let i = 1; i <= daysInMonth; i++) {
+      // Make weekends unavailable
+      const date = new Date(this.currentYear, this.currentMonth, i);
+      const day = date.getDay(); // 0 = Sunday, 6 = Saturday
+      
+      if (day === 0 || day === 6) {
+        this.unavailableDays.add(i);
+      } else if (i % 7 === 0 || i % 11 === 0) {
+        // Make some random days unavailable
+        this.unavailableDays.add(i);
+      }
+    }
+  }
+  
+  generateRandomUnavailableTimeSlots(): void {
+    this.unavailableTimeSlots = new Set<string>();
+    
+    // Make some random time slots unavailable
+    this.availableTimeSlots.forEach(slot => {
+      // 25% chance to be unavailable
+      if (Math.random() < 0.25) {
+        this.unavailableTimeSlots.add(slot);
+      }
+    });
+  }
+  
+  // Navigation methods
   goBack(): void {
     if (this.userId) {
       this.router.navigate([`/services/${this.userId}`]);
     }
   }
   
-  continueToBilling(): void {
-    this.navigateToBookingLogin();
-  }
-
-  navigateToBookingLogin() {
+  navigateToBookingLogin(): void {
+    if (!this.selectedDate || !this.selectedTime) {
+      alert('Bitte wählen Sie ein Datum und eine Uhrzeit aus');
+      return;
+    }
+    
     // Save the selected date and time to sessionStorage
-    if (this.selectedDate) {
-      sessionStorage.setItem('selectedDate', JSON.stringify(this.selectedDate));
-    }
-    if (this.selectedTime) {
-      sessionStorage.setItem('selectedTime', this.selectedTime);
-    }
+    sessionStorage.setItem('selectedDate', JSON.stringify(this.selectedDate));
+    sessionStorage.setItem('selectedTime', this.selectedTime);
     
     // Check if user is already logged in
     this.authService.isLoggedIn().subscribe(isLoggedIn => {
@@ -185,10 +298,22 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
     });
   }
   
+  // Formatting methods
   formatDate(date: Date): string {
+    return date.getDate().toString().padStart(2, '0');
+  }
+  
+  formatFullDate(date: Date): string {
     return date.toLocaleDateString('de-DE', {
       weekday: 'long',
-      day: '2-digit',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+  
+  formatMonthYear(date: Date): string {
+    return date.toLocaleDateString('de-DE', {
       month: 'long',
       year: 'numeric'
     });
