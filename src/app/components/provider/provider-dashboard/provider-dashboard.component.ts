@@ -12,6 +12,7 @@ import { Provider } from '../../../models/provider.model';
 import { Appointment } from '../../../models/appointment.model';
 import { Service } from '../../../models/service.model';
 import { LoadingService } from '../../../services/loading.service';
+import { convertToDate, safeFormatDate } from '../../../utils/date-utils';
 
 @Component({
   selector: 'app-provider-dashboard',
@@ -106,43 +107,65 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadTodayAppointments(): void {
-    if (!this.provider) return;
+    if (!this.provider) {
+      console.error('Provider ist null in loadTodayAppointments!');
+      return;
+    }
 
+    console.log('Provider-ID für loadTodayAppointments:', this.provider.userId);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // WICHTIG: Parameter 'true' hinzugefügt, um als Provider zu filtern
     const appointmentsSub = this.appointmentService
-      .getAppointmentsByUserAndDate(this.provider.userId, today)
-      .subscribe(appointments => {
-        this.todayAppointments = appointments;
+      .getAppointmentsByUserAndDate(this.provider.userId, today, true)
+      .subscribe({
+        next: (appointments) => {
+          console.log('Geladene Termine für heute:', appointments);
+          this.todayAppointments = appointments;
 
-        // Count pending appointments
-        this.pendingAppointments = appointments.filter(a => a.status === 'pending').length;
+          // Count pending appointments
+          this.pendingAppointments = appointments.filter(a => a.status === 'pending').length;
 
-        // Calculate today's revenue
-        this.calculateTodayRevenue();
-      },
-        error => {
+          // Calculate today's revenue
+          this.calculateTodayRevenue();
+        },
+        error: (error) => {
           console.error('Error fetching appointments:', error);
-        });
+        }
+      });
 
     this.subscriptions.push(appointmentsSub);
   }
 
   loadAllAppointments(): void {
-    if (!this.provider) return;
+    if (!this.provider) {
+      console.error('Provider ist null in loadAllAppointments!');
+      return;
+    }
   
-    // Da getAppointmentsByProvider nicht existiert, verwenden wir getAppointments und filtern manuell
+    this.loadingService.setLoading(true, 'Lade Termine...');
+    console.log('Provider-ID für loadAllAppointments:', this.provider.userId);
+  
+    // Verwende die korrekte Methode für Provider-Termine
     const appointmentsSub = this.appointmentService
-      .getAppointments()
+      .getAppointmentsByProvider(this.provider.userId)
       .subscribe({
         next: (appointments) => {
-          // Filtern nach Provider ID
-          this.allAppointments = appointments.filter(a => a.providerId === this.provider?.userId);
+          console.log('Alle geladenen Termine:', appointments);
+          this.allAppointments = appointments;
           this.filterAppointments();
+          this.loadingService.setLoading(false);
+          
+          // Debug-Ausgabe, falls keine Termine gefunden wurden
+          if (this.allAppointments.length === 0) {
+            console.warn('Keine Termine für providerId', this.provider?.userId, 'gefunden. Bitte prüfe, ob Termine in der Datenbank vorhanden sind.');
+          }
         },
         error: (error) => {
+          this.loadingService.setLoading(false);
           console.error('Fehler beim Laden der Termine:', error);
+          alert('Fehler beim Laden der Termine. Bitte versuchen Sie es später erneut.');
         }
       });
   
@@ -189,26 +212,80 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  formatTime(date: Date): string {
-    return new Date(date).toLocaleTimeString('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  formatTime(date: any): string {
+    try {
+      // Prüfe, ob ein gültiges Datum oder ein String/Timestamp vorliegt
+      const validDate = date instanceof Date ? date : new Date(date);
+      
+      // Prüfe, ob das Datum gültig ist
+      if (isNaN(validDate.getTime())) {
+        console.warn('Ungültiges Datum für formatTime:', date);
+        return '--:--';
+      }
+      
+      return validDate.toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Fehler beim Formatieren der Uhrzeit:', error, date);
+      return '--:--';
+    }
   }
 
-  formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('de-DE', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
+  formatDate(date: any): string {
+    try {
+      // Prüfe, ob ein gültiges Datum oder ein String/Timestamp vorliegt
+      const validDate = date instanceof Date ? date : new Date(date);
+      
+      // Prüfe, ob das Datum gültig ist
+      if (isNaN(validDate.getTime())) {
+        console.warn('Ungültiges Datum für formatDate:', date);
+        return 'Ungültiges Datum';
+      }
+      
+      return validDate.toLocaleDateString('de-DE', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error('Fehler beim Formatieren des Datums:', error, date);
+      return 'Ungültiges Datum';
+    }
   }
 
   getAppointmentDuration(appointment: Appointment): number {
-    const startTime = new Date(appointment.startTime).getTime();
-    const endTime = new Date(appointment.endTime).getTime();
-    return Math.round((endTime - startTime) / (1000 * 60)); // minutes
+    try {
+      if (!appointment.startTime || !appointment.endTime) {
+        console.warn('Start- oder Endzeit fehlt für die Dauerberechnung:', appointment);
+        return 0;
+      }
+      
+      // Sicherstellen, dass start- und endTime Date-Objekte sind
+      const startTime = appointment.startTime instanceof Date ? 
+                      appointment.startTime : 
+                      new Date(appointment.startTime);
+      
+      const endTime = appointment.endTime instanceof Date ? 
+                    appointment.endTime : 
+                    new Date(appointment.endTime);
+      
+      // Überprüfen, ob die Daten gültig sind
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        console.warn('Ungültige Datumswerte für Dauerberechnung:', 
+                    { start: appointment.startTime, end: appointment.endTime });
+        return 0;
+      }
+      
+      // Berechne die Dauer in Minuten
+      const durationMs = endTime.getTime() - startTime.getTime();
+      return Math.round(durationMs / (1000 * 60));
+    } catch (error) {
+      console.error('Fehler bei der Dauerberechnung:', error, appointment);
+      return 0;
+    }
   }
 
   createAppointment(): void {

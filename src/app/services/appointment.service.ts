@@ -3,6 +3,7 @@ import { Appointment } from '../models/appointment.model';
 import { Observable, from, of, catchError } from 'rxjs';
 import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, DocumentReference, query, where } from '@angular/fire/firestore';
 import { map, switchMap } from 'rxjs/operators';
+import { convertAppointmentDates } from '../utils/date-utils';
 
 @Injectable({
   providedIn: 'root'
@@ -21,7 +22,10 @@ export class AppointmentService {
                 try {
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
                     collectionData(appointmentsCollection, { idField: 'appointmentId' }).pipe(
-                        map(data => data as Appointment[]),
+                        map(data => {
+                            // Datumswerte konvertieren
+                            return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
+                        }),
                         catchError(error => {
                             console.error('Error fetching appointments:', error);
                             return of([]);
@@ -46,7 +50,10 @@ export class AppointmentService {
                 try {
                     const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointmentId}`);
                     docData(appointmentDocument, { idField: 'appointmentId' }).pipe(
-                        map(data => data as Appointment),
+                        map(data => {
+                            // Datumswerte konvertieren
+                            return convertAppointmentDates(data) as Appointment;
+                        }),
                         catchError(error => {
                             console.error(`Error fetching appointment with ID ${appointmentId}:`, error);
                             return of(null as any);
@@ -105,19 +112,20 @@ export class AppointmentService {
         });
     }
 
-    // FIXED: Make sure we're querying with the correct field name
+    // Methode für Kunden, um ihre Termine zu sehen
     getAppointmentsByUser(userId: string): Observable<Appointment[]> {
         return new Observable<Appointment[]>(observer => {
             this.ngZone.run(() => {
                 try {
-                    console.log("AppointmentService: Getting appointments for user ID:", userId);
+                    console.log("AppointmentService: Getting appointments for user ID (customer):", userId);
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    // IMPORTANT: Use 'customerId' here, not 'userId'
+                    // IMPORTANT: Use 'customerId' here for customers
                     const q = query(appointmentsCollection, where('customerId', '==', userId));
                     collectionData(q, { idField: 'appointmentId' }).pipe(
                         map(data => {
                             console.log("AppointmentService: Raw results:", data);
-                            return data as Appointment[];
+                            // Datumswerte konvertieren
+                            return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
                         }),
                         catchError(error => {
                             console.error(`Error fetching appointments for user ${userId}:`, error);
@@ -137,18 +145,26 @@ export class AppointmentService {
         });
     }
 
-    getAppointmentsByUserAndDate(userId: string, date: Date): Observable<Appointment[]> {
+    // Verbesserte Methode für Termine nach Benutzer und Datum
+    getAppointmentsByUserAndDate(userId: string, date: Date, isProvider: boolean = false): Observable<Appointment[]> {
         return new Observable<Appointment[]>(observer => {
             this.ngZone.run(() => {
                 try {
+                    console.log(`AppointmentService: Getting appointments for ${isProvider ? 'provider' : 'customer'} ID: ${userId} on date: ${date}`);
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    // FIXED: Use 'customerId' here as well
-                    const q = query(appointmentsCollection, where('customerId', '==', userId));
+                    
+                    // Entscheide, ob wir nach customerId oder providerId filtern
+                    const fieldName = isProvider ? 'providerId' : 'customerId';
+                    const q = query(appointmentsCollection, where(fieldName, '==', userId));
+                    
                     collectionData(q, { idField: 'appointmentId' }).pipe(
                         map(data => {
-                            const appointments = data as Appointment[];
+                            console.log(`AppointmentService: Raw results for ${fieldName}=${userId}:`, data);
                             
-                            // Da wir keinen Firestore-Filter nach Datum haben, filtern wir hier lokal
+                            // Konvertiere Datumswerte und erstelle Appointment-Objekte
+                            const appointments = (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
+                            
+                            // Filtere nach Datum
                             // Wir vergleichen nur das Datum, nicht die Uhrzeit
                             const compareDate = new Date(date);
                             compareDate.setHours(0, 0, 0, 0);
@@ -156,19 +172,14 @@ export class AppointmentService {
                             return appointments.filter(appointment => {
                                 if (!appointment.startTime) return false;
                                 
-                                // Firebase-Timestamp zu Date konvertieren, falls nötig
-                                const startDate = appointment.startTime instanceof Date ?
-                                    appointment.startTime :
-                                    new Date(appointment.startTime);
-                                
-                                const appointmentDate = new Date(startDate);
+                                const appointmentDate = new Date(appointment.startTime);
                                 appointmentDate.setHours(0, 0, 0, 0);
                                 
                                 return appointmentDate.getTime() === compareDate.getTime();
                             });
                         }),
                         catchError(error => {
-                            console.error(`Error fetching appointments for user ${userId} on date ${date}:`, error);
+                            console.error(`Error fetching appointments for ${fieldName} ${userId} on date ${date}:`, error);
                             return of([]);
                         })
                     ).subscribe({
@@ -291,35 +302,48 @@ export class AppointmentService {
         });
     }
 
-    
-getAppointmentsByProvider(providerId: string): Observable<Appointment[]> {
-    return new Observable<Appointment[]>(observer => {
-      this.ngZone.run(() => {
-        try {
-          console.log("AppointmentService: Getting appointments for provider ID:", providerId);
-          const appointmentsCollection = collection(this.firestore, this.collectionName);
-          // Nutze providerId zum Filtern
-          const q = query(appointmentsCollection, where('providerId', '==', providerId));
-          collectionData(q, { idField: 'appointmentId' }).pipe(
-            map(data => {
-              console.log("AppointmentService: Raw results:", data);
-              return data as Appointment[];
-            }),
-            catchError(error => {
-              console.error(`Error fetching appointments for provider ${providerId}:`, error);
-              return of([]);
-            })
-          ).subscribe({
-            next: appointments => observer.next(appointments),
-            error: err => observer.error(err),
-            complete: () => observer.complete()
-          });
-        } catch (error) {
-          console.error('Error in getAppointmentsByProvider:', error);
-          observer.next([]);
-          observer.complete();
-        }
-      });
-    });
-  }
+    // Korrigierte Methode für Provider-Appointments
+    getAppointmentsByProvider(providerId: string): Observable<Appointment[]> {
+        return new Observable<Appointment[]>(observer => {
+            this.ngZone.run(() => {
+                try {
+                    console.log("AppointmentService: Getting appointments for provider ID:", providerId);
+                    const appointmentsCollection = collection(this.firestore, this.collectionName);
+                    // Nutze providerId zum Filtern
+                    const q = query(appointmentsCollection, where('providerId', '==', providerId));
+                    collectionData(q, { idField: 'appointmentId' }).pipe(
+                        map(data => {
+                            console.log("AppointmentService: Raw results for provider:", data);
+                            
+                            // Konvertiere alle Appointments mit korrekten Datumswerten
+                            return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
+                        }),
+                        catchError(error => {
+                            console.error(`Error fetching appointments for provider ${providerId}:`, error);
+                            return of([]);
+                        })
+                    ).subscribe({
+                        next: appointments => {
+                            // Log some examples for debugging
+                            if (appointments.length > 0) {
+                                console.log("Beispiel-Appointment nach Konvertierung:", {
+                                    startTime: appointments[0].startTime,
+                                    isDate: appointments[0].startTime instanceof Date,
+                                    endTime: appointments[0].endTime,
+                                    createdAt: appointments[0].createdAt
+                                });
+                            }
+                            observer.next(appointments);
+                        },
+                        error: err => observer.error(err),
+                        complete: () => observer.complete()
+                    });
+                } catch (error) {
+                    console.error('Error in getAppointmentsByProvider:', error);
+                    observer.next([]);
+                    observer.complete();
+                }
+            });
+        });
+    }
 }
