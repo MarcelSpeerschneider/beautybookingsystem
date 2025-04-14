@@ -33,7 +33,18 @@ export class AuthGuard implements CanActivate {
         
         if (!isReady) {
           console.log('AuthGuard: User/Customer not ready, redirecting to login');
-          this.router.navigate(['/login']);
+          // Only redirect to login if we're not already in the booking flow
+          if (!state.url.startsWith('/booking')) {
+            this.router.navigate(['/login']);
+          } else {
+            // For booking pages, we want to redirect to the appropriate previous step
+            if (state.url === '/booking-overview') {
+              const providerId = sessionStorage.getItem('providerId');
+              this.router.navigate(['/appointment-selection', providerId || '']);
+            } else if (state.url === '/booking-confirmation') {
+              this.router.navigate(['/booking-overview']);
+            }
+          }
         }
       }),
       catchError(error => {

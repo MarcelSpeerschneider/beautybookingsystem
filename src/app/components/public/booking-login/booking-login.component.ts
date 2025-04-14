@@ -51,11 +51,14 @@ export class BookingLoginComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Check if the user is already logged in
     const userSub = this.authService.user.subscribe(userWithCustomer => {
-      if(userWithCustomer.user){
-        this.router.navigate(['/booking-confirmation']);
+      if(userWithCustomer.user && userWithCustomer.customer){
+        // User is already logged in, redirect to booking overview directly
+        this.router.navigate(['/booking-overview']);
+        return;
       }
-    })
+    });
     this.subscriptions.push(userSub);
+    
     this.loadingService.setLoading(true, 'Laden...');
     const routeSub = this.route.paramMap.subscribe(params => {
       this.userId = params.get('userId');
@@ -96,7 +99,7 @@ export class BookingLoginComponent implements OnInit, OnDestroy {
       this.authService.login({ email, password })
         .then(() => {
           // Redirect to our new booking-confirmation page
-          this.router.navigate(['/booking-confirmation']);
+          this.router.navigate(['/booking-overview']);
         })
         .catch(error => {
           console.error('Login error:', error);

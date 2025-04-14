@@ -13,7 +13,7 @@ import { LoadingService } from '../../../services/loading.service';
   selector: 'app-public-service-list',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './public-service-list.component.html', // Corrected the syntax here
+  templateUrl: './public-service-list.component.html', 
   styleUrls: ['./public-service-list.component.css']
 })
 export class PublicServiceListComponent implements OnInit, OnDestroy {
@@ -43,11 +43,9 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
         
         // Load provider details by userId
         this.providerService.getProviderByUserId(userId).subscribe(provider => {
-          
-            this.provider = provider;
+          this.provider = provider;
         });
       
-
         // Load services for this provider
         this.serviceService.getServicesByUser(userId).subscribe(services => {
           this.services = services;
@@ -60,7 +58,7 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
     this.subscriptions.push(routeSub);
   }
   
-   ngOnDestroy(): void {
+  ngOnDestroy(): void {
     // Unsubscribe from all subscriptions
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
@@ -73,7 +71,6 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
       // Add the service to the cart
       this.cartService.addItem(service);
     }
-
   }
   
   isInCart(serviceId: string): boolean {
@@ -83,6 +80,15 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
   viewCart(): void {
     if (this.userId) {
       this.router.navigate(['/appointment-selection', this.userId]);
+    }
+  }
+  
+  goBack(): void {
+    // Go back to provider page
+    if (this.provider) {
+      this.router.navigate(['/', this.provider.businessName]);
+    } else {
+      this.router.navigate(['/']); 
     }
   }
   

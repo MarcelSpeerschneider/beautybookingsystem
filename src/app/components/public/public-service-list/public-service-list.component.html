@@ -1,86 +1,93 @@
 <div class="service-list-container">
-    <div *ngIf="provider" class="provider-header">
-      <div class="logo-container">
-        <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
-        <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
-        <div class="brand">
-          <h1>{{ provider.businessName }}</h1>
-          <p>Online Termin buchen</p>
+  <div *ngIf="provider" class="provider-header">
+    <div class="logo-container">
+      <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
+      <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
+      <div class="brand">
+        <h1>{{ provider.businessName }}</h1>
+        <p>Online Termin buchen</p>
+      </div>
+    </div>
+    <div class="cart-button" (click)="viewCart()">
+      <span class="cart-icon">🛒</span>
+      <span class="cart-count">{{ cartService.getItemCount() }}</span>
+    </div>
+  </div>
+  
+  <div *ngIf="provider" class="provider-info">
+    <div class="provider-description">
+      <p>{{ provider.description }}</p>
+    </div>
+    <div class="provider-details" *ngIf="provider.address">
+      <p><strong>Adresse:</strong> {{ provider.address }}</p>
+    </div>
+    <div class="provider-times">
+      <p><strong>Öffnungszeiten:</strong> {{ provider.openingHours }}</p>
+    </div>
+  </div>
+  
+  <div class="stepper">
+    <div class="step active">
+      <div class="step-number">1</div>
+      <div class="step-label">Dienstleistung</div>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-label">Termin</div>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-label">Kontakt</div>
+    </div>
+    <div class="step">
+      <div class="step-number">4</div>
+      <div class="step-label">Bestätigung</div>
+    </div>
+  </div>
+  
+  <h2 class="section-title">Dienstleistung auswählen</h2>
+  
+  <div class="services-grid">
+    <div *ngFor="let service of services" class="service-card" (click)="addToCart(service)">
+      <div class="service-content">
+        <h3>{{ service.name }}</h3>
+        <p *ngIf="service.description">{{ service.description }}</p>
+        <div class="service-details">
+          <div class="service-duration">Dauer: {{ formatDuration(service.duration) }}</div>
+          <div class="service-price">{{ formatPrice(service.price) }}</div>
         </div>
       </div>
-      <div class="cart-button" (click)="viewCart()">
-        <span class="cart-icon">🛒</span>
-        <span class="cart-count">{{ cartService.getItemCount() }}</span>
-      </div>
-    </div>
-    
-    <div *ngIf="provider" class="provider-info">
-      <div class="provider-description">
-        <p>{{ provider.description }}</p>
-      </div>
-      <div class="provider-details" *ngIf="provider.address">
-        <p><strong>Adresse:</strong> {{ provider.address }}</p>
-      </div>
-      <div class="provider-times">
-        <p><strong>Öffnungszeiten:</strong> {{ provider.openingHours }}</p>
-      </div>
-    </div>
-    
-    <div class="stepper">
-      <div class="step active">
-        <div class="step-number">1</div>
-        <div class="step-label">Dienstleistung</div>
-      </div>
-      <div class="step">
-        <div class="step-number">2</div>
-        <div class="step-label">Termin</div>
-      </div>
-      <div class="step">
-        <div class="step-number">3</div>
-        <div class="step-label">Kontakt</div>
-      </div>
-      <div class="step">
-        <div class="step-number">4</div>
-        <div class="step-label">Bestätigung</div>
-      </div>
-    </div>
-    
-    <h2 class="section-title">Dienstleistung auswählen</h2>
-    
-    <div class="services-grid">
-      <div *ngFor="let service of services" class="service-card" (click)="addToCart(service)">
-        <div class="service-content">
-          <h3>{{ service.name }}</h3>
-          <p *ngIf="service.description">{{ service.description }}</p>
-          <div class="service-details">
-            <div class="service-duration">Dauer: {{ formatDuration(service.duration) }}</div>
-            <div class="service-price">{{ formatPrice(service.price) }}</div>
-          </div>
-        </div>
-        <button class="add-to-cart-btn" [disabled]="isInCart(service.id)" [class.in-cart]="isInCart(service.id)">
-          {{ isInCart(service.id) ? 'Im Warenkorb' : 'In den Warenkorb' }}
-        </button>
-      </div>
-    </div>
-    
-    <div *ngIf="services.length === 0" class="no-services">
-      <p>Keine Dienstleistungen verfügbar</p>
-    </div>
-    
-    <div class="cart-summary" *ngIf="cartService.getItemCount() > 0">
-      <div class="cart-items">
-        <div *ngFor="let item of cartService.getItems()" class="cart-item">
-          <div class="cart-item-name">{{ item.name }}</div>
-          <div class="cart-item-price">{{ formatPrice(item.price) }}</div>
-        </div>
-      </div>
-      <div class="cart-total">
-        <div class="cart-total-label">Gesamtbetrag:</div>
-        <div class="cart-total-price">{{ formatPrice(cartService.getTotalPrice()) }}</div>
-      </div>
-      <button class="continue-btn" (click)="viewCart()">
-        Weiter zur Terminauswahl
-        <span class="arrow">→</span>
+      <button class="add-to-cart-btn" [disabled]="isInCart(service.id)" [class.in-cart]="isInCart(service.id)">
+        {{ isInCart(service.id) ? 'Im Warenkorb' : 'In den Warenkorb' }}
       </button>
     </div>
   </div>
+  
+  <div *ngIf="services.length === 0" class="no-services">
+    <p>Keine Dienstleistungen verfügbar</p>
+  </div>
+  
+  <div class="cart-summary" *ngIf="cartService.getItemCount() > 0">
+    <div class="cart-items">
+      <div *ngFor="let item of cartService.getItems()" class="cart-item">
+        <div class="cart-item-name">{{ item.name }}</div>
+        <div class="cart-item-price">{{ formatPrice(item.price) }}</div>
+      </div>
+    </div>
+    <div class="cart-total">
+      <div class="cart-total-label">Gesamtbetrag:</div>
+      <div class="cart-total-price">{{ formatPrice(cartService.getTotalPrice()) }}</div>
+    </div>
+    <button class="continue-btn" (click)="viewCart()">
+      Weiter zur Terminauswahl
+      <span class="arrow">→</span>
+    </button>
+  </div>
+  
+  <!-- Zurück-Button NACH dem Cart Summary -->
+  <div class="navigation-buttons">
+    <button class="back-btn" (click)="goBack()">
+      <span class="arrow-left">←</span> Zurück
+    </button>
+  </div>
+</div>

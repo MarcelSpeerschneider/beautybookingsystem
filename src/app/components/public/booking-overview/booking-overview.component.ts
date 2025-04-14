@@ -58,7 +58,14 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
     
     if (this.cartItems.length === 0) {
       alert('Keine Dienstleistungen ausgewählt.');
-      this.router.navigate(['/services']);
+      
+      // Get provider ID to redirect back to services page
+      const providerId = this.cartService.getProviderId();
+      if (providerId) {
+        this.router.navigate(['/services', providerId]);
+      } else {
+        this.router.navigate(['/']);
+      }
       return;
     }
     
@@ -83,7 +90,11 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
     // Get selected date and time from session storage
     const dateString = sessionStorage.getItem('selectedDate');
     if (dateString) {
-      this.selectedDate = new Date(JSON.parse(dateString));
+      try {
+        this.selectedDate = new Date(JSON.parse(dateString));
+      } catch (e) {
+        console.error('Error parsing date:', e);
+      }
     }
     
     this.selectedTime = sessionStorage.getItem('selectedTime') || null;
@@ -96,18 +107,6 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
     
     // Pre-fill form with customer data if logged in
     const userSub = this.authService.user.subscribe(userWithCustomer => {
-      
-      //disable form fields if logged in
-      if(userWithCustomer.user) {
-        this.contactForm.get('firstName')?.disable();
-        this.contactForm.get('lastName')?.disable();
-        this.contactForm.get('email')?.disable();
-      }
-      else {
-        this.contactForm.get('firstName')?.enable();
-        this.contactForm.get('lastName')?.enable();
-        this.contactForm.get('email')?.enable();
-      }
       if (userWithCustomer.customer) {
         const customer = userWithCustomer.customer;
         this.contactForm.patchValue({
@@ -116,6 +115,11 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
           email: customer.email,
           phone: customer.phone
         });
+        
+        // Disable form fields since user is logged in
+        this.contactForm.get('firstName')?.disable();
+        this.contactForm.get('lastName')?.disable();
+        this.contactForm.get('email')?.disable();
       }
       
       this.loadingService.setLoading(false);
@@ -141,94 +145,20 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
     
     this.loadingService.setLoading(true, 'Buchung wird erstellt...');
     
-    const providerId = this.cartService.getProviderId();
-    if (!providerId || !this.selectedDate || !this.selectedTime) {
-      this.loadingService.setLoading(false);
-      alert('Fehlerhafte Buchungsdaten. Bitte versuchen Sie es erneut.');
-      return;
+    // Get form values
+    const formValues = this.contactForm.getRawValue(); // Use getRawValue to include disabled fields
+    
+    // Store any necessary data in session storage for confirmation page
+    if (this.selectedDate) {
+      sessionStorage.setItem('selectedDate', JSON.stringify(this.selectedDate));
+    }
+    if (this.selectedTime) {
+      sessionStorage.setItem('selectedTime', this.selectedTime);
     }
     
-    // Get form values
-    const formValues = this.contactForm.value;
-    
-    // Check if user is logged in
-    const userSub = this.authService.user.subscribe(userWithCustomer => {
-      const isLoggedIn = !!userWithCustomer.user;
-      let customerId = '';
-      
-      if (isLoggedIn && userWithCustomer.user) {
-        customerId = userWithCustomer.user.uid;
-      }
-      
-      // Create appointment date object
-      const appointmentDate = new Date(this.selectedDate!);
-      const [hours, minutes] = this.selectedTime!.split(':').map(Number);
-      appointmentDate.setHours(hours, minutes, 0, 0);
-      
-      // Create appointments for each service
-      const promises: Promise<any>[] = [];
-      
-      this.cartItems.forEach((service, index) => {
-        // Calculate start and end time
-        const startTime = new Date(appointmentDate);
-        startTime.setMinutes(startTime.getMinutes() + index * (service.duration + 15)); // Add duration of previous services + cleaning time
-        
-        const endTime = new Date(startTime);
-        endTime.setMinutes(endTime.getMinutes() + service.duration);
-        
-        const serviceIds = this.cartItems.map(service => service.id);
-
-        // Create appointment object
-        const appointment: Partial<Appointment> = {
-          customerId: customerId,
-          providerId: providerId,
-          serviceIds: serviceIds,
-          startTime: startTime,
-          endTime: endTime,
-          status: 'pending',
-          notes: formValues.notes,
-          cleaningTime: 15, // 15 minutes cleaning time
-          createdAt: new Date(),
-          customerName: `${formValues.firstName} ${formValues.lastName}`
-        };
-        
-        // Create appointment
-        promises.push(this.appointmentService.createAppointment(appointment as Appointment));
-      });
-      
-      // Wait for all appointments to be created
-      Promise.all(promises)
-        .then(() => {
-          this.loadingService.setLoading(false);
-          
-          // Clear cart and session storage
-          this.cartService.clearCart();
-          sessionStorage.removeItem('selectedDate');
-          sessionStorage.removeItem('selectedTime');
-          
-          // Show success message and redirect
-          alert('Buchung erfolgreich erstellt! Sie erhalten in Kürze eine Bestätigung per E-Mail.');
-          
-          // Navigate to success page or home
-          if (isLoggedIn) {
-            this.router.navigate(['/customer-profile']);
-          } else {
-            // If not logged in, navigate to provider page
-            if (this.provider) {
-              this.router.navigate(['/', this.provider.businessName]);
-            } else {
-              this.router.navigate(['/']);
-            }
-          }
-        })
-        .catch(error => {
-          this.loadingService.setLoading(false);
-          console.error('Error creating appointments:', error);
-          alert('Fehler bei der Buchungserstellung. Bitte versuchen Sie es erneut.');
-        });
-    });
-    
-    this.subscriptions.push(userSub);
+    // Navigate to confirmation page
+    this.router.navigate(['/booking-confirmation']);
+    this.loadingService.setLoading(false);
   }
   
   formatDate(date: Date): string {
@@ -256,7 +186,6 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
   }
   
   goBack(): void {
-    // Navigate back to appointment selection
     const providerId = this.cartService.getProviderId();
     this.router.navigate(['/appointment-selection', providerId]);
   }

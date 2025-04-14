@@ -73,6 +73,11 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     // Load provider details
     const providerSub = this.providerService.getProviderByUserId(providerId).subscribe(provider => {
       this.provider = provider;
+      this.loadingService.setLoading(false);
+    }, error => {
+      console.error('Error loading provider:', error);
+      this.loadingService.setLoading(false);
+      alert('Fehler beim Laden der Dienstleister-Details.');
     });
     this.subscriptions.push(providerSub);
     
@@ -164,8 +169,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   }
   
   goBack(): void {
-    const providerId = this.cartService.getProviderId();
-    this.router.navigate(['/booking-login', providerId]);
+    this.router.navigate(['/booking-overview']);
   }
   
   confirmBooking(): void {

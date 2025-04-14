@@ -23,7 +23,7 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   private cartService = inject(CartService);
   public authService = inject(AuthenticationService);
   
-    provider: Provider | null = null;
+  provider: Provider | null = null;
   businessName: string | null = null;
   isLoggedIn = false;
   
@@ -31,6 +31,13 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Dienstleister...');
+    
+    // Clear any existing cart when starting a new booking flow
+    this.cartService.clearCart();
+    
+    // Also clear date/time selection from session storage
+    sessionStorage.removeItem('selectedDate');
+    sessionStorage.removeItem('selectedTime');
     
     // Get the business name from the route parameter
     const routeSub = this.route.paramMap.subscribe(params => {
@@ -41,7 +48,6 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
         this.findProviderByBusinessName(this.businessName);
       } else {
         this.loadingService.setLoading(false);
-        this.router.navigate(['/']); // Redirect to home if no business name
       }   
     });
     
@@ -72,17 +78,16 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
           return p.businessName.toLowerCase() === businessName.toLowerCase();
         });
       
-        if (provider) {
+      if (provider) {
         console.log('Provider gefunden:', provider);
         this.provider = provider;
         this.cartService.setProviderId(provider.userId)
       } else {
-        console.log('Provider nicht gefunden, Weiterleitung zur Startseite');
-        this.router.navigate(['/']);
+        console.log('Provider nicht gefunden');
       }
       
       this.loadingService.setLoading(false);
-      });
+    });
     this.subscriptions.push(providersSub);
   }
   
@@ -93,7 +98,6 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   }
   
   login(): void {
-    this.router.navigate(['/provider-login']);
+    this.router.navigate(['/customer-login']);
   }
-
 }

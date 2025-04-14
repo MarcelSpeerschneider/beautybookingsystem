@@ -36,7 +36,7 @@ export const routes: Routes = [
   { path: 'services/:userId', component: PublicServiceListComponent },
   { path: 'appointment-selection/:userId', component: AppointmentSelectionComponent },
   { path: 'booking-login/:userId', component: BookingLoginComponent },
-  { path: 'booking-overview', component: BookingOverviewComponent },
+  { path: 'booking-overview', component: BookingOverviewComponent, canActivate: [AuthGuard] },
   { path: 'booking-confirmation', component: BookingConfirmationComponent, canActivate: [AuthGuard] },
 
   

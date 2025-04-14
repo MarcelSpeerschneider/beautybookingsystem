@@ -40,8 +40,8 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   private authService = inject(AuthenticationService);
   private loadingService = inject(LoadingService);
 
-    constructor(private router: Router) {
-    }
+  constructor(private router: Router) {
+  }
   
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Terminauswahl...');
@@ -155,9 +155,9 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   }
   
   goBack(): void {
-      if (this.userId) {
-        this.router.navigate([`/services/${this.userId}`]);
-      }
+    if (this.userId) {
+      this.router.navigate([`/services/${this.userId}`]);
+    }
   }
   
   continueToBilling(): void {
@@ -165,8 +165,25 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   }
 
   navigateToBookingLogin() {
-    this.router.navigate(['/booking-login/', this.userId]);
-  } 
+    // Save the selected date and time to sessionStorage
+    if (this.selectedDate) {
+      sessionStorage.setItem('selectedDate', JSON.stringify(this.selectedDate));
+    }
+    if (this.selectedTime) {
+      sessionStorage.setItem('selectedTime', this.selectedTime);
+    }
+    
+    // Check if user is already logged in
+    this.authService.isLoggedIn().subscribe(isLoggedIn => {
+      if (isLoggedIn) {
+        // If logged in, go directly to booking overview
+        this.router.navigate(['/booking-overview']);
+      } else {
+        // If not logged in, go to login page
+        this.router.navigate(['/booking-login', this.userId]);
+      }
+    });
+  }
   
   formatDate(date: Date): string {
     return date.toLocaleDateString('de-DE', {
