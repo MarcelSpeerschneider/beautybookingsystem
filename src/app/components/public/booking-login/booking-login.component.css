@@ -1,0 +1,342 @@
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .provider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+  
+  .logo-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .logo {
+    width: 80px;
+    height: 80px;
+    background-color: #f8e6ff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4a148c;
+    font-weight: bold;
+    margin-right: 20px;
+    font-size: 2rem;
+  }
+  
+  .brand {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .brand h1 {
+    color: #333;
+    margin-bottom: 5px;
+  }
+  
+  .brand p {
+    color: #666;
+  }
+  
+  .booking-container {
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+  }
+  
+  .stepper {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    position: relative;
+  }
+  
+  .stepper::after {
+    content: '';
+    position: absolute;
+    height: 2px;
+    background-color: #e0e0e0;
+    width: 100%;
+    top: 15px;
+    z-index: 1;
+  }
+  
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    background-color: white;
+    padding: 0 10px;
+  }
+  
+  .step-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    background-color: #e0e0e0;
+    color: #666;
+  }
+  
+  .step.active .step-number {
+    background-color: #4a148c;
+    color: white;
+  }
+  
+  .step.completed .step-number {
+    background-color: #8e44ad;
+    color: white;
+  }
+  
+  .step-label {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  .step.active .step-label {
+    color: #4a148c;
+    font-weight: bold;
+  }
+  
+  .step.completed .step-label {
+    color: #8e44ad;
+  }
+  
+  .section-title {
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .booking-summary {
+    background-color: #faf5ff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-left: 4px solid #4a148c;
+  }
+  
+  .summary-title {
+    color: #4a148c;
+    font-weight: 600;
+    margin-bottom: 15px;
+  }
+  
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0e6ff;
+  }
+  
+  .summary-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  
+  .summary-label {
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .summary-value {
+    color: #4a148c;
+  }
+  
+  /* Login Form Specific Styles */
+  .login-form {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  
+  .login-form .form-field {
+    margin-bottom: 25px;
+  }
+  
+  .form-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .form-field input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1rem;
+    color: #333;
+    transition: border-color 0.3s;
+  }
+  
+  .form-field input:focus {
+    border-color: #4a148c;
+    outline: none;
+  }
+  
+  .required-field::after {
+    content: '*';
+    color: #e91e63;
+    margin-left: 4px;
+  }
+  
+  .error-message {
+    color: #e91e63;
+    font-size: 0.85rem;
+    margin-top: 5px;
+  }
+  
+  .error-display {
+    color: #e91e63;
+    font-size: 0.95rem;
+    margin-top: 15px;
+    text-align: center;
+    padding: 10px;
+    background-color: #ffebee;
+    border-radius: 4px;
+  }
+  
+  .forgot-password {
+    text-align: right;
+    margin-top: -15px;
+    margin-bottom: 20px;
+  }
+  
+  .forgot-password a {
+    color: #4a148c;
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  
+  .forgot-password a:hover {
+    text-decoration: underline;
+  }
+  
+  .login-button {
+    width: 100%;
+    background-color: #4a148c;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .login-button:hover:not(:disabled) {
+    background-color: #6a1b9a;
+  }
+  
+  .login-button:disabled {
+    background-color: #d1c4e9;
+    cursor: not-allowed;
+  }
+  
+  .register-prompt {
+    text-align: center;
+    margin-top: 25px;
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  .register-prompt a {
+    color: #4a148c;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  
+  .register-prompt a:hover {
+    text-decoration: underline;
+  }
+  
+  .account-benefits {
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 30px;
+  }
+  
+  .benefits-title {
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  
+  .benefits-list {
+    list-style-type: none;
+  }
+  
+  .benefits-list li {
+    margin-bottom: 10px;
+    position: relative;
+    padding-left: 25px;
+    color: #555;
+  }
+  
+  .benefits-list li:before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #4a148c;
+    font-weight: bold;
+  }
+  
+  .action-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+  }
+  
+  .back-btn {
+    background-color: white;
+    color: #4a148c;
+    border: 1px solid #4a148c;
+    padding: 12px 25px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s;
+  }
+  
+  .back-btn:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .arrow-left {
+    margin-right: 10px;
+  }
+  
+  @media (max-width: 768px) {
+    .login-form {
+      max-width: 100%;
+    }
+    
+    .stepper {
+      flex-wrap: wrap;
+    }
+    
+    .step {
+      width: 50%;
+      margin-bottom: 15px;
+    }
+  }

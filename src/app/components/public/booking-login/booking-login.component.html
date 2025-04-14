@@ -1,0 +1,107 @@
+```html
+<div class="container">
+  <div class="provider-header" *ngIf="provider">
+    <div class="logo-container">
+      <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
+      <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
+      <div class="brand">
+        <h1>{{ provider.businessName }}</h1>
+        <p>Online Termin buchen</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="booking-container">
+    <div class="stepper">
+      <div class="step completed">
+        <div class="step-number">✓</div>
+        <div class="step-label">Dienstleistung</div>
+      </div>
+      <div class="step completed">
+        <div class="step-number">✓</div>
+        <div class="step-label">Termin</div>
+      </div>
+      <div class="step active">
+        <div class="step-number">3</div>
+        <div class="step-label">Kontakt</div>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-label">Bestätigung</div>
+      </div>
+    </div>
+    
+    <div class="booking-summary">
+      <h3 class="summary-title">Ihre Buchung</h3>
+      <div class="summary-item" *ngFor="let item of cartService.getItems()">
+        <div class="summary-label">Dienstleistung:</div>
+        <div class="summary-value">{{ item.name }}</div>
+      </div>
+      <div class="summary-item" *ngIf="selectedDate">
+        <div class="summary-label">Datum:</div>
+        <div class="summary-value">{{ formatDate(selectedDate) }}</div>
+      </div>
+      <div class="summary-item" *ngIf="selectedTime">
+        <div class="summary-label">Uhrzeit:</div>
+        <div class="summary-value">{{ selectedTime }} Uhr</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Dauer:</div>
+        <div class="summary-value">{{ cartService.getTotalDuration() }} Minuten</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Preis:</div>
+        <div class="summary-value">{{ cartService.getTotalPrice() }} €</div>
+      </div>
+    </div>
+    
+    <h2 class="section-title">Mit Ihrem Kundenkonto anmelden</h2>
+    
+    <div class="login-form">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="form-field">
+          <label for="login-email" class="required-field">E-Mail-Adresse</label>
+          <input type="email" id="login-email" formControlName="email" required>
+          <div class="error-message" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+            Bitte geben Sie Ihre E-Mail-Adresse ein.
+          </div>
+        </div>
+        
+        <div class="form-field">
+          <label for="login-password" class="required-field">Passwort</label>
+          <input type="password" id="login-password" formControlName="password" required>
+          <div class="error-message" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            Bitte geben Sie Ihr Passwort ein.
+          </div>
+        </div>
+        
+        <div class="forgot-password">
+          <a href="#">Passwort vergessen?</a>
+        </div>
+        
+        <button type="submit" class="login-button" [disabled]="loginForm.invalid">Anmelden</button>
+        
+        <div *ngIf="errorMessage" class="error-display">{{ errorMessage }}</div>
+        
+        <p class="register-prompt">
+          Noch kein Konto? <a (click)="navigateToRegister()">Jetzt registrieren</a>
+        </p>
+      </form>
+      
+      <div class="account-benefits">
+        <h4 class="benefits-title">Vorteile eines Kundenkontos</h4>
+        <ul class="benefits-list">
+          <li>Speichern Sie Ihre persönlichen Daten für zukünftige Buchungen</li>
+          <li>Überblick über alle Ihre vergangenen und kommenden Termine</li>
+          <li>Einfaches Ändern oder Stornieren von Terminen</li>
+          <li>Erhalten Sie personalisierte Angebote und Rabatte</li>
+        </ul>
+      </div>
+      
+      <div class="action-buttons">
+        <button type="button" class="back-btn" (click)="goBack()"><span class="arrow-left">←</span>Zurück </button>
+      </div>
+    </div>
+  </div>
+</div>
+```

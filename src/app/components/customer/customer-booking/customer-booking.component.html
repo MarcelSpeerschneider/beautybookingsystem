@@ -20,8 +20,8 @@
         <div class="services-grid">
           <div *ngFor="let service of services" 
                class="service-card" 
-               [ngClass]="{'selected': bookingForm.get('serviceId')?.value === service.serviceId}" 
-               (click)="selectService(service.serviceId)">
+               [ngClass]="{'selected': bookingForm.get('serviceId')?.value === service.id}" 
+               (click)="selectService(service.id)">
             <div class="service-name">{{ service.name }}</div>
             <div class="service-description">{{ service.description }}</div>
             <div class="service-details">

@@ -14,13 +14,13 @@ import { Provider } from '../../../models/provider.model';
 import { Appointment } from '../../../models/appointment.model';
 
 @Component({
-  selector: 'app-booking-confirmation',
+  selector: 'app-booking-overview',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
-  templateUrl: './booking-confirmation.component.html',
-  styleUrls: ['./booking-confirmation.component.css']
+  templateUrl: './booking-overview.component.html',
+  styleUrls: ['./booking-overview.component.css']
 })
-export class BookingConfirmationComponent implements OnInit, OnDestroy {
+export class BookingOverviewComponent implements OnInit, OnDestroy {
   contactForm: FormGroup;
   cartItems: Service[] = [];
   provider: Provider | null = null;
@@ -96,6 +96,18 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     
     // Pre-fill form with customer data if logged in
     const userSub = this.authService.user.subscribe(userWithCustomer => {
+      
+      //disable form fields if logged in
+      if(userWithCustomer.user) {
+        this.contactForm.get('firstName')?.disable();
+        this.contactForm.get('lastName')?.disable();
+        this.contactForm.get('email')?.disable();
+      }
+      else {
+        this.contactForm.get('firstName')?.enable();
+        this.contactForm.get('lastName')?.enable();
+        this.contactForm.get('email')?.enable();
+      }
       if (userWithCustomer.customer) {
         const customer = userWithCustomer.customer;
         this.contactForm.patchValue({
@@ -164,7 +176,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
         const endTime = new Date(startTime);
         endTime.setMinutes(endTime.getMinutes() + service.duration);
         
-        const serviceIds = this.cartItems.map(service => service.serviceId);
+        const serviceIds = this.cartItems.map(service => service.id);
 
         // Create appointment object
         const appointment: Partial<Appointment> = {

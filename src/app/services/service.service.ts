@@ -78,7 +78,7 @@ export class ServiceService {
 
   updateService(service: Service): Promise<void> {
     return this.ngZone.run(() => {
-      const documentRef = doc(this.firestore, `${this.collectionName}/${service.serviceId}`);
+      const documentRef = doc(this.firestore, `${this.collectionName}/${service.id}`);
       return updateDoc(documentRef, { ...service });
     });
   }

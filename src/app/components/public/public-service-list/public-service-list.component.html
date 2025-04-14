@@ -48,15 +48,17 @@
     <h2 class="section-title">Dienstleistung auswählen</h2>
     
     <div class="services-grid">
-      <div *ngFor="let service of services" class="service-card" [class.in-cart]="isInCart(service.serviceId)">
-        <h3>{{ service.name }}</h3>
-        <p *ngIf="service.description">{{ service.description }}</p>
-        <div class="service-details">
-          <div class="service-duration">Dauer: {{ formatDuration(service.duration) }}</div>
-          <div class="service-price">{{ formatPrice(service.price) }}</div>
+      <div *ngFor="let service of services" class="service-card" (click)="addToCart(service)">
+        <div class="service-content">
+          <h3>{{ service.name }}</h3>
+          <p *ngIf="service.description">{{ service.description }}</p>
+          <div class="service-details">
+            <div class="service-duration">Dauer: {{ formatDuration(service.duration) }}</div>
+            <div class="service-price">{{ formatPrice(service.price) }}</div>
+          </div>
         </div>
-        <button class="add-to-cart-btn" (click)="addToCart(service)" [disabled]="isInCart(service.serviceId)">
-          {{ isInCart(service.serviceId) ? 'Im Warenkorb' : 'In den Warenkorb' }}
+        <button class="add-to-cart-btn" [disabled]="isInCart(service.id)" [class.in-cart]="isInCart(service.id)">
+          {{ isInCart(service.id) ? 'Im Warenkorb' : 'In den Warenkorb' }}
         </button>
       </div>
     </div>

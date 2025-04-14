@@ -31,7 +31,7 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
   currentTab: string = 'dashboard';
   showAddServiceForm: boolean = false;
   newService: Service = {
-    serviceId: '',
+    id: '',
     userId: '',
     name: '', price: 0, duration: 0, image: ''};
   
@@ -129,8 +129,8 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
     this.todayAppointments
       .filter(appointment => appointment.status === 'completed')
       .forEach(appointment => {
-        // Find the service for this appointment
-        const service = this.services.find(s => s.serviceId === appointment.serviceId);
+        // Find the service for this appointment. Since serviceIds is an array, we use the first one here.
+        const service = this.services.find(s => s.id === appointment.serviceIds[0]);
         if (service) {
           this.todayRevenue += service.price;
         }
@@ -198,7 +198,7 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
   cancelAddService() {
     this.showAddServiceForm = false;
     this.newService = {
-      serviceId: '',
+      id: '',
       userId: this.newService.userId,
       name: '', price: 0, duration: 0, image: ''};
   }
@@ -214,7 +214,7 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
     
     this.loadingService.setLoading(true, 'Speichere Dienstleistung...');
     
-    this.newService.serviceId = uuidv4();
+    this.newService.id = uuidv4();
 
     this.serviceService.createService(this.newService)
       .then(() => {        

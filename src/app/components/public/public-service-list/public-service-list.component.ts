@@ -65,9 +65,15 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
   
-  addToCart(service: Service): void {
-    this.cartService.addItem(service);
-    alert(`${service.name} wurde zum Warenkorb hinzugefügt.`);
+  addToCart(service: Service): void {    
+    if (this.cartService.isInCart(service.id)) {
+      // Remove the service from the cart
+      this.cartService.removeItem(service.id);
+    } else {
+      // Add the service to the cart
+      this.cartService.addItem(service);
+    }
+
   }
   
   isInCart(serviceId: string): boolean {

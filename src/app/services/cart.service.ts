@@ -51,7 +51,7 @@ export class CartService {
   
   addItem(service: Service): void {
     // Check if the item is already in the cart
-    if (!this.isInCart(service.serviceId)) {
+    if (!this.isInCart(service.id)) {
       this.cartItems.push({...service});
       this.cartItemsSubject.next([...this.cartItems]);
       this.saveCartToStorage();
@@ -59,7 +59,7 @@ export class CartService {
   }
   
   removeItem(serviceId: string): void {
-    this.cartItems = this.cartItems.filter(item => item.serviceId !== serviceId);
+    this.cartItems = this.cartItems.filter(item => item.id !== serviceId);
     this.cartItemsSubject.next([...this.cartItems]);
     this.saveCartToStorage();
   }
@@ -71,7 +71,7 @@ export class CartService {
   }
   
   isInCart(serviceId: string): boolean {
-    return this.cartItems.some(item => item.serviceId === serviceId);
+    return this.cartItems.some(item => item.id === serviceId);
   }
   
   // Helper to set provider ID for the booking process

@@ -61,39 +61,28 @@
       
       <form [formGroup]="contactForm" (ngSubmit)="onSubmit()">
         <div class="form-group-row">
-          <div class="form-group">
-            <label for="firstName">Vorname <span class="required">*</span></label>
-            <input type="text" id="firstName" formControlName="firstName" required>
-            <div *ngIf="contactForm.get('firstName')?.invalid && contactForm.get('firstName')?.touched" class="error-message">
-              Vorname ist erforderlich
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label for="lastName">Nachname <span class="required">*</span></label>
-            <input type="text" id="lastName" formControlName="lastName" required>
-            <div *ngIf="contactForm.get('lastName')?.invalid && contactForm.get('lastName')?.touched" class="error-message">
-              Nachname ist erforderlich
-            </div>
-          </div>
+          <div class="form-group" *ngIf="contactForm.get('firstName')?.value">
+            <label for="firstName">Vorname:</label>
+            <div>{{ contactForm.get('firstName')?.value }}</div>
+           </div>
+            
+           <div class="form-group" *ngIf="contactForm.get('lastName')?.value">
+            <label for="lastName">Nachname:</label>
+            <div>{{ contactForm.get('lastName')?.value }}</div>
+           </div>
         </div>
         
         <div class="form-group-row">
-          <div class="form-group">
-            <label for="email">E-Mail <span class="required">*</span></label>
-            <input type="email" id="email" formControlName="email" required>
-            <div *ngIf="contactForm.get('email')?.invalid && contactForm.get('email')?.touched" class="error-message">
-              Gültige E-Mail-Adresse erforderlich
-            </div>
-          </div>
+           <div class="form-group" *ngIf="contactForm.get('email')?.value">
+            <label for="email">E-Mail:</label>
+            <div>{{ contactForm.get('email')?.value }}</div>
+           </div>
           
-          <div class="form-group">
-            <label for="phone">Telefon <span class="required">*</span></label>
-            <input type="tel" id="phone" formControlName="phone" required>
-            <div *ngIf="contactForm.get('phone')?.invalid && contactForm.get('phone')?.touched" class="error-message">
-              Telefonnummer ist erforderlich
-            </div>
+          <div class="form-group" *ngIf="contactForm.get('phone')?.value">
+           <label for="phone">Telefon:</label>
+           <div>{{ contactForm.get('phone')?.value }}</div>
           </div>
+
         </div>
         
         <div class="form-group">
@@ -115,7 +104,7 @@
             Zurück
           </button>
           <button type="submit" class="confirm-btn" [disabled]="contactForm.invalid">
-            Buchung bestätigen
+            Termin buchen
             <span class="arrow-right">→</span>
           </button>
         </div>

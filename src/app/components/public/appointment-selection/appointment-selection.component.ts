@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ProviderService } from '../../../services/provider.service';
@@ -15,7 +15,7 @@ import { Service } from '../../../models/service.model';
 @Component({
   selector: 'app-appointment-selection',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './appointment-selection.component.html',
   styleUrls: ['./appointment-selection.component.css']
 })
@@ -33,13 +33,15 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
   
   private route = inject(ActivatedRoute);
-  private router = inject(Router);
   private providerService = inject(ProviderService);
   private appointmentService = inject(AppointmentService);
   private serviceService = inject(ServiceService);
   private cartService = inject(CartService);
   private authService = inject(AuthenticationService);
   private loadingService = inject(LoadingService);
+
+    constructor(private router: Router) {
+    }
   
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Terminauswahl...');
@@ -153,30 +155,19 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   }
   
   goBack(): void {
-      this.router.navigate(['/public-service-list', this.userId]);
+      if (this.userId) {
+        this.router.navigate([`/services/${this.userId}`]);
+      }
   }
   
   continueToBilling(): void {
     // Check if user is logged in
-    this.authService.isLoggedIn().subscribe(isLoggedIn => {
-      if (isLoggedIn) {
-        // User is logged in, proceed to confirmation
-        this.router.navigate(['/booking-confirmation']);
-      } else {
-        // User is not logged in, redirect to login/register
-        // Store appointment details in session storage
-        sessionStorage.setItem('selectedDate', JSON.stringify(this.selectedDate));
-        sessionStorage.setItem('selectedTime', this.selectedTime || '');
-        
-        // Redirect to login with return URL
-        this.router.navigate(['/login'], { 
-          queryParams: { 
-            returnUrl: '/booking-confirmation'
-          }
-        });
-      }
-    });
+    this.navigateToBookingLogin();
   }
+
+  navigateToBookingLogin() {
+    this.router.navigate(['/booking-login/', this.userId]);
+  } 
   
   formatDate(date: Date): string {
     return date.toLocaleDateString('de-DE', {

@@ -84,15 +84,14 @@
         <p>Bitte wählen Sie zuerst ein Datum</p>
       </div>
     </div>
-    
-    <div class="action-buttons">
+   
+    <div class="action-buttons"> 
       <button type="button" class="back-btn" (click)="goBack()">
-        <span class="arrow-left">←</span>
-        Zurück
+          <span class="arrow-left">←</span>Zurück
       </button>
-      <button type="button" class="next-btn" [disabled]="!selectedDate || !selectedTime" (click)="continueToBilling()">
-        Weiter
-        <span class="arrow-right">→</span>
+      <button type="button" class="next-btn" [disabled]="!selectedDate || !selectedTime" (click)="navigateToBookingLogin()" >
+          Weiter <span class="arrow-right">→</span>
       </button>
     </div>
+
   </div>
