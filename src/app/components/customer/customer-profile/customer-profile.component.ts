@@ -1,10 +1,12 @@
 import { Component, OnInit, inject, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AuthenticationService } from '../../../services/authentication.service';
 import { User, updateProfile } from '@angular/fire/auth';
 import { Subscription } from 'rxjs';
 import { Customer } from '../../../models/customer.model';
 import { Router } from '@angular/router';
+import { CustomerService } from '../../../services/customer.service';
 
 
 @Component({
@@ -13,7 +15,7 @@ import { Router } from '@angular/router';
     templateUrl: './customer-profile.component.html',
     styleUrls: ['./customer-profile.component.css'],
     standalone: true,
-    imports: [CommonModule]
+    imports: [CommonModule, FormsModule]
 })
 export class CustomerProfileComponent implements OnInit, OnDestroy {
     customer: Customer | null = null;
@@ -24,6 +26,9 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
     private customerSubscription: Subscription | undefined;
     private router = inject(Router)
 
+    isEditing: boolean = false;
+    editedPhone: string = '';
+    private customerService = inject(CustomerService);
     constructor() { }
 
     ngOnInit() {
@@ -33,6 +38,7 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
 
                 if (userWithCustomer.customer) {
                     this.customer = userWithCustomer.customer;
+                    this.editedPhone = this.customer.phone;
                     if (this.user) {
                         updateProfile(this.user, {
                             displayName: `${userWithCustomer.customer.firstName} ${userWithCustomer.customer.lastName}`,
@@ -48,8 +54,19 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
         this.userSubscription?.unsubscribe();
     }
 
-    editProfile() {
-
+    editProfile(){
+        this.isEditing = true;
+    }
+    saveChanges() {
+        if (this.customer && this.editedPhone) {
+            const updatedCustomer = { ...this.customer, phone: this.editedPhone };
+            this.customerService.updateCustomer(updatedCustomer)
+                .then(() => {
+                    this.customer = updatedCustomer;
+                    this.isEditing = false;
+                })
+                .catch((error) => { console.error('Error updating customer:', error); });
+        }
     }
 
     logout() {

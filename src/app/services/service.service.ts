@@ -12,7 +12,7 @@ export class ServiceService {
   firestore: Firestore = inject(Firestore);
   private ngZone = inject(NgZone);
 
-  constructor() {}
+  constructor() { }
 
   getServices(): Observable<Service[]> {
     // Zone-spezifischer Ansatz: Verwenden Sie ngZone zum Umschließen der Firebase-Aufrufe
@@ -90,17 +90,16 @@ export class ServiceService {
     });
   }
 
-  getServicesByProvider(providerId: string): Observable<Service[]> {
+  getServicesByUser(userId: string): Observable<Service[]> {
     return new Observable<Service[]>(observer => {
       this.ngZone.run(() => {
         try {
           const servicesCollection = collection(this.firestore, this.collectionName);
-          const q = query(servicesCollection, where('providerId', '==', providerId));
+          const q = query(servicesCollection, where('userId', '==', userId));
           collectionData(q, { idField: 'serviceId' })
             .pipe(
               map(data => data as Service[]),
               catchError(error => {
-                console.error(`Error fetching services for provider ${providerId}:`, error);
                 return of([]);
               })
             )
@@ -110,7 +109,7 @@ export class ServiceService {
               complete: () => observer.complete()
             });
         } catch (error) {
-          console.error('Error in getServicesByProvider:', error);
+          console.error('Error in getServicesByUser:', error);
           observer.next([]);
           observer.complete();
         }
@@ -118,7 +117,7 @@ export class ServiceService {
     });
   }
 
-  isServiceAvailable(serviceId: string, date: Date, time: string): Observable<boolean> { 
-    return this.ngZone.run(() => of(true)); 
+  isServiceAvailable(serviceId: string, date: Date, time: string): Observable<boolean> {
+    return this.ngZone.run(() => of(true));
   }
 }

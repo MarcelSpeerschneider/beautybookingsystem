@@ -4,8 +4,8 @@ export interface Appointment {
 serviceName: any;
 customerName: any;
     appointmentId: string;
-    customerId: string;
-    providerId: string;
+    userId: string;
+    customerId: string;   
     serviceId: string;
     startTime: Date;
     endTime: Date;

@@ -1,11 +1,20 @@
 <div class="profile-container">
     <h2>Profile</h2>
-      <div *ngIf="isLoading" class="loading-message">Loading...</div>
-      <div *ngIf="!isLoading" class="profile-info">
-          <p><strong>Name:</strong> {{ customer?.firstName }} {{ customer?.lastName }}</p>
-          <p><strong>Email:</strong> {{ customer?.email }}</p>
+    <div *ngIf="isLoading" class="loading-message">Loading...</div>
+    <div *ngIf="!isLoading" class="profile-info">
+        <p><strong>Name:</strong> {{ customer?.firstName }} {{ customer?.lastName }}</p>
+        <p><strong>Email:</strong> {{ customer?.email }}</p>
+        <div *ngIf="!isEditing; else editPhone">
           <p><strong>Phone Number:</strong> {{ customer?.phone }}</p>
-      </div>
-    <button (click)="editProfile()">Edit Profile</button>
+        </div>
+        <ng-template #editPhone>
+          <div class="edit-phone">
+              <label for="phone">Phone Number:</label>
+              <input type="text" id="phone" name="phone" [(ngModel)]="editedPhone">
+          </div>
+        </ng-template>
+    </div>
+    <button *ngIf="!isEditing" (click)="editProfile()">Edit Phone</button>
+    <button *ngIf="isEditing" (click)="saveChanges()">Save Changes</button>
+    
     <button (click)="logout()">Logout</button>
-  </div>

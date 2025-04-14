@@ -1,14 +1,64 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-       match /customers/{customerId} {
-        allow read: if request.auth != null && request.auth.uid == resource.data.userId;
-        allow create, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    // Grundlegende Authentifizierung - nur angemeldete Benutzer
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    // Regeln für Customers-Sammlung
+    match /customers/{customerId} {
+      // Kunden können ihre eigenen Daten lesen
+      allow read: if request.auth != null &&
+                   (resource.data.userId == request.auth.uid ||
+                    request.auth.token.admin == true);
+      // Kunden können nur ihre eigenen Daten aktualisieren
+      allow write: if request.auth != null &&
+                    (resource.data.userId == request.auth.uid ||
+                     request.auth.token.admin == true);
+      // Neue Kunden erstellen (für Registrierung)
+      allow create: if request.auth != null &&
+                     request.resource.data.userId == request.auth.uid;
+    }
+    // Regeln für Services-Sammlung
+    match /services/{serviceId} {
+      // Jeder kann Services lesen
+      allow read: if true; // Korrekter Syntax mit "if"
+      // Nur Provider können Services erstellen/aktualisieren/löschen
+      allow write: if request.auth != null &&
+                    (request.resource.data.userId == request.auth.uid ||
+                     request.auth.token.admin == true);
+    }
+    // Regeln für Appointments-Sammlung
+    match /appointments/{appointmentId} {
+      // Kunden können nur ihre eigenen Termine sehen
+      // Provider können alle ihre Termine sehen
+      allow read: if request.auth != null &&
+                    (resource.data.customerId == request.auth.uid ||
+                    resource.data.userId == request.auth.uid ||
+                    request.auth.token.admin == true);
+      // Kunden können Termine erstellen
+      allow create: if request.auth != null &&
+                     request.resource.data.customerId == request.auth.uid;
+      // Kunden und Provider können Termine aktualisieren
+      allow update: if request.auth != null &&
+                    (resource.data.customerId == request.auth.uid ||                     
+                    resource.data.userId == request.auth.uid ||
+                     request.auth.token.admin == true);
+      // Nur Provider und Admins können Termine löschen
+      allow delete: if request.auth != null &&
+                     (resource.data.userId == request.auth.uid ||
+                      request.auth.token.admin == true);
       }
-      
+    // Regeln für Providers-Sammlung
     match /providers/{providerId} {
-      allow read: if request.auth != null;
-       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Öffentlicher Zugriff für Provider-Informationen
+      allow read: if true; // Korrekter Syntax mit "if"
+      // Nur der Provider selbst kann seine Daten ändern
+      allow write: if request.auth != null &&
+                    (resource.data.userId == request.auth.uid ||
+                     request.auth.token.admin == true);
+      // Nur der Provider selbst kann seine Daten erstellen
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
   }
 }

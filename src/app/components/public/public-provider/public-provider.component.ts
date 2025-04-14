@@ -23,7 +23,7 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   private cartService = inject(CartService);
   public authService = inject(AuthenticationService);
   
-  provider: Provider | null = null;
+    provider: Provider | null = null;
   businessName: string | null = null;
   isLoggedIn = false;
   
@@ -42,7 +42,7 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
       } else {
         this.loadingService.setLoading(false);
         this.router.navigate(['/']); // Redirect to home if no business name
-      }
+      }   
     });
     
     this.subscriptions.push(routeSub);
@@ -69,33 +69,31 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
       // Find provider with matching business name, case insensitive
       const provider = providers.find(p => {
         console.log('Vergleiche:', p.businessName.toLowerCase(), '==', businessName.toLowerCase());
-        return p.businessName.toLowerCase() === businessName.toLowerCase();
-      });
+          return p.businessName.toLowerCase() === businessName.toLowerCase();
+        });
       
-      if (provider) {
+        if (provider) {
         console.log('Provider gefunden:', provider);
         this.provider = provider;
-        this.cartService.setProviderId(provider.providerId);
+        this.cartService.setProviderId(provider.userId)
       } else {
         console.log('Provider nicht gefunden, Weiterleitung zur Startseite');
         this.router.navigate(['/']);
       }
       
       this.loadingService.setLoading(false);
-    });
+      });
+    this.subscriptions.push(providersSub);
   }
   
   viewServices(): void {
-    if (this.provider) {
-      this.router.navigate(['/services', this.provider.providerId]);
-    }
+     if (this.provider && this.provider.userId) {
+      this.router.navigate(['/services', this.provider.userId]);
+    } else { console.error('Provider not set') }
   }
   
   login(): void {
-    this.router.navigate(['/customer-login'], { 
-      queryParams: { 
-        returnUrl: this.router.url 
-      }
-    });
+    this.router.navigate(['/provider-login']);
   }
+
 }

@@ -215,7 +215,7 @@ export class AuthenticationService {
           acceptsOnlinePayments
         };
         // Provider in Firestore speichern
-        await this.providerService.addProvider(provider as Provider);
+        
       }
       this.loadingService.setLoading(false);
       return response;

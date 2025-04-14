@@ -11,7 +11,7 @@ export class AppointmentService {
     firestore: Firestore = inject(Firestore);
     private ngZone = inject(NgZone);
     private collectionName = 'appointments';
-    
+
     constructor() {
     }
 
@@ -105,16 +105,15 @@ export class AppointmentService {
         });
     }
 
-    getAppointmentsByProvider(providerId: string): Observable<Appointment[]> {
+    getAppointmentsByUser(userId: string): Observable<Appointment[]> {
         return new Observable<Appointment[]>(observer => {
             this.ngZone.run(() => {
                 try {
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    const q = query(appointmentsCollection, where('providerId', '==', providerId));
+                    const q = query(appointmentsCollection, where('userId', '==', userId));
                     collectionData(q, { idField: 'appointmentId' }).pipe(
                         map(data => data as Appointment[]),
                         catchError(error => {
-                            console.error(`Error fetching appointments for provider ${providerId}:`, error);
                             return of([]);
                         })
                     ).subscribe({
@@ -131,12 +130,12 @@ export class AppointmentService {
         });
     }
 
-    getAppointmentsByProviderAndDate(providerId: string, date: Date): Observable<Appointment[]> {
+    getAppointmentsByUserAndDate(userId: string, date: Date): Observable<Appointment[]> {
         return new Observable<Appointment[]>(observer => {
             this.ngZone.run(() => {
                 try {
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    const q = query(appointmentsCollection, where('providerId', '==', providerId));
+                    const q = query(appointmentsCollection, where('userId', '==', userId));
                     collectionData(q, { idField: 'appointmentId' }).pipe(
                         map(data => {
                             const appointments = data as Appointment[];
@@ -150,8 +149,8 @@ export class AppointmentService {
                                 if (!appointment.startTime) return false;
                                 
                                 // Firebase-Timestamp zu Date konvertieren, falls nötig
-                                const startDate = appointment.startTime instanceof Date ? 
-                                    appointment.startTime : 
+                                const startDate = appointment.startTime instanceof Date ?
+                                    appointment.startTime :
                                     new Date(appointment.startTime);
                                 
                                 const appointmentDate = new Date(startDate);
@@ -161,7 +160,7 @@ export class AppointmentService {
                             });
                         }),
                         catchError(error => {
-                            console.error(`Error fetching appointments for provider ${providerId} on date ${date}:`, error);
+                            console.error(`Error fetching appointments for user ${userId} on date ${date}:`, error);
                             return of([]);
                         })
                     ).subscribe({
@@ -170,27 +169,16 @@ export class AppointmentService {
                         complete: () => observer.complete()
                     });
                 } catch (error) {
-                    console.error('Error in getAppointmentsByProviderAndDate:', error);
+                    console.error('Error in getAppointmentsByUserAndDate:', error);
                     observer.next([]);
                     observer.complete();
                 }
             });
         });
     }
-  
-    getAppointmentsByDate(date: Date): Observable<Appointment[]> {
-        return this.ngZone.run(() => {
-            // In einer vollständigen Implementierung würden wir hier einen Timestamp-Filter verwenden
-            // Für jetzt geben wir ein leeres Array zurück
-            console.log('Attempt to get appointments by date', date);
-            return of([]);
-        });
-    }
-  
-    getAvailableAppointments(providerId: string, date: Date, serviceId: string): Observable<Appointment[]> {
+    getAvailableAppointments(userId: string, date: Date, serviceId: string): Observable<Appointment[]> {
         return this.ngZone.run(() => {
             // TODO: Implementieren Sie die Logik für verfügbare Termine
-            console.log('Attempt to get available appointments', { providerId, date, serviceId });
             return of([]);
         });
     }

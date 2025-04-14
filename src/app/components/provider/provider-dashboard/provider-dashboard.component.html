@@ -48,7 +48,7 @@
                  'canceled': appointment.status === 'canceled'
                }">
             <div class="appointment-header">
-              <div class="client-name">{{ appointment.customerName || 'Kunde' }}</div>
+              <div class="client-name">{{ appointment.customerName || 'Kunde' }}</div> 
               <div class="appointment-status" *ngIf="appointment.status === 'pending'">
                 <button class="btn-confirm" (click)="confirmAppointment(appointment.appointmentId)">Bestätigen</button>
               </div>
@@ -61,7 +61,7 @@
             <div class="appointment-notes" *ngIf="appointment.notes">
               <strong>Notizen:</strong> {{ appointment.notes }}
             </div>
-          </div>
+          </div> 
         </div>
         
         <div class="cleaning-break" *ngFor="let appointment of todayAppointments">
@@ -90,8 +90,51 @@
   <!-- Services Tab -->
   <div class="tab-content" *ngIf="currentTab === 'services'">
     <h2 class="section-title">Dienstleistungen</h2>
-    <p>Hier können Sie Ihre angebotenen Dienstleistungen verwalten. Diese Funktion wird noch implementiert.</p>
-  </div>
+    <button class="btn btn-secondary" (click)="addNewService()">Neue Dienstleistung</button>
+    <!-- Services Grid -->
+    <div class="services-grid">
+      <div *ngFor="let service of services" class="service-card">
+        <div class="service-image">
+          <img [src]="service.image" alt="{{ service.name }}" *ngIf="service.image">
+        </div>
+        <div class="service-header">
+          <h3 class="service-name">{{ service.name }}</h3>
+        </div>
+        <div class="service-details">
+          <p class="service-description">{{service.description}}</p>
+          <p class="service-price">Preis: {{ service.price }} €</p>
+          <p class="service-duration">Dauer: {{ service.duration }} Min.</p>
+        </div>
+      </div>
+    </div>
+    
+    
+      
+    <div class="services-container">
+      
+      <!-- Add New Service Section -->
+      <div class="add-service-section" *ngIf="showAddServiceForm">
+        <h3>Neue Dienstleistung hinzufügen</h3>
+        <form (ngSubmit)="submitService()">
+          <div class="form-group">
+            <label for="serviceName">Name:</label>
+            <input type="text" id="serviceName" name="serviceName" [(ngModel)]="newService.name" required required/>
+          </div>
+          <div class="form-group">
+            <label for="serviceDescription">Beschreibung:</label>
+            <textarea id="serviceDescription" name="serviceDescription" [(ngModel)]="newService.description" required required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="servicePrice">Preis:</label>
+            <input type="number" id="servicePrice" name="servicePrice" [(ngModel)]="newService.price" required min="0" required/>
+          </div>
+          <button type="submit" class="btn btn-primary">Dienstleistung hinzufügen</button>
+          <button type="button" class="btn btn-secondary" (click)="cancelAddService()">Abbrechen</button>
+        </form>
+      </div>
+      
+    </div>
+    </div>
 
   <!-- Customers Tab -->
   <div class="tab-content" *ngIf="currentTab === 'customers'">

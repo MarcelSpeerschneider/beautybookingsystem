@@ -1,5 +1,4 @@
 export interface Provider {
-  providerId: string;
   userId: string;
   firstName: string;
   lastName: string;
@@ -16,5 +15,6 @@ export interface Provider {
   };
   openingHours: string;
   specialties?: string[];
-  acceptsOnlinePayments?: boolean;
+  acceptsOnlinePayments?: boolean; 
+  subscriptionStatus?: string;
 }

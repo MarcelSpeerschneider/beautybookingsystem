@@ -28,8 +28,8 @@ export class ProviderService {
                 try {
                     const myCollection = collection(this.firestore, this.collectionName);
                     collectionData(myCollection, { idField: 'providerId' }).pipe(
-                        map(data => data as Provider[]),
-                        catchError(error => {
+                        map(data => data.map(d => ({...d } as Provider))),
+                        catchError((error) => {
                             console.error('Error fetching providers:', error);
                             return of([]);
                         })
@@ -54,8 +54,8 @@ export class ProviderService {
                     const providersCollection = collection(this.firestore, this.collectionName);
                     const q = query(providersCollection, where('services', 'array-contains', service));
                     collectionData(q, { idField: 'providerId' }).pipe(
-                        map(data => data as Provider[]),
-                        catchError(error => {
+                        map((data) => data.map((d) => ({ ...d } as Provider))),
+                        catchError((error) => {
                             console.error(`Error fetching providers with service ${service}:`, error);
                             return of([]);
                         })
@@ -77,16 +77,15 @@ export class ProviderService {
         return new Observable<Provider | undefined>(observer => {
             this.ngZone.run(() => {
                 try {
-                    console.log('Fetching provider for userId:', userId);
-                    const myCollection = collection(this.firestore, this.collectionName);
+                    const myCollection = collection(this.firestore, this.collectionName);                    
                     const q = query(myCollection, where('userId', '==', userId));
                     collectionData(q, { idField: 'providerId' }).pipe(
-                        map(providers => {
-                            const providerArray = providers as Provider[];
-                            console.log('Provider query result:', providerArray.length > 0 ? 'Found' : 'Not found');
-                            return providerArray.length > 0 ? providerArray[0] : undefined;
+                        map((providers) => {
+                            const provider: Provider | undefined = providers.length > 0 ? providers[0] as Provider : undefined;
+
+                            return provider
                         }),
-                        catchError(error => {
+                        catchError((error) => {
                             console.error(`Error fetching provider for user ID ${userId}:`, error);
                             return of(undefined);
                         })
@@ -104,15 +103,15 @@ export class ProviderService {
         });
     }
     
-    getProvider(providerId: string): Observable<Provider | undefined> {
+    getProvider(userId: string): Observable<Provider | undefined> {
         return new Observable<Provider | undefined>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const document = doc(this.firestore, `${this.collectionName}/${providerId}`);
-                    docData(document, { idField: 'providerId' }).pipe(
-                        map(data => data as Provider),
+                    const document = doc(this.firestore, this.collectionName, userId);
+                    docData(document).pipe(
+                         map(d => ({...d} as Provider)),
                         catchError(error => {
-                            console.error(`Error fetching provider with ID ${providerId}:`, error);
+                            console.error(`Error fetching provider with ID ${userId}:`, error);
                             return of(undefined);
                         })
                     ).subscribe({
@@ -132,11 +131,15 @@ export class ProviderService {
     addProvider(provider: Partial<Provider>): Promise<DocumentReference> { 
         return this.ngZone.run(async () => {
             try {
-                console.log('Creating new provider:', provider);
-                const myCollection = collection(this.firestore, 'providers');
-                const docRef = await addDoc(myCollection, provider);
+                const providerWithDefaults = {
+                    ...provider,
+                    subscriptionStatus: provider.subscriptionStatus || 'free'
+                };
+                
+                const myCollection = collection(this.firestore, this.collectionName);
+                const docRef = await addDoc(myCollection, providerWithDefaults);
                 console.log('Provider created successfully with ID:', docRef.id);
-                return docRef;
+                return docRef;       
             } catch (error) {
                 console.error('Error creating provider:', error);
                 throw error;
@@ -144,17 +147,20 @@ export class ProviderService {
         });
     }
     
-    updateProvider(provider: Provider): Observable<void> {
+    updateProvider(provider: Provider): Observable<void> {        
         return new Observable<void>(observer => {
             this.ngZone.run(() => {
-                try {
-                    const document = doc(this.firestore, `${this.collectionName}/${provider.providerId}`);
-                    from(updateDoc(document, { ...provider })).pipe(
+               try {
+                    const document = doc(this.firestore, this.collectionName, provider.userId);                    
+                    const { userId, ...providerWithoutUserId } = provider;
+
+                    from(updateDoc(document, providerWithoutUserId)).pipe(
                         catchError(error => {
-                            console.error(`Error updating provider with ID ${provider.providerId}:`, error);
-                            return of(undefined);
+
+                            console.error('Error updating provider:', error);
+                            throw error;
                         })
-                    ).subscribe({
+                    ).subscribe({                        
                         next: () => observer.next(),
                         error: err => observer.error(err),
                         complete: () => observer.complete()
@@ -172,14 +178,14 @@ export class ProviderService {
         return new Observable<BusinessHours[]>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const businessHoursCollection = collection(this.firestore, this.businessHoursCollectionName);
-                    const q = query(businessHoursCollection, where('providerId', '==', providerId));
-                    collectionData(q).pipe(
-                        map(data => data as BusinessHours[]),
-                        catchError(error => {
-                            console.error(`Error fetching business hours for provider ${providerId}:`, error);
+                    const businessHoursCollection = collection(this.firestore, this.businessHoursCollectionName) ;
+                    const q = query(businessHoursCollection, where('userId', '==', providerId));
+                    collectionData(q, { idField: 'businessHoursId' }).pipe(
+                         map(data => data.map(d => ({...d} as BusinessHours))),
+                        catchError(error => {                            
+                            console.error(`Error fetching business hours for user ${providerId}.`, error);
                             return of([]);
-                        })
+                         })                        
                     ).subscribe({
                         next: hours => observer.next(hours),
                         error: err => observer.error(err),
@@ -198,13 +204,13 @@ export class ProviderService {
         return new Observable<ServiceBreak[]>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const breaksCollection = collection(this.firestore, this.breaksCollectionName);
-                    const q = query(breaksCollection, where('providerId', '==', providerId));
-                    collectionData(q).pipe(
-                        map(data => data as ServiceBreak[]),
-                        catchError(error => {
-                            console.error(`Error fetching breaks for provider ${providerId}:`, error);
-                            return of([]);
+                   const breaksCollection = collection(this.firestore, this.breaksCollectionName);
+                    const q = query(breaksCollection, where('userId', '==', providerId));
+                    collectionData(q, { idField: 'breakId' }).pipe(
+                        map(data => data.map(d => ({...d} as ServiceBreak))),
+                        catchError(error => {                            
+                            console.error(`Error fetching breaks for user ${providerId}:`, error);
+                            return of([]);                            
                         })
                     ).subscribe({
                         next: breaks => observer.next(breaks),
@@ -220,14 +226,14 @@ export class ProviderService {
         });
     }
     
-    deleteProvider(providerId: string): Observable<void> {
+    deleteProvider(userId: string): Observable<void> {
         return new Observable<void>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const document = doc(this.firestore, `${this.collectionName}/${providerId}`);
+                    const document = doc(this.firestore, this.collectionName, userId);
                     from(deleteDoc(document)).pipe(
                         catchError(error => {
-                            console.error(`Error deleting provider with ID ${providerId}:`, error);
+                            console.error(`Error deleting provider with ID ${userId}:`, error);
                             return of(undefined);
                         })
                     ).subscribe({

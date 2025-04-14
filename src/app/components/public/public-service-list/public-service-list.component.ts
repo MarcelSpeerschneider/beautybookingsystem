@@ -13,12 +13,13 @@ import { LoadingService } from '../../../services/loading.service';
   selector: 'app-public-service-list',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './public-service-list.component.html',
+  templateUrl: './public-service-list.component.html', // Corrected the syntax here
   styleUrls: ['./public-service-list.component.css']
 })
 export class PublicServiceListComponent implements OnInit, OnDestroy {
-  providerId: string | null = null;
+  
   provider: Provider | null = null;
+  userId: string = '';
   services: Service[] = [];
   
   private subscriptions: Subscription[] = [];
@@ -31,49 +32,52 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
 
   ngOnInit(): void {
-    this.loadingService.setLoading(true, 'Lade Dienstleistungen...');
+    this.loadingService.setLoading(true, 'Lade...');
     
-    // Get provider ID from route parameter
-    const routeSub = this.route.paramMap.subscribe(params => {
-      this.providerId = params.get('providerId');
-      
-      if (this.providerId) {
-        // Load provider details
-        this.loadProvider(this.providerId);
-        
+    // Get user ID from route parameter
+    const routeSub = this.route.paramMap.subscribe(params => {      
+      const userId = params.get('userId');
+      if (userId) {
+        this.userId = userId;
+        // Load provider details by userId
+        this.providerService.getProviderByUserId(userId).subscribe(provider => {
+          this.provider = provider;
+        });
+
         // Load services for this provider
-        this.loadServices(this.providerId);
+        this.serviceService.getServicesByUser(userId).subscribe(services => {
+          this.services = services;
+          this.loadingService.setLoading(false); // Set loading to false after fetching services
+        });
       } else {
-        this.loadingService.setLoading(false);
         this.router.navigate(['/']); // Redirect to home if no provider ID
       }
     });
-    
     this.subscriptions.push(routeSub);
   }
   
-  ngOnDestroy(): void {
+  loadProvider(userId: string): void {
+        console.log("loadProvider - User ID:", userId);
+        const providerSub = this.providerService.getProviderByUserId(userId).subscribe({
+          next: (provider) => {
+            console.log("Loaded Provider:", provider);
+            this.provider = provider || null;
+        if (!this.provider) {
+          this.router.navigate(['/']); // Redirect to home if no provider
+        }
+        this.loadingService.setLoading(false);
+      },
+          error: (error) => {
+            console.error("Error loading provider:", error);
+          }
+        });
+      console.log("load provider", this.provider)
+      
+  }
+  
+   ngOnDestroy(): void {
     // Unsubscribe from all subscriptions
     this.subscriptions.forEach(sub => sub.unsubscribe());
-  }
-  
-  loadProvider(providerId: string): void {
-    const providerSub = this.providerService.getProvider(providerId)
-      .subscribe(provider => {
-        this.provider = provider || null;
-        this.loadingService.setLoading(false);
-      });
-      
-    this.subscriptions.push(providerSub);
-  }
-  
-  loadServices(providerId: string): void {
-    const servicesSub = this.serviceService.getServicesByProvider(providerId)
-      .subscribe(services => {
-        this.services = services;
-      });
-      
-    this.subscriptions.push(servicesSub);
   }
   
   addToCart(service: Service): void {
@@ -86,8 +90,8 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
   }
   
   viewCart(): void {
-    if (this.providerId) {
-      this.router.navigate(['/appointment-selection', this.providerId]);
+    if (this.userId) {
+      this.router.navigate(['/appointment-selection', this.userId]);
     }
   }
   

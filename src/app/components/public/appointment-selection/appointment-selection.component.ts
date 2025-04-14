@@ -20,7 +20,7 @@ import { Service } from '../../../models/service.model';
   styleUrls: ['./appointment-selection.component.css']
 })
 export class AppointmentSelectionComponent implements OnInit, OnDestroy {
-  providerId: string | null = null;
+  userId: string | null = null;
   provider: Provider | null = null;
   cartItems: Service[] = [];
   
@@ -55,21 +55,21 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
     
     // Get provider ID from route parameter
     const routeSub = this.route.paramMap.subscribe(params => {
-      this.providerId = params.get('providerId');
+      this.userId = params.get('userId');
       
-      if (!this.providerId) {
+      if (!this.userId) {
         // Try to get provider ID from cart
-        this.providerId = this.cartService.getProviderId();
+        this.userId = this.cartService.getProviderId();
       }
       
-      if (this.providerId) {
+      if (this.userId) {
         // Store provider ID in cart
-        this.cartService.setProviderId(this.providerId);
+        this.cartService.setProviderId(this.userId);
         
         // Load provider details
-        this.loadProvider(this.providerId);
+        this.loadProvider(this.userId);
         
-        // Generate available dates (next 14 days)
+        // Generate available dates
         this.generateAvailableDates();
       } else {
         this.loadingService.setLoading(false);
@@ -85,8 +85,8 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
   
-  loadProvider(providerId: string): void {
-    const providerSub = this.providerService.getProvider(providerId)
+  loadProvider(userId: string): void {
+    const providerSub = this.providerService.getProviderByUserId(userId)
       .subscribe(provider => {
         this.provider = provider || null;
         this.loadingService.setLoading(false);
@@ -116,7 +116,7 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   }
   
   generateTimeSlots(date: Date): void {
-    if (!this.providerId) return;
+    if (!this.userId) return;
     
     // In a real implementation, you'd check the provider's business hours
     // and existing appointments to determine available slots
@@ -153,11 +153,7 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   }
   
   goBack(): void {
-    if (this.providerId) {
-      this.router.navigate(['/services', this.providerId]);
-    } else {
-      this.router.navigate(['/services']);
-    }
+      this.router.navigate(['/public-service-list', this.userId]);
   }
   
   continueToBilling(): void {

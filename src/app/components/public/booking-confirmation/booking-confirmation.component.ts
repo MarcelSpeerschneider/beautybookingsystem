@@ -167,7 +167,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
         // Create appointment object
         const appointment: Partial<Appointment> = {
           customerId: customerId,
-          providerId: providerId,
+          userId: providerId,
           serviceId: service.serviceId,
           startTime: startTime,
           endTime: endTime,

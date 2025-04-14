@@ -194,18 +194,15 @@ export class ProviderRegistrationComponent implements OnInit {
         city: providerData.city,
         logo: providerData.logo,
         website: providerData.website,
-        openingHours: formattedBusinessHours, // Use the formatted hours
+        openingHours: formattedBusinessHours,
         instagram: providerData.instagram,
         facebook: providerData.facebook,
         specialties: specialtiesArray,
-        acceptsOnlinePayments: providerData.acceptsOnlinePayments
       }).then(response => {
         if (response && response.user) {
           const userId = response.user.uid;
-
           // Create provider object
           const provider: Provider = {
-            providerId: '', // Will be set by Firestore
             userId: userId,
             firstName: providerData.firstName,
             lastName: providerData.lastName,
@@ -222,7 +219,7 @@ export class ProviderRegistrationComponent implements OnInit {
             },
             openingHours: formattedBusinessHours, // Use the same formatted hours
             specialties: specialtiesArray,
-            acceptsOnlinePayments: providerData.acceptsOnlinePayments
+            acceptsOnlinePayments: providerData.acceptsOnlinePayments,
           };
 
           // Save provider to database
@@ -233,6 +230,7 @@ export class ProviderRegistrationComponent implements OnInit {
               setTimeout(() => {
                 this.router.navigate(['/provider-dashboard']);
               }, 1500);
+              return;
             })
             .catch(error => {
               this.loadingService.setLoading(false);

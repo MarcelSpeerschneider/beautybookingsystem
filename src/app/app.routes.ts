@@ -8,6 +8,7 @@ import { provideRouter, withPreloading, PreloadAllModules } from '@angular/route
 // Provider Components
 import { ProviderRegistrationComponent } from './components/provider/provider-registration/provider-registration.component';
 import { ProviderDashboardComponent } from './components/provider/provider-dashboard/provider-dashboard.component';
+import { ProviderLoginComponent } from './components/provider/provider-login/provider-login.component';
 
 // Public Booking Flow
 import { PublicServiceListComponent } from './components/public/public-service-list/public-service-list.component';
@@ -26,11 +27,12 @@ export const routes: Routes = [
 
   // Provider routes
   { path: 'provider-registration', component: ProviderRegistrationComponent },
+  { path: 'provider-login', component: ProviderLoginComponent },
   { path: 'provider-dashboard', component: ProviderDashboardComponent, canActivate: [AuthGuard] },
   
   // Public booking flow
-  { path: 'services/:providerId', component: PublicServiceListComponent },
-  { path: 'appointment-selection/:providerId', component: AppointmentSelectionComponent },
+  { path: 'services/:userId', component: PublicServiceListComponent },
+  { path: 'appointment-selection/:userId', component: AppointmentSelectionComponent },
   { path: 'booking-confirmation', component: BookingConfirmationComponent },
   
   // Provider public page - this should be the last route to avoid conflicts

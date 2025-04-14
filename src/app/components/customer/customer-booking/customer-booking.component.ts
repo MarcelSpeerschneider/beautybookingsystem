@@ -168,7 +168,7 @@ export class CustomerBookingComponent implements OnInit, OnDestroy{
 
   getSelectedProvider(): Provider | undefined {
     const providerId = this.bookingForm.get('providerId')?.value;
-    return this.providers.find(provider => provider.providerId === providerId);
+    return this.providers.find(provider => provider.userId === providerId);
   }
 
   onSubmit(): void {
@@ -202,7 +202,7 @@ export class CustomerBookingComponent implements OnInit, OnDestroy{
       
       const appointment: Partial<Appointment> = {
         customerId: this._user.uid,
-        providerId: formValues.providerId,
+        userId: formValues.providerId,
         serviceId: formValues.serviceId,
         startTime: dateObj,
         endTime: endTime,

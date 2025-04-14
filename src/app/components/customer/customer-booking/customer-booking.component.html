@@ -41,9 +41,9 @@
         <div class="providers-grid">
           <div *ngFor="let provider of providers" 
                class="provider-card" 
-               [ngClass]="{'selected': bookingForm.get('providerId')?.value === provider.providerId}" 
-               (click)="selectProvider(provider.providerId)">
-            <div class="provider-name">{{ provider.businessName }}</div>
+               [ngClass]="{'selected': bookingForm.get('userId')?.value === provider.userId}" 
+               (click)="selectProvider(provider.userId)">
+               <div class="provider-name">{{ provider.businessName }}</div>
             <div class="provider-description">{{ provider.description }}</div>
             <div *ngIf="provider.address" class="provider-address">{{ provider.address }}</div>
           </div>
@@ -51,7 +51,7 @@
         <div class="form-navigation">
           <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
           <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('providerId')?.valid" (click)="nextStep()">Weiter</button>
-        </div>
+        </div>        
       </div>
   
       <!-- Schritt 3: Datum-Auswahl -->
