@@ -16,6 +16,7 @@ import { PublicServiceListComponent } from './components/public/public-service-l
 import { AppointmentSelectionComponent } from './components/public/appointment-selection/appointment-selection.component';
 import { PublicProviderComponent } from './components/public/public-provider/public-provider.component';
 import { BookingOverviewComponent } from './components/public/booking-overview/booking-overview.component';
+import { BookingConfirmationComponent } from './components/public/booking-confirmation/booking-confirmation.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/customer-login', pathMatch: 'full' },
@@ -35,7 +36,9 @@ export const routes: Routes = [
   { path: 'services/:userId', component: PublicServiceListComponent },
   { path: 'appointment-selection/:userId', component: AppointmentSelectionComponent },
   { path: 'booking-login/:userId', component: BookingLoginComponent },
-  { path: 'booking-confirmation', component: BookingOverviewComponent },
+  { path: 'booking-overview', component: BookingOverviewComponent },
+  { path: 'booking-confirmation', component: BookingConfirmationComponent, canActivate: [AuthGuard] },
+
   
   // Provider public page - this should be the last route to avoid conflicts
   { path: ':businessName', component: PublicProviderComponent }

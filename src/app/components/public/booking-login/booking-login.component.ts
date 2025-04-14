@@ -95,7 +95,7 @@ export class BookingLoginComponent implements OnInit, OnDestroy {
       
       this.authService.login({ email, password })
         .then(() => {
-          // Redirect to confirmation page
+          // Redirect to our new booking-confirmation page
           this.router.navigate(['/booking-confirmation']);
         })
         .catch(error => {

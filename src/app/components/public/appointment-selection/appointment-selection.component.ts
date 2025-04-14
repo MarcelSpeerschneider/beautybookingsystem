@@ -161,7 +161,6 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   }
   
   continueToBilling(): void {
-    // Check if user is logged in
     this.navigateToBookingLogin();
   }
 
