@@ -164,19 +164,20 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
         const endTime = new Date(startTime);
         endTime.setMinutes(endTime.getMinutes() + service.duration);
         
+        const serviceIds = this.cartItems.map(service => service.serviceId);
+
         // Create appointment object
         const appointment: Partial<Appointment> = {
           customerId: customerId,
-          userId: providerId,
-          serviceId: service.serviceId,
+          providerId: providerId,
+          serviceIds: serviceIds,
           startTime: startTime,
           endTime: endTime,
           status: 'pending',
           notes: formValues.notes,
           cleaningTime: 15, // 15 minutes cleaning time
           createdAt: new Date(),
-          customerName: `${formValues.firstName} ${formValues.lastName}`,
-          serviceName: service.name
+          customerName: `${formValues.firstName} ${formValues.lastName}`
         };
         
         // Create appointment

@@ -73,30 +73,34 @@ export class ProviderService {
         });
     }
 
-    getProviderByUserId(userId: string): Observable<Provider | undefined> {
-        return new Observable<Provider | undefined>(observer => {
+    getProviderByUserId(userId: string): Observable<Provider | null> {
+        return new Observable<Provider | null>(observer => {
             this.ngZone.run(() => {
                 try {
                     const myCollection = collection(this.firestore, this.collectionName);                    
                     const q = query(myCollection, where('userId', '==', userId));
                     collectionData(q, { idField: 'providerId' }).pipe(
-                        map((providers) => {
-                            const provider: Provider | undefined = providers.length > 0 ? providers[0] as Provider : undefined;
-
-                            return provider
-                        }),
-                        catchError((error) => {
+                      map((providers) => {
+                        if(providers.length > 0) {
+                          return providers[0] as Provider
+                        }
+                        return null;
+                      }),
+                      
+                      catchError((error) => {
                             console.error(`Error fetching provider for user ID ${userId}:`, error);
-                            return of(undefined);
+                            return of(null);
+
                         })
                     ).subscribe({
                         next: provider => observer.next(provider),
                         error: err => observer.error(err),
                         complete: () => observer.complete()
                     });
+
                 } catch (error) {
                     console.error('Error in getProviderByUserId:', error);
-                    observer.next(undefined);
+                    observer.next(null);
                     observer.complete();
                 }
             });

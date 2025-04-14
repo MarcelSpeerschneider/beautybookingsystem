@@ -37,12 +37,16 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
     // Get user ID from route parameter
     const routeSub = this.route.paramMap.subscribe(params => {      
       const userId = params.get('userId');
+
       if (userId) {
         this.userId = userId;
+        
         // Load provider details by userId
         this.providerService.getProviderByUserId(userId).subscribe(provider => {
-          this.provider = provider;
+          
+            this.provider = provider;
         });
+      
 
         // Load services for this provider
         this.serviceService.getServicesByUser(userId).subscribe(services => {
@@ -54,25 +58,6 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
       }
     });
     this.subscriptions.push(routeSub);
-  }
-  
-  loadProvider(userId: string): void {
-        console.log("loadProvider - User ID:", userId);
-        const providerSub = this.providerService.getProviderByUserId(userId).subscribe({
-          next: (provider) => {
-            console.log("Loaded Provider:", provider);
-            this.provider = provider || null;
-        if (!this.provider) {
-          this.router.navigate(['/']); // Redirect to home if no provider
-        }
-        this.loadingService.setLoading(false);
-      },
-          error: (error) => {
-            console.error("Error loading provider:", error);
-          }
-        });
-      console.log("load provider", this.provider)
-      
   }
   
    ngOnDestroy(): void {
