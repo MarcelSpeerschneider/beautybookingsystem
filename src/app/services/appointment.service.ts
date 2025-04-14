@@ -290,4 +290,36 @@ export class AppointmentService {
             });
         });
     }
+
+    
+getAppointmentsByProvider(providerId: string): Observable<Appointment[]> {
+    return new Observable<Appointment[]>(observer => {
+      this.ngZone.run(() => {
+        try {
+          console.log("AppointmentService: Getting appointments for provider ID:", providerId);
+          const appointmentsCollection = collection(this.firestore, this.collectionName);
+          // Nutze providerId zum Filtern
+          const q = query(appointmentsCollection, where('providerId', '==', providerId));
+          collectionData(q, { idField: 'appointmentId' }).pipe(
+            map(data => {
+              console.log("AppointmentService: Raw results:", data);
+              return data as Appointment[];
+            }),
+            catchError(error => {
+              console.error(`Error fetching appointments for provider ${providerId}:`, error);
+              return of([]);
+            })
+          ).subscribe({
+            next: appointments => observer.next(appointments),
+            error: err => observer.error(err),
+            complete: () => observer.complete()
+          });
+        } catch (error) {
+          console.error('Error in getAppointmentsByProvider:', error);
+          observer.next([]);
+          observer.complete();
+        }
+      });
+    });
+  }
 }

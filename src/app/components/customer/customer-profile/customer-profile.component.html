@@ -53,10 +53,13 @@
         <div class="appointment-header">
           <div class="appointment-service">{{ appointment.serviceName }}</div>
           <div class="appointment-price">{{ calculatePrice(appointment) }} €</div>
-          <div class="appointment-status {{ appointment.status }}">
-          <span class="status-icon">{{ getStatusIcon(appointment.status) }}</span>
-          <span class="status-text">{{ getStatusText(appointment.status) }}</span>
+          <!-- Provider moved to top right -->
+          <div class="appointment-provider" *ngIf="appointment.providerName">
+            <span class="provider-icon">💼</span>
+            {{ appointment.providerName }}
+          </div>
         </div>
+        
         <div class="appointment-datetime">
           <div class="appointment-date">
             <span class="date-icon">📆</span>
@@ -67,14 +70,19 @@
             {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}
           </div>
         </div>
-        <div class="appointment-provider" *ngIf="appointment.providerName">
-          <span class="provider-icon">💼</span>
-          {{ appointment.providerName }}
-        </div>
-        <div class="appointment-actions">
-          <button class="reschedule-btn" *ngIf="canRescheduleAppointment(appointment)" (click)="rescheduleAppointment(appointment)">
-            Termin verschieben
-          </button>
+        
+        <div class="appointment-footer">
+          <div class="appointment-actions">
+            <button class="reschedule-btn" *ngIf="canRescheduleAppointment(appointment)" (click)="rescheduleAppointment(appointment)">
+              Termin verschieben
+            </button>
+          </div>
+          
+          <!-- Status moved to bottom right -->
+          <div class="appointment-status {{ appointment.status }}">
+            <span class="status-icon">{{ getStatusIcon(appointment.status) }}</span>
+            <span class="status-text">{{ getStatusText(appointment.status) }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -101,16 +109,16 @@
         <div class="appointment-list-time">{{ formatTime(appointment.startTime) }}</div>
         <div class="appointment-list-service">{{ appointment.serviceName || 'Unbekannter Service' }}</div>
         <div class="appointment-list-actions">
-          <div class="appointment-status {{ appointment.status }}">
-          {{ getStatusText(appointment.status) }}
-        </div>
-        
           <button class="review-btn" *ngIf="canReviewAppointment(appointment)" (click)="reviewAppointment(appointment)">
             Bewerten
           </button>
           <button class="rebook-btn" (click)="rebookAppointment(appointment)">
             Erneut buchen
           </button>
+          <!-- Status for past appointments also at the right side -->
+          <div class="appointment-status {{ appointment.status }}">
+            {{ getStatusText(appointment.status) }}
+          </div>
         </div>
       </div>
     </div>

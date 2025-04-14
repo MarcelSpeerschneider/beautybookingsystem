@@ -83,8 +83,199 @@
 
   <!-- Appointments Tab -->
   <div class="tab-content" *ngIf="currentTab === 'appointments'">
-    <h2 class="section-title">Termine</h2>
-    <p>Hier werden alle Termine angezeigt. Diese Funktion wird noch implementiert.</p>
+    <h2 class="section-title">Terminübersicht</h2>
+    
+    <!-- Filter Controls -->
+    <div class="appointments-filters">
+      <div class="filter-group">
+        <label for="statusFilter">Status:</label>
+        <select id="statusFilter" [(ngModel)]="statusFilter" (change)="filterAppointments()">
+          <option value="all">Alle</option>
+          <option value="pending">Anfragen</option>
+          <option value="confirmed">Bestätigt</option>
+          <option value="completed">Abgeschlossen</option>
+          <option value="canceled">Storniert</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="dateFilter">Zeitraum:</label>
+        <select id="dateFilter" [(ngModel)]="dateFilter" (change)="filterAppointments()">
+          <option value="all">Alle Termine</option>
+          <option value="today">Heute</option>
+          <option value="tomorrow">Morgen</option>
+          <option value="week">Diese Woche</option>
+          <option value="month">Diesen Monat</option>
+        </select>
+      </div>
+      
+      <div class="filter-group search">
+        <input type="text" placeholder="Nach Kundenname suchen..." [(ngModel)]="searchQuery" (input)="filterAppointments()">
+        <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()">✕</button>
+      </div>
+    </div>
+    
+    <!-- Appointments Table -->
+    <div class="appointments-table-container" *ngIf="filteredAppointments.length > 0">
+      <table class="appointments-table">
+        <thead>
+          <tr>
+            <th (click)="sortAppointments('date')">
+              Datum
+              <span class="sort-icon" *ngIf="sortField === 'date'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th (click)="sortAppointments('time')">
+              Uhrzeit
+              <span class="sort-icon" *ngIf="sortField === 'time'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th>Dauer</th>
+            <th (click)="sortAppointments('customer')">
+              Kunde
+              <span class="sort-icon" *ngIf="sortField === 'customer'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th (click)="sortAppointments('service')">
+              Dienstleistung
+              <span class="sort-icon" *ngIf="sortField === 'service'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th (click)="sortAppointments('status')">
+              Status
+              <span class="sort-icon" *ngIf="sortField === 'status'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th>Aktionen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let appointment of filteredAppointments" [ngClass]="appointment.status">
+            <td>{{ formatDate(appointment.startTime) }}</td>
+            <td>{{ formatTime(appointment.startTime) }}</td>
+            <td>{{ getAppointmentDuration(appointment) }} Min.</td>
+            <td>{{ appointment.customerName || 'Unbekannt' }}</td>
+            <td>{{ appointment.serviceName || 'Unbekannt' }}</td>
+            <td>
+              <span class="status-badge {{ appointment.status }}">
+                {{ getStatusText(appointment.status) }}
+              </span>
+            </td>
+            <td class="action-cell">
+              <div *ngIf="appointment.status === 'pending'" class="appointment-actions">
+                <button class="btn-action accept" (click)="confirmAppointment(appointment.appointmentId)" title="Termin bestätigen">
+                  <span class="action-icon">✓</span>
+                </button>
+                <button class="btn-action reject" (click)="rejectAppointment(appointment.appointmentId)" title="Termin ablehnen">
+                  <span class="action-icon">✗</span>
+                </button>
+              </div>
+              
+              <div *ngIf="appointment.status === 'confirmed'" class="appointment-actions">
+                <button class="btn-action complete" (click)="completeAppointment(appointment.appointmentId)" title="Als erledigt markieren">
+                  <span class="action-icon">✓</span>
+                </button>
+                <button class="btn-action cancel" (click)="cancelAppointment(appointment.appointmentId)" title="Termin stornieren">
+                  <span class="action-icon">✗</span>
+                </button>
+              </div>
+              
+              <button class="btn-action view" (click)="viewAppointmentDetails(appointment)" title="Details anzeigen">
+                <span class="action-icon">ℹ</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredAppointments.length === 0">
+      <div class="empty-icon">📅</div>
+      <h3>Keine Termine gefunden</h3>
+      <p *ngIf="statusFilter !== 'all' || dateFilter !== 'all' || searchQuery">
+        Versuche, deine Filtereinstellungen anzupassen.
+      </p>
+      <p *ngIf="statusFilter === 'all' && dateFilter === 'all' && !searchQuery">
+        Es wurden keine Termine gefunden.
+      </p>
+      <button class="btn btn-secondary" (click)="resetFilters()">Filter zurücksetzen</button>
+    </div>
+    
+    <!-- Appointment Details Modal -->
+    <div class="appointment-modal" *ngIf="selectedAppointment">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Termindetails</h3>
+          <button class="close-modal" (click)="closeAppointmentDetails()">✕</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="detail-row">
+            <div class="detail-label">Kunde:</div>
+            <div class="detail-value">{{ selectedAppointment.customerName || 'Unbekannt' }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="detail-label">Dienstleistung:</div>
+            <div class="detail-value">{{ selectedAppointment.serviceName || 'Unbekannt' }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="detail-label">Datum:</div>
+            <div class="detail-value">{{ formatDate(selectedAppointment.startTime) }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="detail-label">Uhrzeit:</div>
+            <div class="detail-value">
+              {{ formatTime(selectedAppointment.startTime) }} - {{ formatTime(selectedAppointment.endTime) }}
+            </div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="detail-label">Dauer:</div>
+            <div class="detail-value">{{ getAppointmentDuration(selectedAppointment) }} Minuten</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="detail-label">Status:</div>
+            <div class="detail-value">
+              <span class="status-badge {{ selectedAppointment.status }}">
+                {{ getStatusText(selectedAppointment.status) }}
+              </span>
+            </div>
+          </div>
+          
+          <div class="detail-row" *ngIf="selectedAppointment.notes">
+            <div class="detail-label">Anmerkungen:</div>
+            <div class="detail-value">{{ selectedAppointment.notes }}</div>
+          </div>
+          
+          <div class="detail-row">
+            <div class="detail-label">Erstellt am:</div>
+            <div class="detail-value">{{ formatDate(selectedAppointment.createdAt) }}</div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <div *ngIf="selectedAppointment.status === 'pending'" class="modal-actions">
+            <button class="btn btn-primary" (click)="confirmAppointment(selectedAppointment.appointmentId)">
+              Termin bestätigen
+            </button>
+            <button class="btn btn-danger" (click)="rejectAppointment(selectedAppointment.appointmentId)">
+              Termin ablehnen
+            </button>
+          </div>
+          
+          <div *ngIf="selectedAppointment.status === 'confirmed'" class="modal-actions">
+            <button class="btn btn-primary" (click)="completeAppointment(selectedAppointment.appointmentId)">
+              Als erledigt markieren
+            </button>
+            <button class="btn btn-danger" (click)="cancelAppointment(selectedAppointment.appointmentId)">
+              Termin stornieren
+            </button>
+          </div>
+          
+          <button class="btn btn-secondary" (click)="closeAppointmentDetails()">Schließen</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Services Tab -->
@@ -131,37 +322,31 @@
       </div>    
     </div>
     
-    
-      
-    <div class="services-container">
-      
-      <!-- Add New Service Section -->
-      <div class="add-service-section" *ngIf="showAddServiceForm">
-        <h3>Neue Dienstleistung hinzufügen</h3>
-        <form (ngSubmit)="submitService()">
-          <div class="form-group">
-            <label for="serviceName">Name:</label>
-            <input type="text" id="serviceName" name="serviceName" [(ngModel)]="newService.name" required required/>
-          </div>
-          <div class="form-group">
-            <label for="serviceDescription">Beschreibung:</label>
-            <textarea id="serviceDescription" name="serviceDescription" [(ngModel)]="newService.description" required required></textarea>
-          </div>
-          <div class="form-group">
-            <label for="servicePrice">Preis:</label>
-            <input type="number" id="servicePrice" name="servicePrice" [(ngModel)]="newService.price" required min="0" required/>
-          </div>
-          <div class="form-group">
-            <label for="serviceDuration">Dauer (Minuten):</label>
-            <input type="number" id="serviceDuration" name="serviceDuration" [(ngModel)]="newService.duration" required min="0"/>
-          </div>
-          <button type="submit" class="btn btn-primary">Dienstleistung hinzufügen</button>
-          <button type="button" class="btn btn-secondary" (click)="cancelAddService()">Abbrechen</button>
-        </form>
-      </div>
-      
+    <!-- Add New Service Section -->
+    <div class="add-service-section" *ngIf="showAddServiceForm">
+      <h3>Neue Dienstleistung hinzufügen</h3>
+      <form (ngSubmit)="submitService()">
+        <div class="form-group">
+          <label for="serviceName">Name:</label>
+          <input type="text" id="serviceName" name="serviceName" [(ngModel)]="newService.name" required />
+        </div>
+        <div class="form-group">
+          <label for="serviceDescription">Beschreibung:</label>
+          <textarea id="serviceDescription" name="serviceDescription" [(ngModel)]="newService.description" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="servicePrice">Preis:</label>
+          <input type="number" id="servicePrice" name="servicePrice" [(ngModel)]="newService.price" required min="0" />
+        </div>
+        <div class="form-group">
+          <label for="serviceDuration">Dauer (Minuten):</label>
+          <input type="number" id="serviceDuration" name="serviceDuration" [(ngModel)]="newService.duration" required min="0"/>
+        </div>
+        <button type="submit" class="btn btn-primary">Dienstleistung hinzufügen</button>
+        <button type="button" class="btn btn-secondary" (click)="cancelAddService()">Abbrechen</button>
+      </form>
     </div>
-    </div>
+  </div>
 
   <!-- Customers Tab -->
   <div class="tab-content" *ngIf="currentTab === 'customers'">

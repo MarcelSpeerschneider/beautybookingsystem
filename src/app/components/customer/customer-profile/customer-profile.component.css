@@ -1,3 +1,5 @@
+/* Complete CSS for customer-profile.component.css */
+
 .profile-container {
   max-width: 900px;
   margin: 0 auto;
@@ -212,51 +214,39 @@
   position: relative;
 }
 
-.appointment-status {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.appointment-status.pending {
-  color: #ff9800;
-}
-
-.appointment-status.confirmed {
-  color: #4a148c;
-}
-
-.appointment-status.completed {
-  color: #4caf50;
-}
-
-.appointment-status.canceled {
-  color: #f44336;
-}
-
-.status-icon {
-  margin-right: 5px;
-}
-
+/* Adjust the header for provider display */
 .appointment-header {
   display: flex;
   justify-content: space-between;
   margin-bottom: 15px;
+  flex-wrap: wrap;
 }
 
+/* Service and price on the left side */
 .appointment-service {
   font-weight: 600;
   font-size: 18px;
   color: #333;
+  margin-right: 10px;
 }
 
 .appointment-price {
   font-weight: 600;
   color: #4a148c;
+  margin-right: 10px;
+}
+
+/* Provider info now positioned on the right */
+.appointment-provider {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.provider-icon {
+  margin-right: 8px;
 }
 
 .appointment-datetime {
@@ -271,22 +261,55 @@
   font-size: 14px;
 }
 
-.date-icon, .time-icon, .provider-icon {
+.date-icon, .time-icon {
   margin-right: 8px;
 }
 
-.appointment-provider {
-  margin-bottom: 15px;
+/* New footer section for actions and status */
+.appointment-footer {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  color: #666;
-  font-size: 14px;
+  margin-top: 15px;
+  flex-wrap: wrap;
 }
 
+/* Appointment actions on the left */
 .appointment-actions {
   display: flex;
   gap: 10px;
-  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+/* Status now at the bottom right */
+.appointment-status {
+  margin-left: auto;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+/* Make sure the status icons are properly aligned */
+.status-icon {
+  margin-right: 5px;
+}
+
+/* Status colors */
+.appointment-status.pending {
+  color: #ff9800;
+}
+
+.appointment-status.confirmed {
+  color: #4a148c;
+}
+
+.appointment-status.completed {
+  color: #4caf50;
+}
+
+.appointment-status.canceled {
+  color: #f44336;
 }
 
 .cancel-appointment-btn, .reschedule-btn, .review-btn, .rebook-btn, .book-btn {
@@ -370,7 +393,7 @@
 
 .appointment-list-item {
   display: grid;
-  grid-template-columns: 2fr 1fr 3fr 2fr 2fr;
+  grid-template-columns: 1.5fr 1fr 3fr 3fr;
   padding: 15px 20px;
   align-items: center;
   border-bottom: 1px solid #f0f0f0;
@@ -394,15 +417,15 @@
   color: #333;
 }
 
-.appointment-list-status {
-  font-weight: 500;
-  font-size: 14px;
-}
-
 .appointment-list-actions {
   display: flex;
   gap: 10px;
+  align-items: center;
   justify-content: flex-end;
+}
+
+.appointment-list-actions .appointment-status {
+  margin-left: 10px;
 }
 
 .review-btn {
@@ -457,6 +480,17 @@
     width: 100%;
     justify-content: flex-end;
   }
+  
+  .appointment-header, .appointment-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .appointment-provider, .appointment-status {
+    margin-left: 0;
+    margin-top: 5px;
+  }
 
   .appointment-list-item {
     grid-template-columns: 1fr;
@@ -466,6 +500,7 @@
   .appointment-list-actions {
     justify-content: flex-start;
     margin-top: 10px;
+    flex-wrap: wrap;
   }
 }
 
