@@ -55,26 +55,22 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
 
   ngOnInit() {
+    this.loadingService.setLoading(false);
     this.loadingService.setLoading(true, 'Lade Profildaten...');
     
     // Get user and customer data
     const userSub = this.auth.user.subscribe(userWithCustomer => {
       if (userWithCustomer.user) {
         this.user = userWithCustomer.user;
-
         if (userWithCustomer.customer) {
           this.customer = userWithCustomer.customer;
           this.editedPhone = this.customer.phone;
           
-          // Load appointments
+          
           this.loadAppointments();
-        } else {
-          this.isLoading = false;
-          this.loadingService.setLoading(false);
-        }
+        } 
       } else {
         // No user logged in, redirect to login
-        this.isLoading = false;
         this.loadingService.setLoading(false);
         this.router.navigate(['/customer-login']);
       }
@@ -88,17 +84,12 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
   }
   
   loadAppointments(): void {
-    if (!this.customer) {
-      this.isLoading = false;
-      this.loadingService.setLoading(false);
-      return;
-    }
-    
+
     // Show EXACTLY what user ID we're trying to find appointments for
     console.log("Looking for appointments for customer with ID:", this.customer.userId);
     
     const firestore = this.appointmentService['firestore'];
-    const appointmentsCollection = collection(firestore, 'appointments'); // Use literal collection name
+    const appointmentsCollection = collection(firestore, 'appointments');
     
     // Try a direct query with the exact customer ID that we can see in Firestore
     const directCustomerId = this.customer.userId;
@@ -138,28 +129,28 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
                 
                 if (matchingAppointments.length > 0) {
                   this.processAppointments(matchingAppointments as Appointment[]);
+                  
                 } else {
-                  // No appointments found at all
                   this.isLoading = false;
-                  this.loadingService.setLoading(false);
                 }
               } else {
-                // No appointments in the collection at all
                 this.isLoading = false;
-                this.loadingService.setLoading(false);
-              }
-            },
+                this.isLoading = false;
+              }  
+              
+              }},
             error: (error) => {
               console.error("Error getting all appointments:", error);
-              this.isLoading = false;
               this.loadingService.setLoading(false);
+              this.isLoading = false;
             }
+              
           });
         }
       },
       error: (error) => {
-        console.error('Error with direct query:', error);
         this.isLoading = false;
+        console.error('Error with direct query:', error);
         this.loadingService.setLoading(false);
       }
     });
@@ -183,10 +174,14 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
         
         // Sort into upcoming or past appointments
         const appointmentDate = new Date(appointment.startTime);
-        if (appointmentDate > now && appointment.status !== 'canceled') {
-          upcomingAppts.push(enhancedAppointment);
-        } else {
+        // Check if appointment is in the past OR completed/canceled
+        if (appointment.status === 'completed' || appointment.status === 'canceled' || appointmentDate < now) {
           pastAppts.push(enhancedAppointment);
+        } else {
+          // All other cases are considered upcoming appointments
+          upcomingAppts.push(enhancedAppointment);
+
+
         }
       });
       
@@ -206,10 +201,9 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
       this.favoriteService = appointments.length > 0 ? appointments[0].serviceName : ""; // Simplified
       
       // Always ensure loading is turned off
-      this.isLoading = false;
       this.loadingService.setLoading(false);
       
-      console.log("Appointments processed successfully");
+           console.log("Appointments processed successfully");
       console.log("Upcoming appointments:", this.upcomingAppointments.length);
       console.log("Past appointments:", this.pastAppointments.length);
       
@@ -218,7 +212,6 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error("Error in processAppointments:", error);
       // Always ensure loading is turned off even in case of errors
-      this.isLoading = false;
       this.loadingService.setLoading(false);
     }
   }
@@ -443,11 +436,6 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
     });
   }
   
-  canCancelAppointment(appointment: Appointment): boolean {
-    // Can only cancel pending or confirmed appointments
-    return ['pending', 'confirmed'].includes(appointment.status);
-  }
-  
   canRescheduleAppointment(appointment: Appointment): boolean {
     // Can only reschedule confirmed appointments
     return appointment.status === 'confirmed';
@@ -458,21 +446,8 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
     return appointment.status === 'completed';
   }
   
-  cancelAppointment(appointment: Appointment): void {
-    if (confirm('Möchten Sie diesen Termin wirklich stornieren?')) {
-      this.appointmentService.cancelAppointment(appointment.appointmentId)
-        .subscribe(() => {
-          this.loadAppointments(); // Reload appointments
-          alert('Termin wurde storniert.');
-        }, error => {
-          console.error('Error canceling appointment:', error);
-          alert('Fehler beim Stornieren des Termins.');
-        });
-    }
-  }
-  
   rescheduleAppointment(appointment: Appointment): void {
-    // Navigate to reschedule page
+    
     alert('Diese Funktion ist noch nicht implementiert.');
   }
   
@@ -485,6 +460,4 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
     // Rebook same service
     alert('Diese Funktion ist noch nicht implementiert.');
   }
-  
-  // Method removed as per request
 }

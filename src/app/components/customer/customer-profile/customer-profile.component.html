@@ -50,13 +50,12 @@
     
     <div class="appointment-cards">
       <div class="appointment-card" *ngFor="let appointment of upcomingAppointments">
-        <div class="appointment-status {{ appointment.status }}">
-          <span class="status-icon">{{ getStatusIcon(appointment.status) }}</span>
-          <span class="status-text">{{ getStatusText(appointment.status) }}</span>
-        </div>
         <div class="appointment-header">
           <div class="appointment-service">{{ appointment.serviceName }}</div>
           <div class="appointment-price">{{ calculatePrice(appointment) }} €</div>
+          <div class="appointment-status {{ appointment.status }}">
+          <span class="status-icon">{{ getStatusIcon(appointment.status) }}</span>
+          <span class="status-text">{{ getStatusText(appointment.status) }}</span>
         </div>
         <div class="appointment-datetime">
           <div class="appointment-date">
@@ -73,9 +72,6 @@
           {{ appointment.providerName }}
         </div>
         <div class="appointment-actions">
-          <button class="cancel-appointment-btn" *ngIf="canCancelAppointment(appointment)" (click)="cancelAppointment(appointment)">
-            Termin stornieren
-          </button>
           <button class="reschedule-btn" *ngIf="canRescheduleAppointment(appointment)" (click)="rescheduleAppointment(appointment)">
             Termin verschieben
           </button>
@@ -104,10 +100,11 @@
         <div class="appointment-list-date">{{ formatDate(appointment.startTime) }}</div>
         <div class="appointment-list-time">{{ formatTime(appointment.startTime) }}</div>
         <div class="appointment-list-service">{{ appointment.serviceName || 'Unbekannter Service' }}</div>
-        <div class="appointment-list-status {{ appointment.status }}">
+        <div class="appointment-list-actions">
+          <div class="appointment-status {{ appointment.status }}">
           {{ getStatusText(appointment.status) }}
         </div>
-        <div class="appointment-list-actions">
+        
           <button class="review-btn" *ngIf="canReviewAppointment(appointment)" (click)="reviewAppointment(appointment)">
             Bewerten
           </button>
