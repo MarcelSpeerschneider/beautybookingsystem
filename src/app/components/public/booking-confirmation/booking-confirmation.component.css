@@ -1,6 +1,7 @@
 .container {
     max-width: 1000px;
     margin: 0 auto;
+    background-color: var(--main-background-color);
     padding: 20px;
   }
   
@@ -19,12 +20,12 @@
   .logo {
     width: 80px;
     height: 80px;
-    background-color: #f8e6ff;
+    background-color: var(--decorative-element-color);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #4a148c;
+    color: var(--primary-color);
     font-weight: bold;
     margin-right: 20px;
     font-size: 2rem;
@@ -36,12 +37,12 @@
   }
   
   .brand h1 {
-    color: #333;
+    color: var(--heading-text-color);
     margin-bottom: 5px;
   }
   
   .brand p {
-    color: #666;
+    color: var(--body-text-color);
   }
   
   .booking-container {
@@ -63,7 +64,7 @@
     content: '';
     position: absolute;
     height: 2px;
-    background-color: #e0e0e0;
+    background-color: var(--placeholder-text-color);
     width: 100%;
     top: 15px;
     z-index: 1;
@@ -87,13 +88,13 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 10px;
-    background-color: #e0e0e0;
-    color: #666;
+    background-color: var(--placeholder-text-color);
+    color: var(--body-text-color);
   }
   
   .step.active .step-number {
-    background-color: #4a148c;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--card-header-color);
   }
   
   .step.completed .step-number {
@@ -103,11 +104,11 @@
   
   .step-label {
     font-size: 0.9rem;
-    color: #666;
+    color: var(--body-text-color);
   }
   
   .step.active .step-label {
-    color: #4a148c;
+    color: var(--primary-color);
     font-weight: bold;
   }
   
@@ -116,13 +117,13 @@
   }
   
   .confirmation-card {
-    background-color: #faf5ff;
+    background-color: var(--section-background-color);
     border-radius: 8px;
     padding: 25px;
     margin-bottom: 30px;
-    border-left: 4px solid #4a148c;
+    border-left: 4px solid var(--primary-color);
   }
-  
+
   .card-title {
     color: #4a148c;
     font-weight: 600;
@@ -147,13 +148,13 @@
   .detail-title {
     font-weight: 600;
     margin-bottom: 10px;
-    color: #333;
+    color: var(--heading-text-color);
     padding-bottom: 5px;
     border-bottom: 1px solid #e0e0e0;
   }
   
   .detail-item {
-    display: flex;
+    display: flex;   
     justify-content: space-between;
     margin-bottom: 10px;
   }
@@ -163,13 +164,13 @@
   }
   
   .detail-value {
+    color: var(--heading-text-color);
     font-weight: 500;
-    color: #333;
   }
   
   .price-summary {
-    background-color: #f5f5f5;
-    border-radius: 8px;
+    background-color: var(--section-background-color);
+   border-radius: 8px;
     padding: 20px;
     margin-top: 30px;
   }
@@ -188,20 +189,20 @@
   }
   
   .price-label {
-    color: #333;
+    color: var(--heading-text-color);
   }
   
   .price-value {
-    color: #4a148c;
+    color: var(--primary-color);
   }
   
   .payment-methods {
     margin-top: 30px;
-    background-color: white;
+    background-color: var(--card-header-color);
     border-radius: 8px;
     padding: 25px;
-    border: 1px solid #e0e0e0;
-  }
+    border: 1px solid var(--placeholder-text-color);
+}
   
   .payment-title {
     margin-bottom: 20px;
@@ -218,13 +219,13 @@
   
   .payment-option {
     flex: 1;
-    min-width: 150px;
-    border: 1px solid #e0e0e0;
+    min-width: 150px;   
+    border: 1px solid var(--placeholder-text-color);
     border-radius: 6px;
     padding: 15px;
     cursor: pointer;
     transition: all 0.3s;
-    display: flex;
+    display: flex;    
     align-items: center;
   }
   
@@ -233,7 +234,7 @@
     background-color: #faf5ff;
   }
   
-  .payment-option:hover:not(.selected):not(.disabled) {
+    .payment-option:hover:not(.selected):not(.disabled) {background-color: var(--section-background-color);
     background-color: #f9f9f9;
   }
   
@@ -269,7 +270,7 @@
   
   .payment-label {
     font-weight: 500;
-  }
+    color: var(--heading-text-color); }
   
   .terms-container {
     margin-top: 30px;
@@ -281,10 +282,10 @@
     color: #333;
   }
   
-  .terms-content {
-    background-color: #f5f5f5;
-    border-radius: 8px;
-    padding: 20px;
+  .terms-content {  
+    background-color: var(--section-background-color);
+   border-radius: 8px;
+   padding: 20px;
     color: #666;
     font-size: 0.9rem;
     line-height: 1.6;
@@ -305,7 +306,7 @@
   }
   
   .checkbox-field label {
-    color: #666;
+    color: var(--body-text-color);
     font-size: 0.9rem;
     line-height: 1.5;
   }
@@ -318,13 +319,13 @@
   
   .back-btn {
     background-color: white;
-    color: #4a148c;
-    border: 1px solid #4a148c;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
     padding: 12px 25px;
     border-radius: 30px;
     cursor: pointer;
     font-weight: 500;
-    display: flex;
+    display: flex;   
     align-items: center;
     transition: all 0.3s;
   }
@@ -334,13 +335,13 @@
   }
   
   .confirm-btn {
-    background-color: #4a148c;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--card-header-color);
     border: none;
     padding: 15px 30px;
     border-radius: 30px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 500;    
     display: flex;
     align-items: center;
     transition: background-color 0.3s;
@@ -352,7 +353,7 @@
   }
   
   .confirm-btn:disabled {
-    background-color: #d1c4e9;
+    background-color: var(--placeholder-text-color);
     cursor: not-allowed;
   }
   
@@ -372,7 +373,7 @@
   .success-icon {
     width: 80px;
     height: 80px;
-    background-color: #4caf50;
+    background-color: var(--primary-color);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -384,19 +385,19 @@
   
   .success-title {
     font-size: 1.5rem;
-    color: #333;
+    color: var(--heading-text-color);
     margin-bottom: 15px;
   }
   
   .success-text {
-    color: #666;
+    color: var(--body-text-color);
     margin-bottom: 30px;
     font-size: 1.1rem;
   }
   
   .home-btn {
-    background-color: #4a148c;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--card-header-color);
     border: none;
     padding: 12px 25px;
     border-radius: 30px;

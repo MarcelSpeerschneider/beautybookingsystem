@@ -70,7 +70,7 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
     } else {
       // Add the service to the cart
       this.cartService.addItem(service);
-    }
+    }    
   }
   
   isInCart(serviceId: string): boolean {

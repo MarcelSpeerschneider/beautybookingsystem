@@ -1,7 +1,7 @@
 .registration-container {
     max-width: 800px;
     margin: 30px auto;
-    background-color: white;
+    background-color: var(--card-header-color);
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 30px;
@@ -10,7 +10,7 @@
   .registration-container h2 {
     text-align: center;
     margin-bottom: 30px;
-    color: #4a148c;
+    color: var(--heading-text-color);
   }
   
   .stepper {
@@ -24,7 +24,7 @@
     content: '';
     position: absolute;
     height: 2px;
-    background-color: #e0e0e0;
+    background-color: var(--placeholder-text-color);
     width: 100%;
     top: 15px;
     z-index: 1;
@@ -47,14 +47,14 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 10px;
-    background-color: #e0e0e0;
-    color: #666;
+    background-color: var(--placeholder-text-color);
+    color: var(--body-text-color);
     font-weight: bold;
   }
   
   .step.active .step-number {
-    background-color: #4a148c;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--card-header-color);
   }
   
   .step.completed .step-number {
@@ -64,12 +64,12 @@
   
   .step-label {
     font-size: 0.9rem;
-    color: #666;
+    color: var(--body-text-color);
   }
   
   .step.active .step-label {
-    color: #4a148c;
-    font-weight: bold;
+    color: var(--primary-color);
+    
   }
   
   .step.completed .step-label {
@@ -98,7 +98,7 @@
   .form-group label {
     display: block;
     margin-bottom: 8px;
-    color: #333;
+    color: var(--heading-text-color);
     font-weight: 500;
   }
   
@@ -106,7 +106,7 @@
   .form-group textarea,
   .form-group select {
     width: 100%;
-    padding: 12px;
+    padding: 12px;;
     border: 1px solid #ddd;
     border-radius: 6px;
     font-size: 1rem;
@@ -114,7 +114,7 @@
   
   .form-group input:focus,
   .form-group textarea:focus,
-  .form-group select:focus {
+    .form-group select:focus {
     border-color: #4a148c;
     outline: none;
   }
@@ -134,12 +134,12 @@
   }
   
   .required {
-    color: #e91e63;
+    color: var(--primary-color);
   }
   
   .error-message {
-    color: #e91e63;
-    font-size: 0.85rem;
+    color: var(--primary-color);
+    font-size: 0.85rem;;
     margin-top: 5px;
   }
   
@@ -186,14 +186,14 @@
     text-align: center;
     margin-top: 20px;
     font-size: 0.9rem;
-    color: #666;
+    color: var(--body-text-color);
   }
   
   .login-link a {
-    color: #4a148c;
+    color: var(--primary-color);
     text-decoration: none;
   }
-  
+
   .login-link a:hover {
     text-decoration: underline;
   }
@@ -202,14 +202,14 @@
 
 .business-hours-container {
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 6px;;
     overflow: hidden;
     margin-bottom: 15px;
   }
   
   .business-hours-header {
     display: flex;
-    background-color: #f5f5f5;
+    background-color: var(--section-background-color);
     padding: 10px;
     font-weight: bold;
     border-bottom: 1px solid #ddd;
@@ -217,7 +217,7 @@
   
   .business-hours-row {
     display: flex;
-    padding: 10px;
+    padding: 10px;;
     border-bottom: 1px solid #eee;
     align-items: center;
   }
@@ -227,7 +227,7 @@
   }
   
   .business-hours-row:nth-child(even) {
-    background-color: #fafafa;
+    background-color: var(--section-background-color);
   }
   
   .day-column {
@@ -243,13 +243,13 @@
   .time-column select {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--placeholder-text-color);
     border-radius: 4px;
   }
   
   .time-column select:disabled {
-    background-color: #f5f5f5;
-    color: #999;
+    background-color: var(--section-background-color);
+
   }
   
   .closed-column {
@@ -264,10 +264,12 @@
   
   .business-hours-preview {
     margin-top: 15px;
-    padding: 10px;
-    background-color: #f5f5f5;
+    padding: 10px;;
+    background-color: var(--section-background-color);
     border-radius: 6px;
     font-size: 0.9rem;
+    border: 1px solid var(--decorative-element-color);
+
   }
   
   .business-hours-preview p {

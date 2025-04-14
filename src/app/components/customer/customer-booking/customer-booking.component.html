@@ -13,7 +13,7 @@
     </div>
   
     <!-- Formular nur anzeigen wenn es initialisiert ist -->
-    <form *ngIf="bookingForm" [formGroup]="bookingForm" (ngSubmit)="onSubmit()">
+    <form *ngIf="bookingForm" [formGroup]="bookingForm" (ngSubmit)="onSubmit()" class="booking-form">
       <!-- Schritt 1: Service-Auswahl -->
       <div class="service-selection" *ngIf="currentStep === 1">
         <h2>Wählen Sie einen Service</h2>
@@ -118,11 +118,10 @@
             <span class="summary-value">{{ bookingForm.get('time')?.value }} Uhr</span>
           </div>
         </div>
-        
-        <div class="form-group">
-          <label for="notes" class="form-label">Anmerkungen (optional):</label>
-          <textarea id="notes" formControlName="notes" class="form-control"></textarea>
-        </div>
+          <div class="form-group">
+            <label for="notes" class="form-label">Anmerkungen (optional):</label>
+            <textarea formControlName="notes" placeholder="Deine Notizen" class="form-control"></textarea>
+          </div>
         
         <div class="form-navigation">
           <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>

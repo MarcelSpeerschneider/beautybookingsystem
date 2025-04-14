@@ -22,6 +22,9 @@ export class CartService {
         this.cartItems = JSON.parse(savedCart);
         this.cartItemsSubject.next([...this.cartItems]);
       } catch (e) {
+        console.log('Cart from LocalStorage', savedCart);
+        console.log('Cart Items', this.cartItems);
+        
         console.error('Error loading cart from storage:', e);
         this.cartItems = [];
         this.cartItemsSubject.next([]);
@@ -52,7 +55,12 @@ export class CartService {
   addItem(service: Service): void {
     // Check if the item is already in the cart
     if (!this.isInCart(service.id)) {
+      console.log('Adding item to cart:', service);
+      console.log('Current cartItems:', this.cartItems);
+      console.log('Item to be pushed', service);
+      console.log('Current cartItems before push', this.cartItems);
       this.cartItems.push({...service});
+      console.log('Current cartItems after push:', this.cartItems);
       this.cartItemsSubject.next([...this.cartItems]);
       this.saveCartToStorage();
     }

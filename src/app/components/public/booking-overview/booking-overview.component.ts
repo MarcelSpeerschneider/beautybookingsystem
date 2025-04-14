@@ -81,7 +81,7 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
     }
     
     // Load provider details
-    const providerSub = this.providerService.getProvider(providerId).subscribe(provider => {
+    const providerSub = this.providerService.getProviderByUserId(providerId).subscribe(provider => {
       this.provider = provider || null;
     });
     
@@ -147,15 +147,11 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
     
     // Get form values
     const formValues = this.contactForm.getRawValue(); // Use getRawValue to include disabled fields
-    
-    // Store any necessary data in session storage for confirmation page
-    if (this.selectedDate) {
-      sessionStorage.setItem('selectedDate', JSON.stringify(this.selectedDate));
-    }
-    if (this.selectedTime) {
-      sessionStorage.setItem('selectedTime', this.selectedTime);
-    }
-    
+
+    // Speichere Notes temporär
+    const notes = this.contactForm.get('notes')?.value?.trim() || '';
+    localStorage.setItem('notes', notes);
+
     // Navigate to confirmation page
     this.router.navigate(['/booking-confirmation']);
     this.loadingService.setLoading(false);

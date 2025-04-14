@@ -1,1 +1,13 @@
 /* You can add global styles to this file, and also import other style files */
+
+:root {
+  --primary-color: #E5887D;
+  --section-background-color: #FCF5F2;
+  --decorative-element-color: #F7E0DB;
+  --main-background-color: #FDFBF8;
+  --card-header-color: #FFFFFF;
+  --heading-text-color: #333333;
+  --body-text-color: #666666;
+  --placeholder-text-color: #999999;
+}
+/* You can add global styles to this file, and also import other style files */

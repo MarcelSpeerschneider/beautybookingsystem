@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router } from '@angular/router';
 import { ServiceService } from '../../../services/service.service';
 import { AppointmentService } from '../../../services/appointment.service';
+import { v4 as uuidv4 } from 'uuid';
 import { AuthenticationService } from '../../../services/authentication.service';
 import { ProviderService } from '../../../services/provider.service';
 import { Service } from '../../../models/service.model';
@@ -22,12 +23,13 @@ import { Observable, of, Subscription } from 'rxjs';
 })
 export class CustomerBookingComponent implements OnInit, OnDestroy{
   currentStep = 1;
-  bookingForm: FormGroup;  // ACHTUNG: Kein ! mehr, da wir es im Konstruktor initialisieren
+  bookingForm: FormGroup = new FormGroup({});  // ACHTUNG: Kein ! mehr, da wir es im Konstruktor initialisieren
   services: Service[] = [];
   providers: Provider[] = [];
   availableDates: Date[] = [];
-  availableTimeSlots: string[] = [];
-  
+  availableTimeSlots: string[] = [];  
+  notes: string = '';  
+
   // Inject services
   private formBuilder = inject(FormBuilder);
   private serviceService = inject(ServiceService);
@@ -41,6 +43,10 @@ export class CustomerBookingComponent implements OnInit, OnDestroy{
   private _user: User | null = null;
 
   constructor() {
+
+  }
+
+  buildForm(){
     // Formular bereits im Konstruktor initialisieren - VOR dem Template-Rendering
     this.bookingForm = this.formBuilder.group({
       serviceId: ['', Validators.required],
@@ -52,7 +58,6 @@ export class CustomerBookingComponent implements OnInit, OnDestroy{
   }
 
   ngOnInit(): void {
-    
       this.userSubscription = this.authService.user.subscribe((userWithCustomer) => {
       if (!userWithCustomer.user || !userWithCustomer.customer) {
         this._user = null;
@@ -68,7 +73,7 @@ export class CustomerBookingComponent implements OnInit, OnDestroy{
 
       }
       this.loadServices();
-
+      this.buildForm();
 
     });
     
@@ -131,7 +136,7 @@ export class CustomerBookingComponent implements OnInit, OnDestroy{
         this.bookingForm.get('date')?.value,
         this.bookingForm.get('serviceId')?.value
       );
-      this.currentStep++;
+      this.currentStep++;      
     }
   }
 
@@ -177,43 +182,46 @@ export class CustomerBookingComponent implements OnInit, OnDestroy{
         console.error('Kein Benutzer angemeldet');
         return;
       }
-
+      if (!this._customer) {
+        console.error('Kein Customer gefunden');
+        return;
+      }
       const selectedService = this.getSelectedService();
       if (!selectedService) {
         console.error('Kein Service ausgewählt');
         return;
       }
-
-      // Termine erstellen
-      const formValues = this.bookingForm.value;
+      let formValues: any = this.bookingForm.value;
+      formValues.notes = this.notes
       const timeString = formValues.time;
-      const dateObj = new Date(formValues.date);
       
-      // Zeit zum Datum hinzufügen
+      
+      
+      const dateObj = new Date(formValues.date);
       const [hours, minutes] = timeString.split(':').map(Number);
       dateObj.setHours(hours, minutes, 0, 0);
-      
-      // Endzeit basierend auf Service-Dauer berechnen
       const endTime = new Date(dateObj);
       endTime.setMinutes(endTime.getMinutes() + selectedService.duration);
-      
-      // 15 Minuten Reinigungszeit hinzufügen
       const cleaningTime = 15;
-      
-      const appointment: Partial<Appointment> = {
+      const appointment : Appointment = {
+        appointmentId: uuidv4(),
         customerId: this._user.uid,
         providerId: formValues.providerId,
         serviceIds: [formValues.serviceId],
         startTime: dateObj,
         endTime: endTime,
+        customerName: this._customer.firstName + ' ' + this._customer.lastName,
+        serviceName: selectedService.name,
         status: 'pending',
-        notes: formValues.notes,
-        cleaningTime: cleaningTime,
+        notes: this.notes,
+        cleaningTime: cleaningTime,        
         createdAt: new Date()
-      };
+      };      
+      console.log(formValues);
+      console.log('appointment', appointment);
+     
 
-      // Termin speichern
-      this.appointmentService.createAppointment(appointment as Appointment)
+      this.appointmentService.createAppointment(appointment)
         .then(() => {
           alert('Buchung erfolgreich aufgenommen! Die Buchung wird vom Anbieter bestätigt.');
           this.router.navigate(['/profile']);
@@ -223,5 +231,5 @@ export class CustomerBookingComponent implements OnInit, OnDestroy{
           alert('Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.');
         });
     }
-  }
+  }    
 }

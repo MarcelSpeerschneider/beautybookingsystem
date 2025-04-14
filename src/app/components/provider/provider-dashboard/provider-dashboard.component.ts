@@ -32,8 +32,8 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
   showAddServiceForm: boolean = false;
   newService: Service = {
     id: '',
-    userId: '',
-    name: '', price: 0, duration: 0, image: ''};
+    userId: '',    
+    name: '', price: 0, duration: 0, image: '' };
   
   private subscriptions: Subscription[] = [];
   
@@ -117,7 +117,10 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
       .getServicesByUser(this.provider.userId)
       .subscribe((services) => {
         this.services = services;
-      });
+        for (const service of this.services) {
+            (service as any).isEditing = false;
+        }
+      });      
       
     this.subscriptions.push(servicesSub);
   }
@@ -205,7 +208,7 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
   
   submitService() {
     if (!this.newService) {return;}
-    if (!this.newService.name || !this.newService.description || !this.newService.price || this.newService.price === 0) {
+    if (!this.newService.name || !this.newService.description || !this.newService.price || this.newService.price === 0 || !this.newService.duration) {
       alert('Bitte füllen Sie alle Felder aus.');
       return;
     }
@@ -234,7 +237,6 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
        
       
   }
-
   logout(): void {
     this.authService.logout()
       .then(() => {
@@ -242,4 +244,44 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
       });
   }
 
+
+  private deepCopy<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+  editService(service: Service): void {
+    (service as any).serviceCopy = this.deepCopy(service);
+    service.isEditing = true;
+  }
+  
+  saveService(service: Service): void {
+    if (!service.name || !service.description || !service.price || service.price === 0 || !service.duration) {
+      alert('Bitte füllen Sie alle Felder aus.');
+      return;
+    }
+    
+    this.loadingService.setLoading(true, 'Speichere Dienstleistung...');
+  
+    this.serviceService.updateService(service)
+      .then(() => {
+        this.loadingService.setLoading(false);
+        alert('Dienstleistung wurde gespeichert.');
+        delete (service as any).serviceCopy;
+        (service as any).isEditing = false;
+      })
+      .catch((error) => {
+        this.loadingService.setLoading(false);
+        console.error('Error updating service:', error);
+        alert('Fehler beim Speichern der Dienstleistung.');
+      });
+  }
+
+  cancelEdit(service: Service): void {
+    if((service as any).serviceCopy){
+        Object.assign(service, (service as any).serviceCopy);
+    }    
+      
+    (service as any).isEditing = false;    
+    delete (service as any).serviceCopy;
+  }
 }

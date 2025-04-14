@@ -160,16 +160,26 @@
     </div>
     
     <!-- Erfolgsseite -->
-    <div class="booking-container success-message" *ngIf="showSuccessMessage">
-      <div class="success-icon">✓</div>
-      <h2 class="success-title">Ihre Buchung wurde erfolgreich bestätigt!</h2>
-      <p class="success-text">
-        Wir haben Ihnen eine Bestätigungs-E-Mail mit allen Details an {{ customer?.email }} gesendet.
-        Sie erhalten 24 Stunden vor Ihrem Termin eine Erinnerung.
-      </p>
-      <p class="success-text">
-        <strong>Buchungsnummer:</strong> {{ bookingNumber }}
-      </p>
-      <button class="home-btn" (click)="navigateHome()">Zur Startseite</button>
+    <div class="booking-container success-message" *ngIf="showSuccessMessage">      
+        <div *ngIf="provider">
+            <div class="success-icon">✓</div>
+            <h2 class="success-title">Deine Buchungsanfrage wurde erfolgreich gestellt.</h2>
+            <p class="success-text">
+                Wir haben deine Buchungsanfrage erhalten. Sobald dein Termin von {{ provider.businessName }} bestätigt wurde, erhältst du eine Buchungsbestätigung.
+            </p>
+            <div class="appointment-summary">
+                <p class="success-text"><strong>Termin Zusammenfassung:</strong></p>
+                <p class="success-text">
+                  <strong *ngIf="selectedDate">Datum:</strong> {{ formatDate(selectedDate) }}<br/>
+                  <strong>Uhrzeit:</strong> {{ savedAppointment.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }} Uhr
+                </p>
+            <p>
+              <strong>Dienstleistung(en):</strong> 
+                <span *ngFor="let service of cartItems; let last = last">{{ service.name }}{{ last ? '' : ', ' }}</span>
+            </p>
+          </div>    
+            <button class="home-btn" (click)="navigateHome()">Zur Startseite</button>
+        </div>
+        
     </div>
   </div>

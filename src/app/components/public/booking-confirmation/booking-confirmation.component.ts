@@ -1,10 +1,9 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
-
 // Services
 import { CartService } from '../../../services/cart.service';
 import { AuthenticationService } from '../../../services/authentication.service';
@@ -38,6 +37,20 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   termsAccepted: boolean = false;
   showSuccessMessage: boolean = false;
   bookingNumber: string = '';
+  savedAppointment: Appointment = {
+    notes: '',
+    appointmentId: '',
+    customerId: '',
+    providerId: '',
+    serviceIds: [],
+    startTime: new Date(),
+    endTime: new Date(),
+    status: 'pending',
+    cleaningTime: 0,
+    createdAt: new Date(),
+    serviceName: '',
+    customerName: ''
+  };
   
   // Subscriptions
   private subscriptions: Subscription[] = [];
@@ -53,8 +66,13 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Buchungsdetails...');
     
+    console.log('cartItems before filter:', this.cartService.getItems());
+
     // Load cart items
     this.cartItems = this.cartService.getItems();
+
+    console.log('cartItems after filter:', this.cartItems);
+
     
     if (this.cartItems.length === 0) {
       alert('Keine Dienstleistungen ausgewählt.');
@@ -115,10 +133,106 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
       if (userWithCustomer.customer) {
         this.customer = userWithCustomer.customer;
       }
-      
-      this.loadingService.setLoading(false);
+            this.loadingService.setLoading(false);
+
+      //check how items are added to cart
+      const items = this.cartService.getItems();
+      console.log("Items in Cart:", items)
     });
     this.subscriptions.push(userSub);
+  }
+
+  // Method to handle booking confirmation
+  confirmBooking(): void {
+    if (!this.termsAccepted) {
+      alert('Bitte akzeptieren Sie die Geschäftsbedingungen.');
+      return;
+    }
+    
+    if (!this.customer || !this.provider || !this.selectedDate || !this.selectedTime) {
+      this.loadingService.setLoading(false);
+      alert('Es fehlen notwendige Daten für die Buchung.');
+      return;
+    }
+    
+    this.loadingService.setLoading(true, 'Buchung wird erstellt...');
+    
+    // Generate booking number
+    this.bookingNumber = 'BK-' + new Date().getFullYear() + 
+                       Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+
+    // Parse time string to create appointment date
+    const [hours, minutes] = this.selectedTime.split(':').map(Number);
+      const appointmentDate = new Date(this.selectedDate);
+    appointmentDate.setHours(hours, minutes, 0, 0);
+    
+    // Calculate end time based on service duration
+    const totalDuration = this.getTotalDuration();
+    const endTime = new Date(appointmentDate);
+    if (totalDuration) {
+      endTime.setMinutes(endTime.getMinutes() + totalDuration);
+    }
+  
+    // check cart data
+    console.log("cartItems:", this.cartItems);
+    for(let i = 0; i < this.cartItems.length; i++) {
+      const service = this.cartItems[i];      
+      
+      if (!service.id || !service.name || service.duration === undefined || service.duration === null) {
+        console.error("Error in cartItems, item is missing: ", service);
+        this.loadingService.setLoading(false);
+        alert('Fehler in den Buchungsdaten.');
+      } else if(service.duration === undefined || service.duration === null) {
+        console.error("Error in cartItems, item is missing or duration is undefined: ", service);
+        this.loadingService.setLoading(false);
+        alert('Fehler in den Buchungsdaten.');
+        return;
+      }
+    }
+  
+    // Create appointment object
+    const serviceIds = this.cartItems.map(service => service.id);
+    
+    const appointment: Appointment = {
+      notes: localStorage.getItem('notes') ?? '',
+      appointmentId: uuidv4(),
+      customerId: this.customer.userId,
+      providerId: this.provider.userId,
+      serviceIds: serviceIds,
+      startTime: appointmentDate,
+      endTime: endTime,
+      status: 'pending',
+      cleaningTime: 15, // 15 minutes cleaning time
+      createdAt: new Date(),
+      // Additional fields for UI display
+      serviceName: this.cartItems[0].name,
+      customerName: `${this.customer.firstName} ${this.customer.lastName}`
+    };
+      
+    this.savedAppointment = appointment;
+    console.log("savedAppointment:", this.savedAppointment);
+    
+    // Save appointment to Firestore
+    this.appointmentService.createAppointment(appointment)
+      .then(() => {
+        // Show success message
+        if (this.selectedDate) {
+          this.showSuccessMessage = true;
+        }
+
+        // Clear cart and session storage
+        this.cartService.clearCart();
+        sessionStorage.removeItem('selectedDate');
+        sessionStorage.removeItem('selectedTime');
+        localStorage.removeItem('notes');
+        
+        this.loadingService.setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error creating appointment:', error);
+        this.loadingService.setLoading(false);
+        alert('Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.');
+      });
   }
   
   ngOnDestroy(): void {
@@ -170,75 +284,6 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   
   goBack(): void {
     this.router.navigate(['/booking-overview']);
-  }
-  
-  confirmBooking(): void {
-    if (!this.termsAccepted) {
-      alert('Bitte akzeptieren Sie die Geschäftsbedingungen.');
-      return;
-    }
-    
-    this.loadingService.setLoading(true, 'Buchung wird erstellt...');
-    
-    // Generate booking number
-    this.bookingNumber = 'BK-' + new Date().getFullYear() + 
-                        Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    
-    // Create appointment in database
-    if (!this.customer || !this.provider || !this.selectedDate || !this.selectedTime) {
-      this.loadingService.setLoading(false);
-      alert('Es fehlen notwendige Daten für die Buchung.');
-      return;
-    }
-    
-    // Parse time string to create appointment date
-    const [hours, minutes] = this.selectedTime.split(':').map(Number);
-    const appointmentDate = new Date(this.selectedDate);
-    appointmentDate.setHours(hours, minutes, 0, 0);
-    
-    // Calculate end time based on service duration
-    const totalDuration = this.getTotalDuration();
-    const endTime = new Date(appointmentDate);
-    endTime.setMinutes(endTime.getMinutes() + totalDuration);
-    
-    // Create appointment object
-    const serviceIds = this.cartItems.map(service => service.id);
-    
-    const appointment: Appointment = {
-      appointmentId: '', // Will be set by Firestore
-      userId: this.provider.userId,
-      customerId: this.customer.userId,
-      providerId: this.provider.userId,
-      serviceIds: serviceIds,
-      startTime: appointmentDate,
-      endTime: endTime,
-      status: 'pending',
-      notes: '',
-      cleaningTime: 15, // 15 minutes cleaning time
-      createdAt: new Date(),
-      // Additional fields for UI display
-      serviceName: this.cartItems[0].name,
-      customerName: `${this.customer.firstName} ${this.customer.lastName}`
-    };
-    
-    // Save appointment to Firestore
-    this.appointmentService.createAppointment(appointment)
-      .then(() => {
-        // Show success message
-        this.showSuccessMessage = true;
-        
-        // Clear cart and session storage
-        this.cartService.clearCart();
-        sessionStorage.removeItem('selectedDate');
-        sessionStorage.removeItem('selectedTime');
-        
-        this.loadingService.setLoading(false);
-      })
-      .catch(error => {
-        console.error('Error creating appointment:', error);
-        this.loadingService.setLoading(false);
-        alert('Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.');
-      });
   }
   
   navigateHome(): void {

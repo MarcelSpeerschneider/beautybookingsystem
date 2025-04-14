@@ -16,10 +16,9 @@ export class ProviderService {
     private breaksCollectionName = 'breaks';
 
     private ngZone = inject(NgZone);
+    private firestore: Firestore = inject(Firestore);
 
-    constructor(private firestore: Firestore) {
-        this.firestore = inject(Firestore);
-     }
+    constructor() { }
     
   
     getProviders(): Observable<Provider[]> {
@@ -27,19 +26,22 @@ export class ProviderService {
             this.ngZone.run(() => {
                 try {
                     const myCollection = collection(this.firestore, this.collectionName);
-                    collectionData(myCollection, { idField: 'providerId' }).pipe(
-                        map(data => data.map(d => ({...d } as Provider))),
-                        catchError((error) => {
+                    from(collectionData(myCollection, { idField: 'providerId' })).pipe(
+                        map(data => data.map(d => ({...d} as Provider))),
+                        catchError(error => {
                             console.error('Error fetching providers:', error);
-                            return of([]);
+                            return of([]); 
                         })
                     ).subscribe({
-                        next: providers => observer.next(providers),
-                        error: err => observer.error(err),
-                        complete: () => observer.complete()
+                        next: (providers) => this.ngZone.run(() => observer.next(providers)),
+                        error: (err) => this.ngZone.run(() => observer.error(err)),
+                        complete: () => this.ngZone.run(() => observer.complete()),
                     });
                 } catch (error) {
-                    console.error('Error in getProviders:', error);
+                    this.ngZone.run(() => {
+                        console.error('Error in getProviders:', error);
+                    });
+
                     observer.next([]);
                     observer.complete();
                 }
@@ -53,20 +55,22 @@ export class ProviderService {
                 try {
                     const providersCollection = collection(this.firestore, this.collectionName);
                     const q = query(providersCollection, where('services', 'array-contains', service));
-                    collectionData(q, { idField: 'providerId' }).pipe(
+                    from(collectionData(q, { idField: 'providerId' })).pipe(
                         map((data) => data.map((d) => ({ ...d } as Provider))),
-                        catchError((error) => {
+                        catchError(error => {
                             console.error(`Error fetching providers with service ${service}:`, error);
-                            return of([]);
+                            return of([]); 
                         })
                     ).subscribe({
-                        next: providers => observer.next(providers),
-                        error: err => observer.error(err),
-                        complete: () => observer.complete()
+                        next: providers => this.ngZone.run(() => observer.next(providers)),
+                        error: err => this.ngZone.run(() => observer.error(err)),
+                        complete: () => this.ngZone.run(() => observer.complete())
                     });
                 } catch (error) {
-                    console.error('Error in getProvidersByService:', error);
-                    observer.next([]);
+                    this.ngZone.run(() => {
+                        console.error('Error in getProvidersByService:', error);
+                    });
+                     observer.next([]);
                     observer.complete();
                 }
             });
@@ -79,27 +83,28 @@ export class ProviderService {
                 try {
                     const myCollection = collection(this.firestore, this.collectionName);                    
                     const q = query(myCollection, where('userId', '==', userId));
-                    collectionData(q, { idField: 'providerId' }).pipe(
+                    from(collectionData(q, { idField: 'providerId' })).pipe(
                       map((providers) => {
                         if(providers.length > 0) {
                           return providers[0] as Provider
                         }
                         return null;
                       }),
-                      
-                      catchError((error) => {
+                      catchError(error => {
                             console.error(`Error fetching provider for user ID ${userId}:`, error);
                             return of(null);
 
                         })
                     ).subscribe({
-                        next: provider => observer.next(provider),
-                        error: err => observer.error(err),
-                        complete: () => observer.complete()
+                        next: provider => this.ngZone.run(() => observer.next(provider)),
+                        error: err => this.ngZone.run(() => observer.error(err)),
+                        complete: () => this.ngZone.run(() => observer.complete())
                     });
 
                 } catch (error) {
-                    console.error('Error in getProviderByUserId:', error);
+                   this.ngZone.run(() => {
+                        console.error('Error in getProviderByUserId:', error);
+                    });
                     observer.next(null);
                     observer.complete();
                 }
@@ -112,21 +117,23 @@ export class ProviderService {
             this.ngZone.run(() => {
                 try {
                     const document = doc(this.firestore, this.collectionName, userId);
-                    docData(document).pipe(
+                    from(docData(document)).pipe(
                          map(d => ({...d} as Provider)),
                         catchError(error => {
                             console.error(`Error fetching provider with ID ${userId}:`, error);
                             return of(undefined);
                         })
                     ).subscribe({
-                        next: provider => observer.next(provider),
-                        error: err => observer.error(err),
-                        complete: () => observer.complete()
+                        next: provider => this.ngZone.run(() => observer.next(provider)),
+                        error: err => this.ngZone.run(() => observer.error(err)),
+                        complete: () => this.ngZone.run(() => observer.complete())
                     });
                 } catch (error) {
+                    this.ngZone.run(() => {
                     console.error('Error in getProvider:', error);
                     observer.next(undefined);
                     observer.complete();
+                });
                 }
             });
         });
@@ -140,9 +147,9 @@ export class ProviderService {
                     subscriptionStatus: provider.subscriptionStatus || 'free'
                 };
                 
-                const myCollection = collection(this.firestore, this.collectionName);
-                const docRef = await addDoc(myCollection, providerWithDefaults);
-                console.log('Provider created successfully with ID:', docRef.id);
+                const myCollection = collection(this.firestore, this.collectionName);                
+                const docRef = await addDoc(myCollection, providerWithDefaults);                
+                console.log('Provider created successfully with ID:', docRef.id);                
                 return docRef;       
             } catch (error) {
                 console.error('Error creating provider:', error);
@@ -159,13 +166,12 @@ export class ProviderService {
                     const { userId, ...providerWithoutUserId } = provider;
 
                     from(updateDoc(document, providerWithoutUserId)).pipe(
-                        catchError(error => {
-
+                        catchError(error => {                            
                             console.error('Error updating provider:', error);
-                            throw error;
+                            return of(undefined);
                         })
-                    ).subscribe({                        
-                        next: () => observer.next(),
+                    ).subscribe({
+                        next: () => this.ngZone.run(() => observer.next()),
                         error: err => observer.error(err),
                         complete: () => observer.complete()
                     });
@@ -184,16 +190,17 @@ export class ProviderService {
                 try {
                     const businessHoursCollection = collection(this.firestore, this.businessHoursCollectionName) ;
                     const q = query(businessHoursCollection, where('userId', '==', providerId));
-                    collectionData(q, { idField: 'businessHoursId' }).pipe(
+                    from(collectionData(q, { idField: 'businessHoursId' })).pipe(
                          map(data => data.map(d => ({...d} as BusinessHours))),
-                        catchError(error => {                            
+                        catchError(error => {
                             console.error(`Error fetching business hours for user ${providerId}.`, error);
-                            return of([]);
+                            return of([]); 
                          })                        
                     ).subscribe({
-                        next: hours => observer.next(hours),
-                        error: err => observer.error(err),
-                        complete: () => observer.complete()
+                        next: hours => this.ngZone.run(() => observer.next(hours)),
+                        error: err => this.ngZone.run(() => observer.error(err)),
+                        complete: () => this.ngZone.run(() => observer.complete())
+
                     });
                 } catch (error) {
                     console.error('Error in getOpeningHours:', error);
@@ -210,15 +217,15 @@ export class ProviderService {
                 try {
                    const breaksCollection = collection(this.firestore, this.breaksCollectionName);
                     const q = query(breaksCollection, where('userId', '==', providerId));
-                    collectionData(q, { idField: 'breakId' }).pipe(
+                    from(collectionData(q, { idField: 'breakId' })).pipe(
                         map(data => data.map(d => ({...d} as ServiceBreak))),
-                        catchError(error => {                            
+                        catchError(error => {
                             console.error(`Error fetching breaks for user ${providerId}:`, error);
                             return of([]);                            
                         })
                     ).subscribe({
-                        next: breaks => observer.next(breaks),
-                        error: err => observer.error(err),
+                        next: breaks => this.ngZone.run(() => observer.next(breaks)),
+                        error: err => this.ngZone.run(() => observer.error(err)),
                         complete: () => observer.complete()
                     });
                 } catch (error) {
@@ -238,11 +245,11 @@ export class ProviderService {
                     from(deleteDoc(document)).pipe(
                         catchError(error => {
                             console.error(`Error deleting provider with ID ${userId}:`, error);
-                            return of(undefined);
+                            return of(undefined);                            
                         })
                     ).subscribe({
-                        next: () => observer.next(),
-                        error: err => observer.error(err),
+                        next: () => this.ngZone.run(() => observer.next()),
+                        error: err => this.ngZone.run(() => observer.error(err)),
                         complete: () => observer.complete()
                     });
                 } catch (error) {

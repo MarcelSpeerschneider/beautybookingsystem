@@ -1,7 +1,7 @@
 <div class="container">
     <div class="provider-header" *ngIf="provider">
       <div class="logo-container">
-        <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
+        <div class="logo" *ngIf="provider && !provider.logo && provider.businessName">{{ provider.businessName[0] }}</div>
         <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
         <div class="brand">
           <h1>{{ provider.businessName }}</h1>
@@ -31,14 +31,18 @@
     
     <div class="booking-summary">
       <h3 class="summary-title">Buchungsübersicht</h3>
-      
-      <div *ngFor="let item of cartItems" class="summary-item">
-        <div class="summary-label">{{ item.name }}</div>
-        <div class="summary-details">
-          <span class="summary-duration">{{ formatDuration(item.duration) }}</span>
-          <span class="summary-price">{{ formatPrice(item.price) }}</span>
+      <ng-container *ngIf="cartItems && cartItems.length > 0; else noItems">
+        <div *ngFor="let item of cartItems" class="summary-item">
+          <div class="summary-label">{{ item.name }}</div>
+          <div class="summary-details">
+            <span class="summary-duration">{{ formatDuration(item.duration) }}</span>
+            <span class="summary-price">{{ formatPrice(item.price) }}</span>
+          </div>
         </div>
-      </div>
+      </ng-container>
+      <ng-template #noItems>
+        <p>Keine Dienstleistungen ausgewählt.</p>
+      </ng-template>
       
       <div class="summary-time" *ngIf="selectedDate && selectedTime">
         <div class="summary-label">Termin</div>

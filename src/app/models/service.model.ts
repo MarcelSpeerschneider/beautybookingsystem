@@ -4,6 +4,7 @@
         name: string;
         description?: string;
         price: number;
-    duration: number; 
+        duration: number;
         image: string;
+        isEditing?: boolean;
     }

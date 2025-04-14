@@ -1,6 +1,7 @@
 .appointment-container {
     max-width: 1000px;
     margin: 0 auto;
+    background-color: var(--main-background-color);
     padding: 20px;
   }
   
@@ -19,10 +20,10 @@
   .logo {
     width: 80px;
     height: 80px;
-    background-color: #f8e6ff;
+    background-color: var(--decorative-element-color);
     border-radius: 50%;
     display: flex;
-    align-items: center;
+    align-items: center;;
     justify-content: center;
     color: #4a148c;
     font-weight: bold;
@@ -36,12 +37,12 @@
   }
   
   .brand h1 {
-    color: #333;
+    color: var(--heading-text-color);
     margin-bottom: 5px;
   }
   
   .brand p {
-    color: #666;
+    color: var(--body-text-color);
   }
   
   .stepper {
@@ -55,7 +56,7 @@
     content: '';
     position: absolute;
     height: 2px;
-    background-color: #e0e0e0;
+    background-color: var(--placeholder-text-color);
     width: 100%;
     top: 15px;
     z-index: 1;
@@ -79,13 +80,13 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 10px;
-    background-color: #e0e0e0;
-    color: #666;
+    background-color: var(--placeholder-text-color);
+    color: var(--body-text-color);
   }
   
   .step.active .step-number {
-    background-color: #4a148c;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--card-header-color);
   }
   
   .step.completed .step-number {
@@ -95,11 +96,11 @@
   
   .step-label {
     font-size: 0.9rem;
-    color: #666;
+    color: var(--body-text-color);
   }
   
   .step.active .step-label {
-    color: #4a148c;
+    color: var(--primary-color);
     font-weight: bold;
   }
   
@@ -108,15 +109,15 @@
   }
   
   .booking-summary {
-    background-color: #faf5ff;
+    background-color: var(--section-background-color);
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 30px;
-    border-left: 4px solid #4a148c;
+    border-left: 4px solid var(--primary-color);
   }
   
   .summary-title {
-    color: #4a148c;
+    color: var(--primary-color);
     margin-bottom: 15px;
     font-weight: 500;
   }
@@ -145,17 +146,17 @@
   }
   
   .summary-duration {
-    color: #666;
+    color: var(--body-text-color);
     font-size: 0.9rem;
   }
   
   .summary-total {
     display: flex;
     justify-content: space-between;
-    margin-top: 15px;
+     margin-top: 15px;
     padding-top: 15px;
     border-top: 2px solid #e0e0e0;
-    font-weight: bold;
+    font-weight: bold;;
   }
   
   .summary-total .summary-label {
@@ -181,7 +182,7 @@
   .calendar-container, .times-container, .instructions-container {
     background-color: white;
     border-radius: 8px;
-    padding: 20px;
+    padding: 20px;;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   }
   
@@ -197,14 +198,14 @@
     gap: 10px;
   }
   
-  .date-card {
+  .date-card{
     padding: 15px;
     text-align: center;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--placeholder-text-color);
     border-radius: 5px;
     cursor: pointer;
     transition: all 0.2s;
-  }
+  } 
   
   .date-card:hover {
     background-color: #f0e6ff;
@@ -216,14 +217,14 @@
     color: white;
     border-color: #4a148c;
   }
-  
+
   .times-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
   }
   
-  .time-card {
+  .time-card{
     padding: 10px;
     text-align: center;
     border: 1px solid #e0e0e0;
@@ -246,21 +247,21 @@
   .no-times {
     padding: 20px;
     text-align: center;
-    color: #666;
-    background-color: #f9f9f9;
+    color: var(--body-text-color);
+    background-color: var(--section-background-color);
     border-radius: 5px;
     margin-top: 20px;
   }
   
   .instructions-container {
-    display: flex;
+     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px;
-    color: #666;
+    padding: 40px;;
+    color: var(--body-text-color);
   }
   
-  .action-buttons {
+ .action-buttons {
     display: flex;
     justify-content: space-between;
   }
@@ -300,7 +301,7 @@
   }
   
   .next-btn:disabled {
-    background-color: #d1c4e9;
+    background-color: var(--placeholder-text-color);
     cursor: not-allowed;
   }
   

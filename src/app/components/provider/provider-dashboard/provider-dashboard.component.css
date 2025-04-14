@@ -12,12 +12,12 @@
 }
 
 .dashboard-header h1 {
-  color: #4a148c;
+  color: var(--heading-text-color);
   margin: 0;
 }
 
 .user-info {
-  color: #666;
+  color: var(--body-text-color);
   font-weight: 500;
 }
 
