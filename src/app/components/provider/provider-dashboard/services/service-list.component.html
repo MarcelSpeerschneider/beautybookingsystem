@@ -1,0 +1,52 @@
+<div class="tab-content">
+    <h2 class="section-title">Dienstleistungen</h2>
+    
+    <div class="services-header">
+      <p class="service-description">Verwalten Sie hier Ihre angebotenen Dienstleistungen mit Preisen und Dauer.</p>
+      <button class="btn btn-primary" (click)="addNewService()">+ Neue Dienstleistung</button>
+    </div>
+    
+    <!-- Services Grid -->
+    <div class="services-grid" *ngIf="services.length > 0">
+      <div *ngFor="let service of services" class="service-card">
+        <button class="btn-edit" (click)="editService(service)" title="Bearbeiten">
+          <span class="edit-icon">✎</span>
+        </button>
+        <button class="btn-delete" (click)="deleteService(service.id)" title="Löschen">
+          <span class="delete-icon">✕</span>
+        </button>
+        
+        <div class="service-image" *ngIf="service.image">
+          <img [src]="service.image" [alt]="service.name">
+        </div>
+        <div class="service-image placeholder" *ngIf="!service.image">
+          <span class="placeholder-text">Kein Bild</span>
+        </div>
+        
+        <h3 class="service-name">{{ service.name }}</h3>
+        <p class="service-description">{{ service.description }}</p>
+        
+        <div class="service-details">
+          <div class="service-price">{{ service.price }} €</div>
+          <div class="service-duration">{{ service.duration }} Min.</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="services.length === 0">
+      <div class="empty-icon">💇</div>
+      <h3>Keine Dienstleistungen gefunden</h3>
+      <p>Fügen Sie Ihre ersten Dienstleistungen hinzu, damit Kunden diese buchen können.</p>
+      <button class="btn btn-primary" (click)="addNewService()">Erste Dienstleistung erstellen</button>
+    </div>
+    
+    <!-- Service Form -->
+    <app-service-form 
+      *ngIf="showAddServiceForm && selectedService"
+      [service]="selectedService"
+      [isEditMode]="isEditMode"
+      (formSubmit)="handleFormSubmit($event)"
+      (formCancel)="handleFormCancel()">
+    </app-service-form>
+  </div>

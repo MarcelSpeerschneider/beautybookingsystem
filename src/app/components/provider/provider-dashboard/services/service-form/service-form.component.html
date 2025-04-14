@@ -1,0 +1,89 @@
+<div class="service-form-overlay">
+    <div class="service-form-container">
+      <div class="form-header">
+        <h3>{{ isEditMode ? 'Dienstleistung bearbeiten' : 'Neue Dienstleistung' }}</h3>
+        <button type="button" class="btn-close" (click)="onCancel()">✕</button>
+      </div>
+      
+      <form (ngSubmit)="onSubmit()" #serviceForm="ngForm">
+        <div class="form-group">
+          <label for="name">Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="name" 
+            name="name" 
+            [(ngModel)]="formModel.name" 
+            required
+            [class.is-invalid]="hasError('name')">
+          <div *ngIf="hasError('name')" class="error-message">
+            {{ getErrorMessage('name') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Beschreibung <span class="required">*</span></label>
+          <textarea 
+            id="description" 
+            name="description" 
+            rows="3" 
+            [(ngModel)]="formModel.description" 
+            required
+            [class.is-invalid]="hasError('description')"></textarea>
+          <div *ngIf="hasError('description')" class="error-message">
+            {{ getErrorMessage('description') }}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="price">Preis (€) <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="price" 
+              name="price" 
+              [(ngModel)]="formModel.price" 
+              min="0" 
+              step="0.01"
+              required
+              [class.is-invalid]="hasError('price')">
+            <div *ngIf="hasError('price')" class="error-message">
+              {{ getErrorMessage('price') }}
+            </div>
+          </div>
+          
+          <div class="form-group half">
+            <label for="duration">Dauer (Min.) <span class="required">*</span></label>
+            <input 
+              type="number" 
+              id="duration" 
+              name="duration" 
+              [(ngModel)]="formModel.duration" 
+              min="1"
+              required
+              [class.is-invalid]="hasError('duration')">
+            <div *ngIf="hasError('duration')" class="error-message">
+              {{ getErrorMessage('duration') }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="image">Bild URL</label>
+          <input 
+            type="text" 
+            id="image" 
+            name="image" 
+            [(ngModel)]="formModel.image" 
+            placeholder="https://...">
+          <small class="form-help">Fügen Sie eine URL zu einem Bild ein oder lassen Sie das Feld leer.</small>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="onCancel()">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">
+            {{ isEditMode ? 'Änderungen speichern' : 'Dienstleistung erstellen' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>

@@ -1,0 +1,78 @@
+<div class="appointment-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Termindetails</h3>
+        <button class="close-modal" (click)="closeModal()">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="detail-row">
+          <div class="detail-label">Kunde:</div>
+          <div class="detail-value">{{ appointment.customerName || 'Unbekannt' }}</div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-label">Dienstleistung:</div>
+          <div class="detail-value">{{ appointment.serviceName || 'Unbekannt' }}</div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-label">Datum:</div>
+          <div class="detail-value">{{ formatDate(appointment.startTime) }}</div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-label">Uhrzeit:</div>
+          <div class="detail-value">
+            {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}
+          </div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-label">Dauer:</div>
+          <div class="detail-value">{{ getAppointmentDuration(appointment) }} Minuten</div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-label">Status:</div>
+          <div class="detail-value">
+            <span class="status-badge {{ appointment.status }}">
+              {{ getStatusText(appointment.status) }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="detail-row" *ngIf="appointment.notes">
+          <div class="detail-label">Anmerkungen:</div>
+          <div class="detail-value">{{ appointment.notes }}</div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-label">Erstellt am:</div>
+          <div class="detail-value">{{ formatDate(appointment.createdAt) }}</div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <div *ngIf="appointment.status === 'pending'" class="modal-actions">
+          <button class="btn btn-primary" (click)="confirmAppointment()">
+            Termin bestätigen
+          </button>
+          <button class="btn btn-danger" (click)="rejectAppointment()">
+            Termin ablehnen
+          </button>
+        </div>
+        
+        <div *ngIf="appointment.status === 'confirmed'" class="modal-actions">
+          <button class="btn btn-primary" (click)="completeAppointment()">
+            Als erledigt markieren
+          </button>
+          <button class="btn btn-danger" (click)="cancelAppointment()">
+            Termin stornieren
+          </button>
+        </div>
+        
+        <button class="btn btn-secondary" (click)="closeModal()">Schließen</button>
+      </div>
+    </div>
+  </div>

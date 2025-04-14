@@ -1,0 +1,162 @@
+<div class="appointment-form-overlay">
+  <div class="appointment-form-container">
+    <div class="form-header">
+      <h3>{{ isEditMode ? 'Termin bearbeiten' : 'Neuen Termin erstellen' }}</h3>
+      <button type="button" class="btn-close" (click)="onCancel()">✕</button>
+    </div>
+    
+    <form (ngSubmit)="onSubmit()" #appointmentForm="ngForm">
+      <!-- Service Selection -->
+      <div class="form-section">
+        <h4 class="section-title">Dienstleistung</h4>
+        
+        <div class="form-group">
+          <label for="service">Dienstleistung auswählen <span class="required">*</span></label>
+          <select 
+            id="service" 
+            name="serviceId" 
+            [(ngModel)]="viewModel.serviceId" 
+            required
+            [class.is-invalid]="hasError('service')"
+            (change)="onServiceChange(viewModel.serviceId)">
+            <option value="" disabled selected>Bitte wählen Sie eine Dienstleistung</option>
+            <option *ngFor="let service of availableServices" [value]="service.id">
+              {{ service.name }} ({{ service.duration }} Min. - {{ service.price }}€)
+            </option>
+          </select>
+          <div *ngIf="hasError('service')" class="error-message">
+            {{ getErrorMessage('service') }}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Date & Time Selection -->
+      <div class="form-section">
+        <h4 class="section-title">Datum & Uhrzeit</h4>
+        
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="date">Datum <span class="required">*</span></label>
+            <input 
+              type="date" 
+              id="date" 
+              name="date" 
+              [(ngModel)]="selectedDate"
+              required
+              [class.is-invalid]="hasError('date')">
+            <div *ngIf="hasError('date')" class="error-message">
+              {{ getErrorMessage('date') }}
+            </div>
+          </div>
+          
+          <div class="form-group half">
+            <label for="time">Uhrzeit <span class="required">*</span></label>
+            <select 
+              id="time" 
+              name="time" 
+              [(ngModel)]="selectedTime"
+              required
+              [class.is-invalid]="hasError('time')">
+              <option value="" disabled selected>Wählen Sie eine Uhrzeit</option>
+              <option *ngFor="let time of availableTimes" [value]="time">
+                {{ time }}
+              </option>
+            </select>
+            <div *ngIf="hasError('time')" class="error-message">
+              {{ getErrorMessage('time') }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="cleaningTime">Reinigungszeit nach dem Termin (Min.)</label>
+          <input 
+            type="number" 
+            id="cleaningTime" 
+            name="cleaningTime" 
+            [(ngModel)]="viewModel.cleaningTime" 
+            min="0"
+            max="60">
+          <small class="form-help">Zeit, die nach dem Termin für die Reinigung benötigt wird.</small>
+        </div>
+      </div>
+      
+      <!-- Customer Information -->
+      <div class="form-section">
+        <h4 class="section-title">Kundeninformation</h4>
+        
+        <div class="form-group">
+          <label for="customerName">Name <span class="required">*</span></label>
+          <input 
+            type="text" 
+            id="customerName" 
+            name="customerName" 
+            [(ngModel)]="viewModel.customerName" 
+            required
+            [class.is-invalid]="hasError('customerName')">
+          <div *ngIf="hasError('customerName')" class="error-message">
+            {{ getErrorMessage('customerName') }}
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="customerEmail">E-Mail</label>
+            <input 
+              type="email" 
+              id="customerEmail" 
+              name="customerEmail" 
+              [(ngModel)]="customerEmail">
+          </div>
+          
+          <div class="form-group half">
+            <label for="customerPhone">Telefon</label>
+            <input 
+              type="tel" 
+              id="customerPhone" 
+              name="customerPhone" 
+              [(ngModel)]="customerPhone">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Additional Information -->
+      <div class="form-section">
+        <h4 class="section-title">Zusätzliche Informationen</h4>
+        
+        <div class="form-group">
+          <label for="notes">Notizen</label>
+          <textarea 
+            id="notes" 
+            name="notes" 
+            rows="3" 
+            [(ngModel)]="viewModel.notes"
+            placeholder="Zusätzliche Informationen oder spezielle Anforderungen"></textarea>
+        </div>
+        
+        <div *ngIf="isEditMode" class="form-group">
+          <label for="status">Status</label>
+          <select 
+            id="status" 
+            name="status" 
+            [(ngModel)]="viewModel.status">
+            <option *ngFor="let option of statusOptions" [value]="option">
+              {{ option === 'pending' ? 'Anfrage' : 
+                 option === 'confirmed' ? 'Bestätigt' : 
+                 option === 'completed' ? 'Abgeschlossen' : 
+                 option === 'canceled' ? 'Storniert' : option }}
+            </option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">
+          {{ isEditMode ? 'Termin aktualisieren' : 'Termin erstellen' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
