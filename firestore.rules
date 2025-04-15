@@ -1,64 +1,184 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Grundlegende Authentifizierung - nur angemeldete Benutzer
+    // Default deny all
     match /{document=**} {
       allow read, write: if false;
     }
+    
+    // Hilfsfunktion zur Prüfung der Admin-Rolle
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Hilfsfunktion zur Prüfung, ob eine Provider-Kunden-Beziehung existiert
+    function hasProviderCustomerRelation(providerId, customerId) {
+      return exists(/databases/$(database)/documents/providerCustomerRelations/$(providerId + '_' + customerId)) ||
+             exists(/databases/$(database)/documents/providerCustomerRelations/$(customerId + '_' + providerId));
+    }
+    
     // Regeln für Customers-Sammlung
     match /customers/{customerId} {
       // Kunden können ihre eigenen Daten lesen
-      allow read: if request.auth != null &&
-                   (resource.data.userId == request.auth.uid ||
-                    request.auth.token.admin == true);
+      // Provider können Kunden lesen, die sie erstellt haben oder mit denen sie eine Beziehung haben
+      allow read: if request.auth != null && (
+        // Der Kunde selbst
+        resource.data.userId == request.auth.uid || 
+        // Provider, der als Referenz angegeben ist
+        resource.data.providerRef == request.auth.uid || 
+        // Provider, der den Kunden erstellt hat
+        resource.data.createdBy == request.auth.uid || 
+        // Admin
+        isAdmin() ||
+        // Hat eine Beziehung in der providerCustomerRelations Sammlung (mehrere Formate prüfen)
+        hasProviderCustomerRelation(request.auth.uid, customerId)
+      );
+                    
       // Kunden können nur ihre eigenen Daten aktualisieren
-      allow write: if request.auth != null &&
-                    (resource.data.userId == request.auth.uid ||
-                     request.auth.token.admin == true);
-      // Neue Kunden erstellen (für Registrierung)
-      allow create: if request.auth != null &&
-                     request.resource.data.userId == request.auth.uid;
+      // Provider können Kunden aktualisieren, die sie erstellt haben oder mit denen sie eine Beziehung haben
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.providerRef == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        isAdmin() ||
+        hasProviderCustomerRelation(request.auth.uid, customerId)
+      );
+                     
+      // Neue Kunden erstellen (für Registrierung und Provider)
+      // Für mehr Sicherheit: Prüfen, ob der Nutzer in bestimmten Fällen wirklich Provider ist
+      allow create: if request.auth != null && (
+        // Neuer Kunde erstellt sich selbst (userId ist Auth-ID)
+        request.resource.data.userId == request.auth.uid ||
+        // Provider erstellt Kunde und setzt sich als providerRef
+        request.resource.data.providerRef == request.auth.uid ||
+        // Admin
+        isAdmin()
+      );
+                      
+      // Löschen nur durch Admin oder entsprechenden Provider
+      allow delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.providerRef == request.auth.uid ||
+        resource.data.createdBy == request.auth.uid ||
+        isAdmin()
+      );
     }
+    
     // Regeln für Services-Sammlung
     match /services/{serviceId} {
       // Jeder kann Services lesen
-      allow read: if true; // Korrekter Syntax mit "if"
+      allow read: if true;
+      
       // Nur Provider können Services erstellen/aktualisieren/löschen
-      allow write: if request.auth != null &&
-                    (request.resource.data.userId == request.auth.uid ||
-                     request.auth.token.admin == true);
+      allow write: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
     }
+    
     // Regeln für Appointments-Sammlung
     match /appointments/{appointmentId} {
       // Kunden können nur ihre eigenen Termine sehen
       // Provider können alle ihre Termine sehen
-      allow read: if request.auth != null &&
-                    (resource.data.customerId == request.auth.uid ||
-                    resource.data.userId == request.auth.uid ||
-                    request.auth.token.admin == true);
-      // Kunden können Termine erstellen
-      allow create: if request.auth != null &&
-                     request.resource.data.customerId == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+                    
+      // Kunden und Provider können Termine erstellen
+      allow create: if request.auth != null && (
+        request.resource.data.customerId == request.auth.uid ||
+        request.resource.data.providerId == request.auth.uid
+      );
+                      
       // Kunden und Provider können Termine aktualisieren
-      allow update: if request.auth != null &&
-                    (resource.data.customerId == request.auth.uid ||                     
-                    resource.data.userId == request.auth.uid ||
-                     request.auth.token.admin == true);
+      allow update: if request.auth != null && (
+        resource.data.customerId == request.auth.uid ||                     
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+                     
       // Nur Provider und Admins können Termine löschen
-      allow delete: if request.auth != null &&
-                     (resource.data.userId == request.auth.uid ||
-                      request.auth.token.admin == true);
-      }
+      allow delete: if request.auth != null && (
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+    
     // Regeln für Providers-Sammlung
     match /providers/{providerId} {
       // Öffentlicher Zugriff für Provider-Informationen
-      allow read: if true; // Korrekter Syntax mit "if"
+      allow read: if true;
+      
       // Nur der Provider selbst kann seine Daten ändern
-      allow write: if request.auth != null &&
-                    (resource.data.userId == request.auth.uid ||
-                     request.auth.token.admin == true);
+      allow update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+                     
       // Nur der Provider selbst kann seine Daten erstellen
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && 
+                    request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Regeln für Provider-Customer Relations
+    match /providerCustomerRelations/{relationId} {
+      // Provider und Kunden können ihre Beziehungen lesen
+      allow read: if request.auth != null && (
+        resource.data.providerId == request.auth.uid ||
+        resource.data.customerId == request.auth.uid ||
+        isAdmin()
+      );
+                    
+      // Provider können neue Beziehungen erstellen
+      allow create: if request.auth != null && (
+        // Der Provider selbst kann Beziehungen erstellen
+        request.resource.data.providerId == request.auth.uid ||
+        // Der Kunde kann Beziehungen zu sich selbst erstellen
+        request.resource.data.customerId == request.auth.uid
+      );
+                      
+      // Provider können Beziehungen aktualisieren
+      allow update: if request.auth != null && (
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+                      
+      // Provider können Beziehungen löschen
+      allow delete: if request.auth != null && (
+        resource.data.providerId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+    
+    // Regeln für Subscription-Sammlung (falls vorhanden)
+    match /subscriptions/{subscriptionId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      
+      allow write: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+    
+    // Regeln für Reviews-Sammlung (falls vorhanden)
+    match /reviews/{reviewId} {
+      // Öffentliches Lesen für Bewertungen
+      allow read: if true;
+      
+      // Nur Kunden können Bewertungen erstellen/bearbeiten
+      allow create, update: if request.auth != null && 
+                            request.resource.data.customerId == request.auth.uid;
+      
+      // Nur der Ersteller oder Admin kann löschen
+      allow delete: if request.auth != null && (
+        resource.data.customerId == request.auth.uid ||
+        isAdmin()
+      );
     }
   }
 }

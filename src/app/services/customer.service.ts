@@ -39,73 +39,34 @@ export class CustomerService {
     });
   }
 
- // In customer.service.ts - die getCustomer-Methode anpassen
-
- getCustomer(customerId: string): Observable<Customer | undefined> {
-  return this.ngZone.run(() => {
-    console.log('Lade Kundendaten für ID:', customerId);
-    
-    // Suche nach userId statt nach Dokument-ID
-    const customersCollection = collection(this.firestore, this.customersCollection);
-    const q = query(customersCollection, where('userId', '==', customerId));
-    
-    return from(getDocs(q)).pipe(
-      map(snapshot => {
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          console.log(`Kunde gefunden: ${doc.id}`);
-          return { ...doc.data(), customerId: doc.id } as Customer;
-        } else {
-          console.log(`Kunde mit ID ${customerId} nicht gefunden`);
-          return undefined;
-        }
-      }),
-      catchError(error => {
-        console.error(`Fehler beim Laden des Kunden ${customerId}:`, error);
-        return of(undefined);
-      })
-    );
-  });
-}
-
-getCustomerByUserId(userId: string): Observable<Customer | undefined> {
+  getCustomer(customerId: string): Observable<Customer | undefined> {
   return new Observable<Customer | undefined>(observer => {
     this.ngZone.run(() => {
       try {
-        console.log('Fetching customer for userId:', userId);
+        console.log('Lade Kundendaten für customerId:', customerId);
         
-        // Erstelle die Abfrage innerhalb von ngZone.run
-        const customerCollection = collection(this.firestore, this.customersCollection);
-        const q = query(customerCollection, where('userId', '==', userId));
+        const customerDocument = doc(this.firestore, this.customersCollection, customerId);
         
-        // Starte das Abhören innerhalb von ngZone
-        const subscription = collectionData(q, { idField: 'customerId' }).pipe(
-          map(data => {
-            const customers = data as Customer[];
-            if (customers.length > 1) {
-              console.warn(`Multiple customers found for userId ${userId}, using the first one.`);
+        getDoc(customerDocument)
+          .then(docSnap => {
+            if (docSnap.exists()) {
+              console.log("Kunde gefunden:", docSnap.data());
+              const customer = { customerId: docSnap.id, ...docSnap.data() } as Customer;
+              observer.next(customer);
+            } else {
+              console.log("Kein Kunde mit customerId", customerId, "gefunden");
+              observer.next(undefined);
             }
-            const customer = customers.length > 0 ? customers[0] : undefined;
-            console.log('Customer query result:', customer ? 'Found' : 'Not found');
-            return customer;
-          }),
-          catchError(error => {
-            console.error(`Error fetching customer for user ID ${userId}:`, error);
-            if (error.code === 'permission-denied') {
-              console.warn('Permission denied. Check Firestore rules.');
-            }
-            return of(undefined);
+            observer.complete();
           })
-        ).subscribe({
-          next: customer => this.ngZone.run(() => observer.next(customer)),
-          error: err => this.ngZone.run(() => observer.error(err)),
-          complete: () => this.ngZone.run(() => observer.complete())
-        });
-        
-        // Aufräumen beim Abbestellen
-        return () => subscription.unsubscribe();
+          .catch((error: any) => { // Now explicitly typed as any or FirebaseError
+            console.error("Fehler beim Laden des Kunden mit customerId", customerId, ":", error);
+            observer.next(undefined);
+            observer.complete();
+          });
+
       } catch (error) {
-        console.error('Error in getCustomerByUserId:', error);
+        console.error('Error in getCustomer:', error);
         observer.next(undefined);
         observer.complete();
       }

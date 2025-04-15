@@ -23,15 +23,13 @@ export class ProviderCustomerService {
     return new Observable<ProviderCustomerRelation[]>(observer => {
       this.ngZone.run(() => {
         try {
-          console.log('Lade Kundenbeziehungen für Provider:', providerId);
-          
           const relationsCollection = collection(this.firestore, this.collectionName);
           const q = query(relationsCollection, where('providerId', '==', providerId));
           
           // Verwende collectionData anstelle von getDocs für ein reaktives Observable
           const subscription = collectionData(q, { idField: 'relationId' }).pipe(
             map(relations => {
-              console.log(`${relations.length} Kundenbeziehungen gefunden`);
+              console.log(`${relations.length} Kundenbeziehungen gefunden für ${providerId}`);
               return relations as ProviderCustomerRelation[];
             }),
             catchError(error => {
@@ -133,37 +131,54 @@ export class ProviderCustomerService {
   }
   
   // Beziehung nach einem Termin aktualisieren
-  updateRelationAfterAppointment(providerId: string, customerId: string, appointmentDate: Date, amount: number = 0): Promise<void> {
+  updateRelationAfterAppointment(
+    providerId: string, 
+    customerId: string, 
+    appointmentDate: Date, 
+    amount: number = 0,
+    customerData?: { firstName?: string; lastName?: string; email?: string; phone?: string }
+  ): Promise<void> {
     return this.ngZone.run(async () => {
       try {
-        console.log(`Trying to update relation for provider: ${providerId}, customer: ${customerId}`);
+        console.log(`Updating relation for provider: ${providerId}, customer: ${customerId}`);
         
-        // Bestehende Beziehung prüfen
+        // Check for existing relation
         const relationObservable = this.getRelation(providerId, customerId);
         const relation = await firstValueFrom(relationObservable);
         
         if (relation) {
           console.log('Existing relation found, updating...', relation);
-          // Bestehende Beziehung aktualisieren
+          // Update existing relation
           const docRef = doc(this.firestore, `${this.collectionName}/${relation.relationId}`);
-          return updateDoc(docRef, { 
+          
+          const updateData: any = { 
             lastVisit: appointmentDate,
             visitCount: (relation.visitCount || 0) + 1,
             totalSpent: (relation.totalSpent || 0) + amount,
-            updatedAt: new Date() 
-          });
+            updatedAt: new Date()
+          };
+          
+          // Add customer data to the relation if provided
+          if (customerData) {
+            if (customerData.firstName) updateData.customerFirstName = customerData.firstName;
+            if (customerData.lastName) updateData.customerLastName = customerData.lastName;
+            if (customerData.email) updateData.customerEmail = customerData.email;
+            if (customerData.phone) updateData.customerPhone = customerData.phone;
+          }
+          
+          return updateDoc(docRef, updateData);
         } else {
           console.log('No existing relation, creating new one');
           
-          // Einen neuen Doc-Ref mit automatisch generierter ID erstellen
+          // Create a new doc ref with auto-generated ID
           const relationsCollection = collection(this.firestore, this.collectionName);
           const newDocRef = doc(relationsCollection);
           const newRelationId = newDocRef.id;
           
           console.log('Generated new relation ID:', newRelationId);
           
-          // Neue Beziehung mit der generierten ID
-          const newRelation: ProviderCustomerRelation = {
+          // New relation with generated ID
+          const newRelation: any = {
             relationId: newRelationId,
             providerId,
             customerId,
@@ -175,9 +190,17 @@ export class ProviderCustomerService {
             updatedAt: new Date()
           };
           
+          // Add customer data to the new relation if provided
+          if (customerData) {
+            if (customerData.firstName) newRelation.customerFirstName = customerData.firstName;
+            if (customerData.lastName) newRelation.customerLastName = customerData.lastName;
+            if (customerData.email) newRelation.customerEmail = customerData.email;
+            if (customerData.phone) newRelation.customerPhone = customerData.phone;
+          }
+          
           console.log('Creating relation with data:', newRelation);
           
-          // Dokument mit setDoc und der generierten ID erstellen
+          // Create document with setDoc and generated ID
           return setDoc(newDocRef, newRelation);
         }
       } catch (error) {
