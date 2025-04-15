@@ -181,8 +181,52 @@ export class AuthenticationService {
     }
   }
   
-  // Rest of the service methods...
-  // (Keeping only the relevant methods for registration)
+  async registerProvider({ email, password, firstName, lastName, phone, companyName, description, street, zip, city, logo, website, openingHours, specialties, facebook, instagram, acceptsOnlinePayments }: any) {
+    try {
+      this.loadingService.setLoading(true, 'Registriere Provider-Konto...');
+      
+      // Benutzer in Firebase registrieren
+      const response = await createUserWithEmailAndPassword(this.auth, email, password).catch((error) => {
+        console.error('Firebase Authentication Error:', error);
+        throw error;
+      });
+      
+      // Displayname aktualisieren
+      if (this.auth.currentUser) {
+        await updateProfile(this.auth.currentUser, {
+          displayName: `${firstName} ${lastName}`,
+        });
+      }
+      
+      // Provider-Objekt erstellen, wenn der Benutzer erfolgreich registriert wurde
+      if (response.user) {
+        const provider: Partial<Provider> = {
+          userId: response.user.uid, 
+          firstName, 
+          lastName, 
+          email, 
+          phone, 
+          businessName: companyName, 
+          description, 
+          address: `${street}, ${zip} ${city}`, 
+          logo, 
+          website, 
+          openingHours, 
+          specialties, 
+          socialMedia: { facebook, instagram }, 
+          acceptsOnlinePayments
+        };
+        // Provider in Firestore speichern
+        
+      }
+      this.loadingService.setLoading(false);
+      return response;
+    } catch (error) {
+      this.loadingService.setLoading(false);
+      console.error("Provider registration error", error);
+      throw error;
+    }
+  }
   
   login({ email, password }: any): Promise<any> {
     this.loadingService.setLoading(true, 'Anmeldung wird durchgeführt...');
