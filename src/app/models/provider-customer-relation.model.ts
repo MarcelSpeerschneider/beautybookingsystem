@@ -10,9 +10,4 @@ export interface ProviderCustomerRelation {
   totalSpent?: number;
   createdAt: Date;
   updatedAt: Date;
-  // Add customer basic info to store in the relation
-  customerFirstName?: string;
-  customerLastName?: string;
-  customerEmail?: string;
-  customerPhone?: string;
 }

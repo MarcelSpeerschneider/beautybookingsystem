@@ -2,20 +2,23 @@ import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
-import { map, switchMap, tap, catchError } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 import { Provider } from '../../../../models/provider.model';
-import { Customer } from '../../../../models/customer.model';
-import { Appointment } from '../../../../models/appointment.model';
 import { CustomerService } from '../../../../services/customer.service';
 import { LoadingService } from '../../../../services/loading.service';
-import { AppointmentService } from '../../../../services/appointment.service';
 import { CustomerDetailComponent } from './customer-detail/customer-detail.component';
 import { ProviderCustomerService } from '../../../../services/provider-customer.service';
 import { CustomerNotesComponent } from './customer-notes/customer-notes.component';
 import { CustomerAddComponent } from './customer-add/customer-add.component';
 
 // Extended Customer interface for UI display
-interface CustomerViewModel extends Customer {
+interface CustomerViewModel {
+  customerId: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
   relationId?: string;
   notes?: string;
   lastVisit?: Date | null;
@@ -23,10 +26,6 @@ interface CustomerViewModel extends Customer {
   totalSpent?: number;
   tags?: string[];
   providerRef?: string;
-  customerFirstName?: string;
-  customerLastName?: string;
-  customerEmail?: string;
-  customerPhone?: string;
 }
 
 @Component({
@@ -69,13 +68,12 @@ export class CustomersListComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
 
   private customerService = inject(CustomerService);
-  private appointmentService = inject(AppointmentService);
   private providerCustomerService = inject(ProviderCustomerService);
   private loadingService = inject(LoadingService);
 
   ngOnInit(): void {
     if (this.provider) {
-      this.loadCustomersWithRelations();
+      this.loadCustomerRelations();
     }
   }
 
@@ -83,16 +81,15 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  // Fixed version for the loadCustomersWithRelations method
-  // Replace this method in your customers-list.component.ts
-  loadCustomersWithRelations(): void {
+  // Improved method to load customer data from relations only
+  loadCustomerRelations(): void {
     if (!this.provider) {
       console.error('Provider ist null!');
       this.loadingService.setLoading(false);
       return;
     }
 
-    console.log('Starte Laden der Kundenbeziehungen für Provider:', this.provider.userId);
+    console.log('Loading customer relations for provider:', this.provider.userId);
     this.loadingService.setLoading(true, 'Lade Kundendaten...');
 
     // Safety timeout for loading indicator
@@ -108,107 +105,45 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     const relationsSub = this.providerCustomerService
       .getCustomerRelationsByProvider(this.provider.userId)
       .pipe(
-        tap(relations => console.log('Gefundene Kundenbeziehungen:', relations.length)),
-        // For each relation, create a fallback customer model
         map(relations => {
+          console.log('Relations found:', relations.length);
+          
           if (relations.length === 0) {
-            console.log('Keine Kundenbeziehungen gefunden, versuche über Termine');
-            return [] as CustomerViewModel[];
+            return [];
           }
-
-          return relations;
-        }),
-        switchMap((relations) => {
-          if (relations.length === 0) {
-            return this.loadCustomersFromAppointments().pipe(
-              catchError(err => {
-                console.error('Fehler beim Laden der Kunden über Termine:', err);
-                return of([] as CustomerViewModel[]);
-              })
-            );
-          }
-
-          return forkJoin(
-            relations.map(rel => {
-              if (rel.customerFirstName && rel.customerLastName) {
-                console.log(`Name vorhanden für Kunde ${rel.customerId}, keine Datenbankabfrage nötig`);
-                return of({
-                  customerId: rel.customerId,
-                  userId: '',
-                  firstName: rel.customerFirstName,
-                  lastName: rel.customerLastName,
-                  email: rel.customerEmail || '',
-                  phone: rel.customerPhone || '',
-                  relationId: rel.relationId,
-                  notes: rel.notes || '',
-                  lastVisit: rel.lastVisit,
-                  visitCount: rel.visitCount || 0,
-                  totalSpent: rel.totalSpent || 0,
-                  tags: rel.tags || [],
-                  providerRef: this.provider?.userId,
-                } as CustomerViewModel);
-              } else {
-                console.log(`Name nicht vorhanden für Kunde ${rel.customerId}, lade vollständige Daten`);
-                return this.customerService.getCustomer(rel.customerId).pipe(
-                  map(fullCustomer => fullCustomer ?
-                    {
-                      ...fullCustomer,
-                      relationId: rel.relationId,
-                      notes: rel.notes || '',
-                      lastVisit: rel.lastVisit,
-                      visitCount: rel.visitCount || 0,
-                      totalSpent: rel.totalSpent || 0,
-                      tags: rel.tags || [],
-                      providerRef: this.provider?.userId
-                    } :
-                    {
-                      customerId: rel.customerId,
-                      userId: '',
-                      firstName: 'Kunde',
-                      lastName: rel.customerId.substring(0, 5),
-                      email: '',
-                      phone: '',
-                      relationId: rel.relationId,
-                      notes: rel.notes || '',
-                      lastVisit: rel.lastVisit,
-                      visitCount: rel.visitCount || 0,
-                      totalSpent: rel.totalSpent || 0,
-                      tags: rel.tags || [],
-                      providerRef: this.provider?.userId
-                    }
-                  ),
-                  catchError(error => {
-                    console.error(`Fehler beim Laden des Kunden ${rel.customerId}, verwende Fallback:`, error);
-                    return of({
-                      customerId: rel.customerId,
-                      userId: '',
-                      firstName: 'Kunde',
-                      lastName: rel.customerId.substring(0, 5),
-                      email: '',
-                      phone: '',
-                      relationId: rel.relationId,
-                      notes: rel.notes || '',
-                      lastVisit: rel.lastVisit,
-                      visitCount: rel.visitCount || 0,
-                      totalSpent: rel.totalSpent || 0,
-                      tags: rel.tags || [],
-                      providerRef: this.provider?.userId
-                    } as CustomerViewModel);
-                  })
-                );
-              }
-            })
-          );
+          
+          // Create customer view models directly from relation data
+          return relations.map(relation => {
+            // Use customer data from relation if available
+            const firstName = relation.customerFirstName || 'Kunde';
+            const lastName = relation.customerLastName || relation.customerId.substring(0, 5);
+            
+            return {
+              customerId: relation.customerId,
+              userId: '',  // We don't have access to this
+              firstName: firstName,
+              lastName: lastName,
+              email: relation.customerEmail || '',
+              phone: relation.customerPhone || '',
+              relationId: relation.relationId,
+              notes: relation.notes || '',
+              lastVisit: relation.lastVisit,
+              visitCount: relation.visitCount || 0,
+              totalSpent: relation.totalSpent || 0,
+              tags: relation.tags || [],
+              providerRef: this.provider?.userId
+            } as CustomerViewModel;
+          });
         }),
         catchError(error => {
-          console.error('Fehler in der Kundenladekette:', error);
-          return of([] as CustomerViewModel[]);
+          console.error('Error loading customer relations:', error);
+          return of([]);
         })
       )
       .subscribe({
         next: (customers) => {
           clearTimeout(loadingTimeout);
-          console.log('Kunden erfolgreich geladen:', customers.length);
+          console.log('Successfully loaded customers:', customers.length);
           this.allCustomers = customers;
           this.totalCustomers = customers.length;
 
@@ -222,7 +157,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           clearTimeout(loadingTimeout);
-          console.error('Fehler beim Laden der Kunden:', error);
+          console.error('Error loading customers:', error);
           this.loadingService.setLoading(false);
           this.allCustomers = [];
           this.filteredCustomers = [];
@@ -230,61 +165,12 @@ export class CustomersListComponent implements OnInit, OnDestroy {
         },
         complete: () => {
           clearTimeout(loadingTimeout);
-          console.log('Kundenladen abgeschlossen');
+          console.log('Customer loading completed');
           this.loadingService.setLoading(false);
         }
       });
 
     this.subscriptions.push(relationsSub);
-  }
-
-  // Make sure your loadCustomersFromAppointments method also has proper return typing:
-  loadCustomersFromAppointments(): Observable<CustomerViewModel[]> {
-    if (!this.provider) return of([]);
-
-    return this.appointmentService.getAppointmentsByProvider(this.provider.userId).pipe(
-      map(appointments => {
-        if (appointments.length === 0) return [];
-
-        // Extract unique customer IDs
-        const customerIds = [...new Set(appointments.map(a => a.customerId))];
-
-        // Group appointments by customer
-        const appointmentsByCustomer = customerIds.reduce((acc, id) => {
-          acc[id] = appointments.filter(a => a.customerId === id);
-          return acc;
-        }, {} as { [customerId: string]: Appointment[] });
-
-        // Create fallback customer models from appointment data
-        return customerIds.map(id => {
-          const customerAppointments = appointmentsByCustomer[id] || [];
-
-          // Find the most recent appointment
-          const sortedAppointments = [...customerAppointments].sort(
-            (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-          );
-
-          const lastVisit = sortedAppointments.length > 0 ?
-            new Date(sortedAppointments[0].startTime) : null;
-
-          // Create a basic customer model
-          return {
-            customerId: id,
-            userId: '',
-            firstName: 'Kunde',
-            lastName: id.substring(0, 5),
-            email: '',
-            phone: '',
-            notes: '',
-            lastVisit,
-            visitCount: customerAppointments.length,
-            totalSpent: 0,
-            tags: [],
-            providerRef: this.provider?.userId
-          } as CustomerViewModel;
-        });
-      })
-    );
   }
 
   // Calculates statistics based on loaded customers

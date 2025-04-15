@@ -4,7 +4,7 @@ import { map, switchMap, take, catchError } from 'rxjs/operators';
 import { 
   Firestore, collection, doc, collectionData, docData, 
   addDoc, updateDoc, deleteDoc, query, where, DocumentReference, 
-  setDoc, getDoc, QuerySnapshot, DocumentData, QueryDocumentSnapshot, getDocs,
+  setDoc, getDoc, getDocs,
 } from '@angular/fire/firestore';
 import { ProviderCustomerRelation } from '../models/provider-customer-relation.model';
 
@@ -18,22 +18,23 @@ export class ProviderCustomerService {
 
   constructor() { }
 
-  // Verbesserte Methode zum Abrufen der Kundenbeziehungen eines Providers
+  // Improved method for getting customer relations with better error handling
   getCustomerRelationsByProvider(providerId: string): Observable<ProviderCustomerRelation[]> {
     return new Observable<ProviderCustomerRelation[]>(observer => {
       this.ngZone.run(() => {
         try {
+          console.log(`Fetching customer relations for provider: ${providerId}`);
           const relationsCollection = collection(this.firestore, this.collectionName);
           const q = query(relationsCollection, where('providerId', '==', providerId));
           
-          // Verwende collectionData anstelle von getDocs für ein reaktives Observable
+          // Use collectionData for a reactive Observable
           const subscription = collectionData(q, { idField: 'relationId' }).pipe(
             map(relations => {
-              console.log(`${relations.length} Kundenbeziehungen gefunden für ${providerId}`);
+              console.log(`Found ${relations.length} customer relations for provider ${providerId}`);
               return relations as ProviderCustomerRelation[];
             }),
             catchError(error => {
-              console.error('Fehler beim Laden der Kundenbeziehungen:', error);
+              console.error('Error loading customer relations:', error);
               return of([]);
             })
           ).subscribe({
@@ -42,11 +43,11 @@ export class ProviderCustomerService {
             complete: () => this.ngZone.run(() => observer.complete())
           });
           
-          // Aufräumen beim Abbestellen
+          // Clean up on unsubscribe
           return () => subscription.unsubscribe();
           
         } catch (error) {
-          console.error('Fehler in getCustomerRelationsByProvider:', error);
+          console.error('Error in getCustomerRelationsByProvider:', error);
           observer.next([]);
           observer.complete();
         }
@@ -54,11 +55,12 @@ export class ProviderCustomerService {
     });
   }
 
-  // Beziehung zwischen Provider und Kunde abrufen
+  // Get a specific provider-customer relation
   getRelation(providerId: string, customerId: string): Observable<ProviderCustomerRelation | undefined> {
     return new Observable<ProviderCustomerRelation | undefined>(observer => {
       this.ngZone.run(() => {
         try {
+          console.log(`Looking for relation between provider ${providerId} and customer ${customerId}`);
           const relationsCollection = collection(this.firestore, this.collectionName);
           const q = query(
             relationsCollection, 
@@ -67,7 +69,15 @@ export class ProviderCustomerService {
           );
           
           const subscription = collectionData(q, { idField: 'relationId' }).pipe(
-            map(relations => relations.length > 0 ? relations[0] as ProviderCustomerRelation : undefined),
+            map(relations => {
+              if (relations.length > 0) {
+                console.log(`Relation found between provider ${providerId} and customer ${customerId}`);
+                return relations[0] as ProviderCustomerRelation;
+              } else {
+                console.log(`No relation found between provider ${providerId} and customer ${customerId}`);
+                return undefined;
+              }
+            }),
             catchError(error => {
               console.error('Error fetching provider-customer relation:', error);
               return of(undefined);
@@ -78,7 +88,7 @@ export class ProviderCustomerService {
             complete: () => this.ngZone.run(() => observer.complete())
           });
           
-          // Aufräumen beim Abbestellen
+          // Clean up on unsubscribe
           return () => subscription.unsubscribe();
           
         } catch (error) {
@@ -90,25 +100,37 @@ export class ProviderCustomerService {
     });
   }
   
-  // Notizen zu einem Kunden für einen Provider aktualisieren
+  // Update customer notes
   updateCustomerNotes(providerId: string, customerId: string, notes: string): Promise<void> {
     return this.ngZone.run(async () => {
       try {
-        // Bestehende Beziehung prüfen
-        const relationObservable = this.getRelation(providerId, customerId);
-        const relation = await firstValueFrom(relationObservable);
+        console.log(`Updating notes for customer ${customerId} by provider ${providerId}`);
         
-        if (relation) {
-          // Bestehende Beziehung aktualisieren
-          const docRef = doc(this.firestore, `${this.collectionName}/${relation.relationId}`);
+        // Check for existing relation
+        const relationsCollection = collection(this.firestore, this.collectionName);
+        const q = query(
+          relationsCollection,
+          where('providerId', '==', providerId),
+          where('customerId', '==', customerId)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          // Update existing relation
+          const relationDoc = querySnapshot.docs[0];
+          const docRef = doc(this.firestore, `${this.collectionName}/${relationDoc.id}`);
+          
+          console.log(`Updating existing relation with ID: ${relationDoc.id}`);
           return updateDoc(docRef, { 
             notes, 
             updatedAt: new Date() 
           });
         } else {
-          // Neue Beziehung erstellen
+          // Create new relation
+          console.log(`Creating new relation between provider ${providerId} and customer ${customerId}`);
           const newRelation: ProviderCustomerRelation = {
-            relationId: '',  // Wird von Firestore generiert
+            relationId: '',  // Will be generated by Firestore
             providerId,
             customerId,
             notes,
@@ -119,7 +141,6 @@ export class ProviderCustomerService {
             updatedAt: new Date()
           };
           
-          const relationsCollection = collection(this.firestore, this.collectionName);
           await addDoc(relationsCollection, newRelation);
           return;
         }
@@ -130,7 +151,7 @@ export class ProviderCustomerService {
     });
   }
   
-  // Beziehung nach einem Termin aktualisieren
+  // Update relation after appointment
   updateRelationAfterAppointment(
     providerId: string, 
     customerId: string, 
@@ -143,18 +164,26 @@ export class ProviderCustomerService {
         console.log(`Updating relation for provider: ${providerId}, customer: ${customerId}`);
         
         // Check for existing relation
-        const relationObservable = this.getRelation(providerId, customerId);
-        const relation = await firstValueFrom(relationObservable);
+        const relationsCollection = collection(this.firestore, this.collectionName);
+        const q = query(
+          relationsCollection,
+          where('providerId', '==', providerId),
+          where('customerId', '==', customerId)
+        );
         
-        if (relation) {
-          console.log('Existing relation found, updating...', relation);
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          console.log('Existing relation found, updating...');
           // Update existing relation
-          const docRef = doc(this.firestore, `${this.collectionName}/${relation.relationId}`);
+          const relationDoc = querySnapshot.docs[0];
+          const docRef = doc(this.firestore, `${this.collectionName}/${relationDoc.id}`);
+          const existingData = relationDoc.data() as ProviderCustomerRelation;
           
           const updateData: any = { 
             lastVisit: appointmentDate,
-            visitCount: (relation.visitCount || 0) + 1,
-            totalSpent: (relation.totalSpent || 0) + amount,
+            visitCount: (existingData.visitCount || 0) + 1,
+            totalSpent: (existingData.totalSpent || 0) + amount,
             updatedAt: new Date()
           };
           
@@ -170,16 +199,8 @@ export class ProviderCustomerService {
         } else {
           console.log('No existing relation, creating new one');
           
-          // Create a new doc ref with auto-generated ID
-          const relationsCollection = collection(this.firestore, this.collectionName);
-          const newDocRef = doc(relationsCollection);
-          const newRelationId = newDocRef.id;
-          
-          console.log('Generated new relation ID:', newRelationId);
-          
-          // New relation with generated ID
+          // Create a new relation 
           const newRelation: any = {
-            relationId: newRelationId,
             providerId,
             customerId,
             firstVisit: appointmentDate,
@@ -200,8 +221,9 @@ export class ProviderCustomerService {
           
           console.log('Creating relation with data:', newRelation);
           
-          // Create document with setDoc and generated ID
-          return setDoc(newDocRef, newRelation);
+          // Create document with addDoc
+          await addDoc(relationsCollection, newRelation);
+          return;
         }
       } catch (error) {
         console.error('Error updating relation after appointment:', error);
@@ -211,7 +233,7 @@ export class ProviderCustomerService {
   }
 }
 
-// Hilfsfunktion für firstValueFrom (da rxjs 6 noch kein firstValueFrom hat)
+// Helper function for firstValueFrom
 export function firstValueFrom<T>(source: Observable<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const subscription = source.pipe(
