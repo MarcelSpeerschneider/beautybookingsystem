@@ -1,9 +1,6 @@
-// In customer-add.component.ts
-
 import { Component, Input, Output, EventEmitter, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { v4 as uuidv4 } from 'uuid';
 import { CustomerService } from '../../../../../services/customer.service';
 import { LoadingService } from '../../../../../services/loading.service';
 import { Customer } from '../../../../../models/customer.model';
@@ -43,17 +40,8 @@ export class CustomerAddComponent implements OnInit {
   }
   
   ngOnInit(): void {
-    // Validierung nach der Initialisierung hinzufügen
     if (!this.provider || !this.provider.userId) {
       console.error('Provider-Daten fehlen oder sind ungültig!');
-    } else {
-      console.log('Provider-ID:', this.provider.userId);
-      console.log('Auth-UID:', this.auth.currentUser?.uid);
-      
-      // Falls keine Übereinstimmung, Warnung ausgeben
-      if (this.auth.currentUser?.uid !== this.provider.userId) {
-        console.warn('Die Provider-ID entspricht nicht der aktuellen Auth-ID!');
-      }
     }
   }
   
@@ -61,7 +49,7 @@ export class CustomerAddComponent implements OnInit {
     if (this.validateForm()) {
       this.loadingService.setLoading(true, 'Kunde wird erstellt...');
       
-      // Wichtig: Die aktuelle Auth-UID verwenden, nicht die Provider-ID!
+      // Get the current authenticated user ID
       const authUserId = this.auth.currentUser?.uid;
       
       if (!authUserId) {
@@ -69,34 +57,30 @@ export class CustomerAddComponent implements OnInit {
         this.formErrors['general'] = 'Fehler: Nicht authentifiziert!';
         return;
       }
-      
-      // Generate a placeholder userId with a prefix to identify manual customers
-      const manualUserId = `manual_${uuidv4()}`;
-      
-      // Base customer properties - strikt nach Customer-Interface
+
+      // IMPORTANT: For creating customer records, we must use the authenticated user's ID
+      // to comply with Firestore security rules
       const customer: Customer = {
         customerId: '', // Will be set by Firestore
-        userId: manualUserId,
+        userId: authUserId, // This is crucial for security rules to allow creation
         firstName: this.customerForm.value.firstName,
         lastName: this.customerForm.value.lastName,
         email: this.customerForm.value.email || '',
         phone: this.customerForm.value.phone || ''
       };
       
-      console.log('Erstelle Kunden mit Basis-Daten:', customer);
+      console.log('Erstelle Kunden mit Daten:', customer);
       
-      // Add a flag in the saved customer to identify manually created ones
-      // Vermeidung des direkten Type-Castings, um keine Felder zu verlieren
+      // Add metadata in a way that doesn't violate security rules
       const customerToSave = {
         ...customer,
         isManuallyCreated: true,
-        createdBy: authUserId, // Wichtig: Auth-UID verwenden!
-        createdAt: new Date()
+        createdAt: new Date(),
+        // Store a reference to indicate this is a provider-created customer
+        providerCreated: true,
+        providerRef: this.provider.userId
       };
       
-      console.log('Erweiterte Kundendaten zum Speichern:', customerToSave);
-      
-      // Explizites "any" Typcasting um TypeScript-Fehler zu vermeiden
       this.customerService.createCustomer(customerToSave as any)
         .then(docRef => {
           this.loadingService.setLoading(false);
@@ -106,7 +90,6 @@ export class CustomerAddComponent implements OnInit {
             ...customer,
             customerId: docRef.id,
             isManuallyCreated: true,
-            createdBy: authUserId,
             notes: this.customerForm.value.notes || ''
           };
           
@@ -115,13 +98,23 @@ export class CustomerAddComponent implements OnInit {
           // If notes provided, create a provider-customer relation with notes
           if (this.customerForm.value.notes) {
             this.providerCustomerService.updateCustomerNotes(
-              authUserId, // Wichtig: Auth-UID verwenden!
-              docRef.id,
+              this.provider.userId, // Use provider ID for the relation
+              docRef.id, // Use the customer document ID
               this.customerForm.value.notes
             ).catch(error => {
               console.error('Error saving customer notes:', error);
             });
           }
+          
+          // Create provider-customer relation
+          this.providerCustomerService.updateRelationAfterAppointment(
+            this.provider.userId,
+            docRef.id,
+            new Date(),
+            0
+          ).catch(error => {
+            console.error('Error creating provider-customer relation:', error);
+          });
           
           // Emit event to parent component
           this.customerCreated.emit(createdCustomer as any);
@@ -136,8 +129,6 @@ export class CustomerAddComponent implements OnInit {
         });
     }
   }
-  
-  // Rest der Methoden bleibt gleich...
   
   validateForm(): boolean {
     this.formErrors = {};

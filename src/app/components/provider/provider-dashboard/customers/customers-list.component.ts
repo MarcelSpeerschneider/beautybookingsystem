@@ -2,7 +2,7 @@ import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription, forkJoin, of } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { map, switchMap, tap, catchError } from 'rxjs/operators';
 import { Provider } from '../../../../models/provider.model';
 import { Customer } from '../../../../models/customer.model';
 import { Appointment } from '../../../../models/appointment.model';
@@ -13,10 +13,8 @@ import { CustomerDetailComponent } from './customer-detail/customer-detail.compo
 import { ProviderCustomerService } from '../../../../services/provider-customer.service';
 import { CustomerNotesComponent } from './customer-notes/customer-notes.component';
 import { CustomerAddComponent } from './customer-add/customer-add.component';
-import { timeout, tap, catchError } from 'rxjs/operators';
 
-
-// Erweitertes Customer-Interface für lokale Verwendung
+// Extended Customer interface for UI display
 interface CustomerViewModel extends Customer {
   relationId?: string;
   notes?: string;
@@ -24,6 +22,7 @@ interface CustomerViewModel extends Customer {
   visitCount?: number;
   totalSpent?: number;
   tags?: string[];
+  providerRef?: string;
 }
 
 @Component({
@@ -42,23 +41,23 @@ interface CustomerViewModel extends Customer {
 export class CustomersListComponent implements OnInit, OnDestroy {
   @Input() provider: Provider | null = null;
   
-  // Listen für Kunden und Termine
+  // Customer data
   allCustomers: CustomerViewModel[] = [];
   filteredCustomers: CustomerViewModel[] = [];
   selectedCustomer: CustomerViewModel | null = null;
   
-  // Filter- und Sortierungsvariablen
+  // Filters and sorting
   searchQuery: string = '';
   statusFilter: string = 'all';
   sortField: string = 'name';
   sortDirection: string = 'asc';
   
-  // Statistik-Variablen
+  // Statistics
   totalCustomers: number = 0;
   newCustomersThisMonth: number = 0;
   regularCustomers: number = 0;
   
-  // UI-Steuerung
+  // UI state
   isEditingNotes: boolean = false;
   selectedCustomerId: string | null = null;
   showAddCustomerForm = false;
@@ -90,28 +89,51 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     console.log('Starte Laden der Kundenbeziehungen für Provider:', this.provider.userId);
     this.loadingService.setLoading(true, 'Lade Kundendaten...');
     
-    // Sicherheits-Timeout für den Loading-Indikator
+    // Safety timeout for loading indicator
     const loadingTimeout = setTimeout(() => {
       console.log('Timeout beim Laden der Kundendaten - breche ab');
       this.loadingService.setLoading(false);
       this.allCustomers = [];
       this.filteredCustomers = [];
       this.calculateStatistics();
-    }, 10000); // 10 Sekunden Timeout
+    }, 10000);
     
-    // 1. Lade alle Kundenbeziehungen dieses Providers
+    // Load provider-customer relationships
     const relationsSub = this.providerCustomerService
       .getCustomerRelationsByProvider(this.provider.userId)
       .pipe(
-        // Timeout für die erste Anfrage
-        timeout(5000),
         tap(relations => console.log('Gefundene Kundenbeziehungen:', relations.length)),
-        // 2. Für jede Beziehung die vollständigen Kundendaten laden
-        switchMap(relations => {
+        // For each relation, create a fallback customer model
+        map(relations => {
           if (relations.length === 0) {
             console.log('Keine Kundenbeziehungen gefunden, versuche über Termine');
+            return [];
+          }
+          
+          // Extract customer IDs and create fallback models
+          return relations.map(rel => {
+            // Default/fallback customer model from relation data
+            return {
+              customerId: rel.customerId,
+              userId: '',
+              firstName: 'Kunde', // Generic placeholder
+              lastName: rel.customerId.substring(0, 5), // Use ID part as identifier
+              email: '',
+              phone: '',
+              relationId: rel.relationId,
+              notes: rel.notes || '',
+              lastVisit: rel.lastVisit,
+              visitCount: rel.visitCount || 0,
+              totalSpent: rel.totalSpent || 0,
+              tags: rel.tags || [],
+              providerRef: this.provider?.userId
+            } as CustomerViewModel;
+          });
+        }),
+        // Try to enhance with full customer data
+        switchMap(fallbackCustomers => {
+          if (fallbackCustomers.length === 0) {
             return this.loadCustomersFromAppointments().pipe(
-              // Fallback für keine Termine
               catchError(err => {
                 console.error('Fehler beim Laden der Kunden über Termine:', err);
                 return of([]);
@@ -119,48 +141,37 @@ export class CustomersListComponent implements OnInit, OnDestroy {
             );
           }
           
-          // Kunden-IDs extrahieren
-          const customerIds = relations.map(rel => rel.customerId);
-          console.log('Lade Kundendaten für IDs:', customerIds);
-          
-          // Für jeden Kunden vollständige Daten laden mit Timeout
+          // For each customer ID, try to load full details
           return forkJoin(
-            customerIds.map(id => 
-              this.customerService.getCustomer(id).pipe(
-                timeout(10000),
-                tap(customer => console.log(`Kunde ${id} gefunden:`, !!customer)),
-                map(customer => {
-                  if (!customer) {
-                    console.log(`Kein Kundendatensatz für ID ${id} gefunden`);
-                    return null;
+            fallbackCustomers.map(fallback => 
+              this.customerService.getCustomer(fallback.customerId).pipe(
+                map(fullCustomer => {
+                  if (fullCustomer) {
+                    console.log(`Vollständige Daten für Kunde ${fallback.customerId} geladen`);
+                    // Merge full customer data with relationship data
+                    return {
+                      ...fullCustomer,
+                      relationId: fallback.relationId,
+                      notes: fallback.notes || (fullCustomer as any).notes,
+                      lastVisit: fallback.lastVisit,
+                      visitCount: fallback.visitCount || 0,
+                      totalSpent: fallback.totalSpent || 0,
+                      tags: fallback.tags || [],
+                      providerRef: (fullCustomer as any).providerRef || this.provider?.userId
+                    } as CustomerViewModel;
+                  } else {
+                    console.log(`Verwende Ersatzdaten für Kunde ${fallback.customerId}`);
+                    return fallback;
                   }
-                  
-                  // Finde zugehörige Beziehungsdaten
-                  const relation = relations.find(rel => rel.customerId === id);
-                  
-                  // Kombiniere Kunden- und Beziehungsdaten
-                  return {
-                    ...customer,
-                    relationId: relation?.relationId,
-                    notes: relation?.notes || '',
-                    lastVisit: relation?.lastVisit,
-                    visitCount: relation?.visitCount || 0,
-                    totalSpent: relation?.totalSpent || 0,
-                    tags: relation?.tags || []
-                  } as CustomerViewModel;
                 }),
-                catchError(err => {
-                  console.error(`Fehler beim Laden des Kunden ${id}:`, err);
-                  return of(null);
+                catchError(error => {
+                  console.error(`Fehler beim Laden des Kunden ${fallback.customerId}, verwende Fallback:`, error);
+                  return of(fallback);
                 })
               )
             )
-          ).pipe(
-            // Nicht-existierende Kunden herausfiltern
-            map(customers => customers.filter(c => c !== null) as CustomerViewModel[])
           );
         }),
-        // Globale Fehlerbehandlung
         catchError(error => {
           console.error('Fehler in der Kundenladekette:', error);
           return of([]);
@@ -168,21 +179,21 @@ export class CustomersListComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (customers) => {
-          clearTimeout(loadingTimeout); // Timeout aufheben
+          clearTimeout(loadingTimeout);
           console.log('Kunden erfolgreich geladen:', customers.length);
           this.allCustomers = customers;
           this.totalCustomers = customers.length;
           
-          // Statistiken berechnen
+          // Calculate statistics
           this.calculateStatistics();
           
-          // Kunden filtern und anzeigen
+          // Filter and display customers
           this.filterCustomers();
           
           this.loadingService.setLoading(false);
         },
         error: (error) => {
-          clearTimeout(loadingTimeout); // Timeout aufheben
+          clearTimeout(loadingTimeout);
           console.error('Fehler beim Laden der Kunden:', error);
           this.loadingService.setLoading(false);
           this.allCustomers = [];
@@ -190,7 +201,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
           this.calculateStatistics();
         },
         complete: () => {
-          clearTimeout(loadingTimeout); // Timeout aufheben
+          clearTimeout(loadingTimeout);
           console.log('Kundenladen abgeschlossen');
           this.loadingService.setLoading(false);
         }
@@ -199,7 +210,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     this.subscriptions.push(relationsSub);
   }
   
-  // Fallback-Methode: Kunden über Termine laden (falls keine expliziten Beziehungen vorhanden)
+  // Fallback method: Try to load customers from appointments
   loadCustomersFromAppointments(): Observable<CustomerViewModel[]> {
     if (!this.provider) return of([]);
     
@@ -207,74 +218,58 @@ export class CustomersListComponent implements OnInit, OnDestroy {
       map(appointments => {
         if (appointments.length === 0) return [];
         
-        // Eindeutige Kunden-IDs aus Terminen extrahieren
+        // Extract unique customer IDs
         const customerIds = [...new Set(appointments.map(a => a.customerId))];
         
-        // Termine nach Kunden gruppieren
+        // Group appointments by customer
         const appointmentsByCustomer = customerIds.reduce((acc, id) => {
           acc[id] = appointments.filter(a => a.customerId === id);
           return acc;
         }, {} as {[customerId: string]: Appointment[]});
         
-        // Kunden mit ihren Terminen laden
-        return forkJoin(
-          customerIds.map(id => 
-            this.customerService.getCustomer(id).pipe(
-              map(customer => {
-                if (!customer) return null;
-                
-                const customerAppointments = appointmentsByCustomer[id] || [];
-                
-                // Letzten Besuch ermitteln
-                const sortedAppointments = [...customerAppointments].sort(
-                  (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-                );
-                
-                const lastVisit = sortedAppointments.length > 0 ? 
-                  new Date(sortedAppointments[0].startTime) : null;
-                
-                // Für jeden Kunden eine Beziehung erstellen oder aktualisieren
-                if (sortedAppointments.length > 0) {
-                  this.providerCustomerService.updateRelationAfterAppointment(
-                    this.provider!.userId,
-                    id,
-                    lastVisit || new Date(),
-                    0 // Betrag später ergänzen
-                  ).catch(err => console.error('Fehler beim Erstellen der Kundenbeziehung:', err));
-                }
-                
-                // Kombinierte Daten zurückgeben
-                return {
-                  ...customer,
-                  relationId: '',  // Wird später ergänzt
-                  notes: '',
-                  lastVisit,
-                  visitCount: customerAppointments.length,
-                  totalSpent: 0,  // Wird später berechnet
-                  tags: []
-                } as CustomerViewModel;
-              })
-            )
-          )
-        );
-      }),
-      switchMap(observableArray => observableArray),
-      // Nicht-existierende Kunden herausfiltern
-      map(customers => customers.filter(c => c !== null) as CustomerViewModel[])
+        // Create fallback customer models from appointment data
+        return customerIds.map(id => {
+          const customerAppointments = appointmentsByCustomer[id] || [];
+          
+          // Find the most recent appointment
+          const sortedAppointments = [...customerAppointments].sort(
+            (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+          );
+          
+          const lastVisit = sortedAppointments.length > 0 ? 
+            new Date(sortedAppointments[0].startTime) : null;
+          
+          // Create a basic customer model
+          return {
+            customerId: id,
+            userId: '',
+            firstName: 'Kunde',
+            lastName: id.substring(0, 5),
+            email: '',
+            phone: '',
+            notes: '',
+            lastVisit,
+            visitCount: customerAppointments.length,
+            totalSpent: 0,
+            tags: [],
+            providerRef: this.provider?.userId
+          } as CustomerViewModel;
+        });
+      })
     );
   }
   
-  // Berechnet Statistiken basierend auf den geladenen Kunden
+  // Calculates statistics based on loaded customers
   calculateStatistics(): void {
-    // Gesamtanzahl der Kunden
+    // Total customer count
     this.totalCustomers = this.allCustomers.length;
     
-    // Stammkunden (mit mehr als 3 Besuchen)
+    // Regular customers (with 3+ visits)
     this.regularCustomers = this.allCustomers.filter(
       customer => (customer.visitCount || 0) >= 3
     ).length;
     
-    // Neue Kunden diesen Monat - basierend auf firstVisit
+    // New customers this month
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     
@@ -286,13 +281,13 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     }).length;
   }
   
-  // Filtere Kunden basierend auf den aktuellen Filtereinstellungen
+  // Filters customers based on current filter settings
   filterCustomers(): void {
     if (!this.allCustomers) return;
     
     let filtered = [...this.allCustomers];
     
-    // Status-Filter anwenden (aktiv = in den letzten 3 Monaten einen Termin)
+    // Status filter (active = appointment in last 3 months)
     if (this.statusFilter !== 'all') {
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -306,7 +301,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
       });
     }
     
-    // Suchquery anwenden
+    // Search query
     if (this.searchQuery.trim() !== '') {
       const query = this.searchQuery.toLowerCase().trim();
       filtered = filtered.filter(c => {
@@ -322,13 +317,13 @@ export class CustomersListComponent implements OnInit, OnDestroy {
       });
     }
     
-    // Sortierung anwenden
+    // Apply sorting
     this.sortCustomersArray(filtered);
     
     this.filteredCustomers = filtered;
   }
   
-  // Private Methode zur Sortierung der Kunden
+  // Helper method to sort customers
   private sortCustomersArray(customers: CustomerViewModel[]): void {
     customers.sort((a, b) => {
       let comparison = 0;
@@ -366,7 +361,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     });
   }
   
-  // Sortierung umschalten
+  // Toggle sort direction
   sortCustomers(field: string): void {
     if (this.sortField === field) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -378,31 +373,31 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     this.filterCustomers();
   }
   
-  // Filter zurücksetzen
+  // Reset filters
   resetFilters(): void {
     this.statusFilter = 'all';
     this.searchQuery = '';
     this.filterCustomers();
   }
   
-  // Suche löschen
+  // Clear search
   clearSearch(): void {
     this.searchQuery = '';
     this.filterCustomers();
   }
   
-  // Kundendetails anzeigen
+  // Show customer details
   viewCustomerDetails(customer: CustomerViewModel): void {
     this.selectedCustomer = customer;
   }
   
-  // Notizen bearbeiten
+  // Edit customer notes
   editCustomerNotes(customer: CustomerViewModel): void {
     this.selectedCustomer = customer;
     this.isEditingNotes = true;
   }
   
-  // Notizen speichern
+  // Save customer notes
   saveCustomerNotes(customerId: string, notes: string): void {
     if (!this.provider) return;
     
@@ -415,12 +410,12 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     ).then(() => {
       this.loadingService.setLoading(false);
       
-      // Lokales Update ohne neu zu laden
+      // Update local data without reloading
       const customerIndex = this.allCustomers.findIndex(c => c.customerId === customerId);
       if (customerIndex >= 0) {
         this.allCustomers[customerIndex].notes = notes;
         
-        // Auch in gefilterten Kunden aktualisieren
+        // Also update filtered customers
         const filteredIndex = this.filteredCustomers.findIndex(c => c.customerId === customerId);
         if (filteredIndex >= 0) {
           this.filteredCustomers[filteredIndex].notes = notes;
@@ -435,18 +430,18 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     });
   }
   
-  // Detailansicht schließen
+  // Close customer details
   closeCustomerDetails(): void {
     this.selectedCustomer = null;
     this.isEditingNotes = false;
   }
   
-  // Notizen abbrechen
+  // Cancel notes editing
   cancelNotes(): void {
     this.isEditingNotes = false;
   }
   
-  // Hilfsfunktionen für Datumsformatierung
+  // Format date for display
   formatDate(date: any): string {
     try {
       if (!date) return 'Kein Datum';
@@ -465,7 +460,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     }
   }
   
-  // Kundenstatus-Text formatieren
+  // Get customer status text
   getStatusText(customer: CustomerViewModel): string {
     if (!customer.lastVisit) return 'Neu';
     
@@ -475,27 +470,21 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     return new Date(customer.lastVisit) >= threeMonthsAgo ? 'Aktiv' : 'Inaktiv';
   }
 
-  /**
-   * Zeigt das Formular zum Hinzufügen eines Kunden an
-   */
+  // Show add customer form
   showAddCustomer(): void {
     this.showAddCustomerForm = true;
   }
 
-  /**
-   * Versteckt das Formular zum Hinzufügen eines Kunden
-   */
+  // Hide add customer form
   hideAddCustomer(): void {
     this.showAddCustomerForm = false;
   }
 
-  /**
-   * Wird aufgerufen, wenn ein neuer Kunde erstellt wurde
-   */
+  // Handle new customer created
   handleCustomerCreated(customer: CustomerViewModel): void {
     console.log('Neuer Kunde erstellt:', customer);
     
-    // Erstelle das CustomerViewModel für die UI
+    // Create CustomerViewModel for UI
     const newCustomer: CustomerViewModel = {
       ...customer,
       visitCount: 0,
@@ -505,15 +494,15 @@ export class CustomersListComponent implements OnInit, OnDestroy {
       notes: customer.notes || ''
     };
     
-    // Füge den neuen Kunden zur Liste hinzu
+    // Add to customer list
     this.allCustomers = [newCustomer, ...this.allCustomers];
     
-    // Aktualisiere die Statistik
+    // Update statistics
     this.totalCustomers = this.allCustomers.length;
     this.newCustomersThisMonth++;
     this.calculateStatistics();
     
-    // Wende Filter an, um den Kunden in der Liste anzuzeigen
+    // Apply filters to show the new customer
     this.filterCustomers();
   }
 }
