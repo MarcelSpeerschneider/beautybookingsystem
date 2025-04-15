@@ -23,6 +23,8 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   userId: string | null = null;
   provider: Provider | null = null;
   cartItems: Service[] = [];
+  isOwnProviderPage: boolean = false;
+  previewMode: boolean = false;
   
   // Calendar and date selection
   currentDate: Date = new Date();
@@ -68,6 +70,12 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
       return;
     }
     
+    // Check for preview mode in query params
+    const queryParamsSub = this.route.queryParams.subscribe(params => {
+      this.previewMode = params['previewMode'] === 'true';
+    });
+    this.subscriptions.push(queryParamsSub);
+    
     // Get provider ID from route parameter
     const routeSub = this.route.paramMap.subscribe(params => {
       this.userId = params.get('userId');
@@ -80,6 +88,18 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
       if (this.userId) {
         // Store provider ID in cart
         this.cartService.setProviderId(this.userId);
+        
+        // Check if the logged in user is the provider
+        const authSub = this.authService.user$.subscribe(user => {
+          if (user && this.userId) {
+            this.isOwnProviderPage = user.uid === this.userId;
+            
+            if (this.isOwnProviderPage) {
+              console.log('Provider viewing their own appointment selection (preview mode)');
+            }
+          }
+        });
+        this.subscriptions.push(authSub);
         
         // Load provider details
         this.loadProvider(this.userId);
@@ -272,11 +292,17 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   // Navigation methods
   goBack(): void {
     if (this.userId) {
-      this.router.navigate([`/services/${this.userId}`]);
+      this.router.navigate([`/services/${this.userId}`], 
+                         this.isOwnProviderPage ? { queryParams: { previewMode: 'true' } } : {});
     }
   }
   
   navigateToBookingLogin(): void {
+    if (this.isOwnProviderPage || this.previewMode) {
+      alert('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau.');
+      return;
+    }
+    
     if (!this.selectedDate || !this.selectedTime) {
       alert('Bitte wählen Sie ein Datum und eine Uhrzeit aus');
       return;

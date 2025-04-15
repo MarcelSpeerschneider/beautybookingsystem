@@ -199,3 +199,14 @@
       align-self: flex-end;
     }
   }
+  
+  .preview-mode-banner {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #ffeeba;
+  }

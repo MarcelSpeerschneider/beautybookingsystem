@@ -26,6 +26,7 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   provider: Provider | null = null;
   businessName: string | null = null;
   isLoggedIn = false;
+  isOwnProviderPage: boolean = false; // Indicates if the logged-in user is viewing their own provider page
   
   private subscriptions: Subscription[] = [];
   
@@ -81,7 +82,16 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
       if (provider) {
         console.log('Provider gefunden:', provider);
         this.provider = provider;
-        this.cartService.setProviderId(provider.userId)
+        this.cartService.setProviderId(provider.userId);
+        
+        // Check if the logged-in user is the provider of this page
+        const userSub = this.authService.user$.subscribe(user => {
+          if (user && provider) {
+            this.isOwnProviderPage = user.uid === provider.userId;
+            console.log('Is own provider page:', this.isOwnProviderPage);
+          }
+        });
+        this.subscriptions.push(userSub);
       } else {
         console.log('Provider nicht gefunden');
       }
@@ -92,9 +102,23 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   }
   
   viewServices(): void {
-     if (this.provider && this.provider.userId) {
+    if (this.isOwnProviderPage) {
+      // Show a message that providers can't book with themselves
+      alert('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
+      
+      // Still allow navigation to view services in preview mode
+      if (this.provider && this.provider.userId) {
+        this.router.navigate(['/services', this.provider.userId], { queryParams: { previewMode: 'true' } });
+      }
+      return;
+    }
+    
+    // Original navigation for customers
+    if (this.provider && this.provider.userId) {
       this.router.navigate(['/services', this.provider.userId]);
-    } else { console.error('Provider not set') }
+    } else { 
+      console.error('Provider not set') 
+    }
   }
   
   login(): void {

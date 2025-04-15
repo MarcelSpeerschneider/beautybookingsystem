@@ -48,6 +48,10 @@ export class ProviderRegistrationComponent implements OnInit {
   private loadingService = inject(LoadingService);
 
   ngOnInit(): void {
+    // Explicitly set provider registration flag
+    localStorage.setItem('registering_provider', 'true');
+    sessionStorage.setItem('registering_provider', 'true');
+    
     // Authentication step form
     this.authForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
@@ -165,7 +169,7 @@ export class ProviderRegistrationComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log("form submitted");
+    console.log("Form submitted");
     if (this.authForm.valid && this.providerForm.valid) {
       this.loadingService.setLoading(true, 'Registrierung wird durchgeführt...');
 
@@ -201,6 +205,10 @@ export class ProviderRegistrationComponent implements OnInit {
       }).then(response => {
         if (response && response.user) {
           const userId = response.user.uid;
+          
+          // Make sure to mark as provider for subsequent operations
+          localStorage.setItem(`user_role_${userId}`, 'provider');
+          
           // Create provider object
           const provider: Provider = {
             userId: userId,

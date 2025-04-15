@@ -1,4 +1,8 @@
 <div class="appointment-container">
+    <!-- Preview mode banner for providers -->
+    <div *ngIf="isOwnProviderPage || previewMode" class="preview-mode-banner">
+      <p>VORSCHAUMODUS: Sie sehen Ihre eigene Terminauswahl als Anbieter. Buchungen sind deaktiviert.</p>
+    </div>
   <div class="provider-header" *ngIf="provider">
     <div class="logo-container">
       <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
@@ -119,10 +123,14 @@
         <span class="arrow-left">&larr;</span>
         Zurück
       </button>
-      <button class="next-btn" [disabled]="!selectedDate || !selectedTime" (click)="navigateToBookingLogin()">
-        Weiter 
+      <button class="next-btn" [disabled]="!selectedDate || !selectedTime || isOwnProviderPage || previewMode" (click)="navigateToBookingLogin()">
+        <ng-container *ngIf="!isOwnProviderPage && !previewMode">Weiter</ng-container>
+        <ng-container *ngIf="isOwnProviderPage || previewMode">Vorschaumodus</ng-container>
         <span class="arrow-right">&rarr;</span>
       </button>
+      
+      <button *ngIf="isOwnProviderPage || previewMode" class="dashboard-btn" [routerLink]="['/provider-dashboard']">
+        Zum Dashboard
+      </button>
     </div>
-  </div>
 </div>

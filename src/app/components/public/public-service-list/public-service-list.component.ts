@@ -1,10 +1,11 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subscription, Observable, of } from 'rxjs';
 import { ServiceService } from '../../../services/service.service';
 import { ProviderService } from '../../../services/provider.service';
 import { CartService } from '../../../services/cart.service';
+import { AuthenticationService } from '../../../services/authentication.service';
 import { Service } from '../../../models/service.model';
 import { Provider } from '../../../models/provider.model';
 import { LoadingService } from '../../../services/loading.service';
@@ -12,7 +13,7 @@ import { LoadingService } from '../../../services/loading.service';
 @Component({
   selector: 'app-public-service-list',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './public-service-list.component.html', 
   styleUrls: ['./public-service-list.component.css']
 })
@@ -21,6 +22,8 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
   provider: Provider | null = null;
   userId: string = '';
   services: Service[] = [];
+  isOwnProviderPage: boolean = false;
+  previewMode: boolean = false;
   
   private subscriptions: Subscription[] = [];
   
@@ -28,11 +31,17 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private serviceService = inject(ServiceService);
   private providerService = inject(ProviderService);
+  private authService = inject(AuthenticationService);
   public cartService = inject(CartService);
   private loadingService = inject(LoadingService);
 
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade...');
+    
+    // Check for preview mode in query params
+    this.route.queryParams.subscribe(params => {
+      this.previewMode = params['previewMode'] === 'true';
+    });
     
     // Get user ID from route parameter
     const routeSub = this.route.paramMap.subscribe(params => {      
@@ -51,6 +60,18 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
           this.services = services;
           this.loadingService.setLoading(false); // Set loading to false after fetching services
         });
+        
+        // Check if logged-in user is the provider
+        const authSub = this.authService.user$.subscribe(user => {
+          if (user && userId) {
+            this.isOwnProviderPage = user.uid === userId;
+            
+            if (this.isOwnProviderPage) {
+              console.log('Provider viewing their own service list (preview mode)');
+            }
+          }
+        });
+        this.subscriptions.push(authSub);
       } else {
         this.router.navigate(['/']); // Redirect to home if no provider ID
       }
@@ -64,11 +85,15 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
   }
   
   addToCart(service: Service): void {    
+    if (this.isOwnProviderPage || this.previewMode) {
+      alert('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau.');
+      return;
+    }
+    
+    // Original add to cart logic
     if (this.cartService.isInCart(service.id)) {
-      // Remove the service from the cart
       this.cartService.removeItem(service.id);
     } else {
-      // Add the service to the cart
       this.cartService.addItem(service);
     }    
   }
@@ -78,6 +103,12 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
   }
   
   viewCart(): void {
+    if (this.isOwnProviderPage || this.previewMode) {
+      alert('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau.');
+      return;
+    }
+    
+    // Original view cart logic
     if (this.userId) {
       this.router.navigate(['/appointment-selection', this.userId]);
     }

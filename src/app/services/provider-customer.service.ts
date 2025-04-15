@@ -3,7 +3,8 @@ import { Observable, from, of } from 'rxjs';
 import { map, switchMap, take, catchError } from 'rxjs/operators';
 import { 
   Firestore, collection, doc, collectionData, docData, 
-  addDoc, updateDoc, deleteDoc, query, where, DocumentReference 
+  addDoc, updateDoc, deleteDoc, query, where, DocumentReference, 
+  setDoc
 } from '@angular/fire/firestore';
 import { ProviderCustomerRelation } from '../models/provider-customer-relation.model';
 
@@ -120,10 +121,13 @@ export class ProviderCustomerService {
   updateRelationAfterAppointment(providerId: string, customerId: string, appointmentDate: Date, amount: number = 0): Promise<void> {
     return this.ngZone.run(async () => {
       try {
+        console.log(`Trying to update relation for provider: ${providerId}, customer: ${customerId}`);
+        
         // Bestehende Beziehung prüfen
         const relation = await firstValueFrom(this.getRelation(providerId, customerId));
         
         if (relation) {
+          console.log('Existing relation found, updating...', relation);
           // Bestehende Beziehung aktualisieren
           const docRef = doc(this.firestore, `${this.collectionName}/${relation.relationId}`);
           return updateDoc(docRef, { 
@@ -133,9 +137,18 @@ export class ProviderCustomerService {
             updatedAt: new Date() 
           });
         } else {
-          // Neue Beziehung erstellen
+          console.log('No existing relation, creating new one');
+          
+          // Einen neuen Doc-Ref mit automatisch generierter ID erstellen
+          const relationsCollection = collection(this.firestore, this.collectionName);
+          const newDocRef = doc(relationsCollection);
+          const newRelationId = newDocRef.id;
+          
+          console.log('Generated new relation ID:', newRelationId);
+          
+          // Neue Beziehung mit der generierten ID
           const newRelation: ProviderCustomerRelation = {
-            relationId: '',  // Wird von Firestore generiert
+            relationId: newRelationId,
             providerId,
             customerId,
             firstVisit: appointmentDate,
@@ -146,9 +159,11 @@ export class ProviderCustomerService {
             updatedAt: new Date()
           };
           
-          const relationsCollection = collection(this.firestore, this.collectionName);
-          await addDoc(relationsCollection, newRelation);
-          return;
+          console.log('Creating relation with data:', newRelation);
+          
+          // Dokument mit setDoc und der generierten ID erstellen
+          // Dies erfordert nur eine einzelne Schreiboperation
+          return setDoc(newDocRef, newRelation);
         }
       } catch (error) {
         console.error('Error updating relation after appointment:', error);

@@ -1,4 +1,9 @@
 <div class="service-list-container">
+  <!-- Preview mode banner for providers -->
+  <div *ngIf="isOwnProviderPage || previewMode" class="preview-mode-banner">
+    <p>VORSCHAUMODUS: Sie sehen Ihre eigene Dienstleistungsliste als Anbieter. Buchungen sind deaktiviert.</p>
+  </div>
+
   <div *ngIf="provider" class="provider-header">
     <div class="logo-container">
       <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
@@ -57,8 +62,13 @@
           <div class="service-price">{{ formatPrice(service.price) }}</div>
         </div>
       </div>
-      <button class="add-to-cart-btn" [disabled]="isInCart(service.id)" [class.in-cart]="isInCart(service.id)">
-        {{ isInCart(service.id) ? 'Im Warenkorb' : 'In den Warenkorb' }}
+      <button class="add-to-cart-btn" [disabled]="isInCart(service.id) || isOwnProviderPage || previewMode" [class.in-cart]="isInCart(service.id)">
+        <ng-container *ngIf="!isOwnProviderPage && !previewMode">
+          {{ isInCart(service.id) ? 'Im Warenkorb' : 'In den Warenkorb' }}
+        </ng-container>
+        <ng-container *ngIf="isOwnProviderPage || previewMode">
+          Vorschaumodus
+        </ng-container>
       </button>
     </div>
   </div>
@@ -67,7 +77,7 @@
     <p>Keine Dienstleistungen verfügbar</p>
   </div>
   
-  <div class="cart-summary" *ngIf="cartService.getItemCount() > 0">
+  <div class="cart-summary" *ngIf="cartService.getItemCount() > 0 && !isOwnProviderPage && !previewMode">
     <div class="cart-items">
       <div *ngFor="let item of cartService.getItems()" class="cart-item">
         <div class="cart-item-name">{{ item.name }}</div>
@@ -84,10 +94,14 @@
     </button>
   </div>
   
-  <!-- Zurück-Button NACH dem Cart Summary -->
+  <!-- Back button -->
   <div class="navigation-buttons">
     <button class="back-btn" (click)="goBack()">
       <span class="arrow-left">←</span> Zurück
+    </button>
+    
+    <button *ngIf="isOwnProviderPage || previewMode" class="dashboard-btn" [routerLink]="['/provider-dashboard']">
+      Zum Dashboard
     </button>
   </div>
 </div>

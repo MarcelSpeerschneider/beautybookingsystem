@@ -32,14 +32,13 @@ export const routes: Routes = [
   { path: 'provider-login', component: ProviderLoginComponent },
   { path: 'provider-dashboard', component: ProviderDashboardComponent, canActivate: [AuthGuard] },
   
-  // Public booking flow
-  { path: 'services/:userId', component: PublicServiceListComponent },
-  { path: 'appointment-selection/:userId', component: AppointmentSelectionComponent },
-  { path: 'booking-login/:userId', component: BookingLoginComponent },
+  // Public booking flow - these should not have AuthGuard or should be marked public
+  { path: 'services/:userId', component: PublicServiceListComponent, data: { isPublic: true } },
+  { path: 'appointment-selection/:userId', component: AppointmentSelectionComponent, data: { isPublic: true } },
+  { path: 'booking-login/:userId', component: BookingLoginComponent, data: { isPublic: true } },
   { path: 'booking-overview', component: BookingOverviewComponent, canActivate: [AuthGuard] },
   { path: 'booking-confirmation', component: BookingConfirmationComponent, canActivate: [AuthGuard] },
 
-  
-  // Provider public page - this should be the last route to avoid conflicts
-  { path: ':businessName', component: PublicProviderComponent }
+  // Provider public page - mark this as public
+  { path: ':businessName', component: PublicProviderComponent, data: { isPublic: true } }
 ];
