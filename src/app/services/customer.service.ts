@@ -2,8 +2,7 @@ import { Injectable, inject, NgZone } from '@angular/core';
 import { Customer } from '../models/customer.model';
 import { Observable, from, of, catchError } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
-import { Firestore, collection, doc, collectionData, docData, addDoc, updateDoc, deleteDoc, query, where, DocumentReference, DocumentData } from '@angular/fire/firestore';
-
+import { Firestore, collection, doc, collectionData, docData, addDoc, updateDoc, deleteDoc, query, where, DocumentReference, DocumentData, getDocs } from '@angular/fire/firestore';
 @Injectable({
   providedIn: 'root'
 })
@@ -75,6 +74,10 @@ export class CustomerService {
           collectionData(q, { idField: 'customerId' }).pipe(
             map(data => {
               const customers = data as Customer[];
+              // If multiple customers found, log a warning
+              if (customers.length > 1) {
+                console.warn(`Multiple customers found for userId ${userId}, using the first one.`);
+              }
               const customer = customers.length > 0 ? customers[0] : undefined;
               console.log('Customer query result:', customer ? 'Found' : 'Not found');
               return customer;
@@ -156,9 +159,23 @@ export class CustomerService {
     return this.ngZone.run(async () => {
       try {
         console.log('Creating new customer:', customer);
+        
+        // First check if a customer with this userId already exists
+        const existingCustomerQuery = query(
+          collection(this.firestore, this.customersCollection), 
+          where('userId', '==', customer.userId)
+        );
+        
+        const querySnapshot = await getDocs(existingCustomerQuery);
+        if (!querySnapshot.empty) {
+          console.warn(`Customer for userId ${customer.userId} already exists, returning existing reference`);
+          const existingDoc = querySnapshot.docs[0];
+          return doc(this.firestore, `${this.customersCollection}/${existingDoc.id}`) as DocumentReference;
+        }
+        
         const customerCollection = collection(this.firestore, this.customersCollection);
         
-        // Explicitly set all fields to ensure they are included
+        // Make sure all fields are properly defined and not null/undefined
         const customerToSave = {
           userId: customer.userId,
           firstName: customer.firstName || '',
@@ -167,7 +184,14 @@ export class CustomerService {
           phone: customer.phone || ''
         };
         
-        console.log('Customer data being saved:', customerToSave);
+        // Log each field individually to verify values
+        console.log('Customer fields being saved:', {
+          userId: customerToSave.userId,
+          firstName: customerToSave.firstName,
+          lastName: customerToSave.lastName,
+          email: customerToSave.email,
+          phone: customerToSave.phone
+        });
         
         const docRef = await addDoc(customerCollection, customerToSave);
         console.log('Customer created successfully with ID:', docRef.id);
