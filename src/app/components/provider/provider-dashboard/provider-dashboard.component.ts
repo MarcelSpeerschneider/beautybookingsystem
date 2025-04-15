@@ -9,11 +9,12 @@ import { LoadingService } from '../../../services/loading.service';
 import { DashboardOverviewComponent } from './dashboard-overview/dashboard-overview.component';
 import { AppointmentListComponent } from './appointments/appointment-list.component';
 import { ServiceListComponent } from './services/service-list.component';
+import { CustomersListComponent } from './customers/customers-list.component';
 
 @Component({
   selector: 'app-provider-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet, DashboardOverviewComponent, AppointmentListComponent, ServiceListComponent],
+  imports: [CommonModule, RouterModule, RouterOutlet, DashboardOverviewComponent, AppointmentListComponent, ServiceListComponent, CustomersListComponent ],
   templateUrl: './provider-dashboard.component.html',
   styleUrls: ['./provider-dashboard.component.css']
 })

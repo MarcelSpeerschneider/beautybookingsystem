@@ -1,7 +1,8 @@
 import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription, forkJoin, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { Provider } from '../../../../models/provider.model';
 import { Customer } from '../../../../models/customer.model';
 import { Appointment } from '../../../../models/appointment.model';
@@ -9,11 +10,17 @@ import { CustomerService } from '../../../../services/customer.service';
 import { LoadingService } from '../../../../services/loading.service';
 import { AppointmentService } from '../../../../services/appointment.service';
 import { CustomerDetailComponent } from './customer-detail/customer-detail.component';
+import { ProviderCustomerService } from '../../../../services/provider-customer.service';
+import { CustomerNotesComponent } from './customer-notes/customer-notes.component';
 
 // Erweitertes Customer-Interface für lokale Verwendung
 interface CustomerViewModel extends Customer {
-  _lastVisitDate?: Date | null; // Nur für die Anzeige in dieser Komponente
-  _visitCount?: number; // Nur für die Berechnung in dieser Komponente
+  relationId?: string;
+  notes?: string;
+  lastVisit?: Date | null;
+  visitCount?: number;
+  totalSpent?: number;
+  tags?: string[];
 }
 
 @Component({
@@ -22,7 +29,8 @@ interface CustomerViewModel extends Customer {
   imports: [
     CommonModule,
     FormsModule,
-    CustomerDetailComponent
+    CustomerDetailComponent,
+    CustomerNotesComponent
   ],
   templateUrl: './customers-list.component.html',
   styleUrls: ['./customers-list.component.css']
@@ -34,7 +42,6 @@ export class CustomersListComponent implements OnInit, OnDestroy {
   allCustomers: CustomerViewModel[] = [];
   filteredCustomers: CustomerViewModel[] = [];
   selectedCustomer: CustomerViewModel | null = null;
-  appointmentsCache: { [customerId: string]: Appointment[] } = {}; // Cache für Termine
   
   // Filter- und Sortierungsvariablen
   searchQuery: string = '';
@@ -44,18 +51,23 @@ export class CustomersListComponent implements OnInit, OnDestroy {
   
   // Statistik-Variablen
   totalCustomers: number = 0;
-  newCustomersThisMonth: number = 0; // Werden wir anders berechnen müssen
-  regularCustomers: number = 0; // Kunden mit mehr als 3 Terminen
+  newCustomersThisMonth: number = 0;
+  regularCustomers: number = 0;
+  
+  // UI-Steuerung
+  isEditingNotes: boolean = false;
+  selectedCustomerId: string | null = null;
   
   private subscriptions: Subscription[] = [];
   
   private customerService = inject(CustomerService);
   private appointmentService = inject(AppointmentService);
+  private providerCustomerService = inject(ProviderCustomerService);
   private loadingService = inject(LoadingService);
   
   ngOnInit(): void {
     if (this.provider) {
-      this.loadCustomersAndAppointments();
+      this.loadCustomersWithRelations();
     }
   }
   
@@ -63,7 +75,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
   
-  loadCustomersAndAppointments(): void {
+  loadCustomersWithRelations(): void {
     if (!this.provider) {
       console.error('Provider ist null!');
       return;
@@ -71,141 +83,155 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     
     this.loadingService.setLoading(true, 'Lade Kundendaten...');
     
-    // 1. Verwende die vorhandene Methode zum Laden von Kunden
-    // Ändere die aufgerufene Methode entsprechend deinem CustomerService
-    const customersSub = this.customerService
-      .getCustomers() // Oder die entsprechende Methode in deinem Service
+    // 1. Lade alle Kundenbeziehungen dieses Providers
+    const relationsSub = this.providerCustomerService
+      .getCustomerRelationsByProvider(this.provider.userId)
+      .pipe(
+        // 2. Für jede Beziehung die vollständigen Kundendaten laden
+        switchMap(relations => {
+          if (relations.length === 0) {
+            // Keine Kundenbeziehungen gefunden, versuche über Termine
+            return this.loadCustomersFromAppointments();
+          }
+          
+          // Kunden-IDs extrahieren
+          const customerIds = relations.map(rel => rel.customerId);
+          
+          // Für jeden Kunden vollständige Daten laden und mit Beziehungsdaten kombinieren
+          return forkJoin(
+            customerIds.map(id => 
+              this.customerService.getCustomer(id).pipe(
+                map(customer => {
+                  if (!customer) return null;
+                  
+                  // Finde zugehörige Beziehungsdaten
+                  const relation = relations.find(rel => rel.customerId === id);
+                  
+                  // Kombiniere Kunden- und Beziehungsdaten
+                  return {
+                    ...customer,
+                    relationId: relation?.relationId,
+                    notes: relation?.notes || '',
+                    lastVisit: relation?.lastVisit,
+                    visitCount: relation?.visitCount || 0,
+                    totalSpent: relation?.totalSpent || 0,
+                    tags: relation?.tags || []
+                  } as CustomerViewModel;
+                })
+              )
+            )
+          ).pipe(
+            // Nicht-existierende Kunden herausfiltern
+            map(customers => customers.filter(c => c !== null) as CustomerViewModel[])
+          );
+        })
+      )
       .subscribe({
         next: (customers) => {
-          // Nur Kunden dieses Providers filtern (falls nicht schon durch die API gefiltert)
-          const providerCustomers = customers.filter(
-            c => c.providerId === this.provider?.userId
-          );
+          this.allCustomers = customers;
+          this.totalCustomers = customers.length;
           
-          // Füge lokale Eigenschaften für die Anzeige hinzu
-          this.allCustomers = providerCustomers.map(c => ({
-            ...c,
-            _lastVisitDate: null,
-            _visitCount: 0
-          }));
+          // Statistiken berechnen
+          this.calculateStatistics();
           
-          // Statistiken berechnen und Anzeige aktualisieren
-          this.totalCustomers = this.allCustomers.length;
-          this.filterCustomers();
-          
-          // 2. Jetzt laden wir die Terminhistorie für die Besuche
-          this.loadAppointmentHistory();
-        },
-        error: (error: any) => {
-          this.loadingService.setLoading(false);
-          console.error('Fehler beim Laden der Kunden:', error);
-          alert('Fehler beim Laden der Kunden. Bitte versuchen Sie es später erneut.');
-        }
-      });
-    
-    this.subscriptions.push(customersSub);
-  }
-  
-  loadAppointmentHistory(): void {
-    if (!this.provider || this.allCustomers.length === 0) {
-      this.loadingService.setLoading(false);
-      return;
-    }
-    
-    // Lade die Gesamtterminhistorie für diesen Provider
-    // (Annahme: Es gibt eine Methode im AppointmentService, die Termine nach Provider filtert)
-    const appointmentsSub = this.appointmentService
-      .getAppointmentsByProvider(this.provider.userId) // Passe an deine vorhandene Methode an
-      .subscribe({
-        next: (appointments) => {
-          // Gruppiere Termine nach Kunden-ID
-          appointments.forEach(appointment => {
-            if (!appointment.customerId) return;
-            
-            if (!this.appointmentsCache[appointment.customerId]) {
-              this.appointmentsCache[appointment.customerId] = [];
-            }
-            
-            this.appointmentsCache[appointment.customerId].push(appointment);
-          });
-          
-          // Berechne Besuchsinformationen für jeden Kunden
-          this.updateCustomerVisitData();
-          
-          // Statistiken aktualisieren und Anzeige filtern
-          this.calculateCustomerStats();
+          // Kunden filtern und anzeigen
           this.filterCustomers();
           
           this.loadingService.setLoading(false);
         },
         error: (error) => {
-          console.error('Fehler beim Laden der Terminhistorie:', error);
+          console.error('Fehler beim Laden der Kunden:', error);
           this.loadingService.setLoading(false);
-          
-          // Trotzdem Kunden anzeigen, auch ohne Terminhistorie
-          this.filterCustomers();
         }
       });
+      
+    this.subscriptions.push(relationsSub);
+  }
+  
+  // Fallback-Methode: Kunden über Termine laden (falls keine expliziten Beziehungen vorhanden)
+  loadCustomersFromAppointments(): Observable<CustomerViewModel[]> {
+    if (!this.provider) return of([]);
     
-    this.subscriptions.push(appointmentsSub);
-  }
-  
-  updateCustomerVisitData(): void {
-    // Durchlaufe alle Kunden und berechne ihre Besuchsdaten
-    this.allCustomers.forEach(customer => {
-      const customerAppointments = this.appointmentsCache[customer.id] || [];
-      
-      // Nur abgeschlossene Termine zählen
-      const completedAppointments = customerAppointments.filter(
-        a => a.status === 'completed'
-      );
-      
-      // Setze Besuchszähler
-      customer._visitCount = completedAppointments.length;
-      
-      // Finde das neueste Besuchsdatum
-      if (completedAppointments.length > 0) {
-        // Sortiere nach Datum (neueste zuerst)
-        completedAppointments.sort((a, b) => {
-          const dateA = new Date(a.startTime).getTime();
-          const dateB = new Date(b.startTime).getTime();
-          return dateB - dateA;
-        });
+    return this.appointmentService.getAppointmentsByProvider(this.provider.userId).pipe(
+      map(appointments => {
+        if (appointments.length === 0) return [];
         
-        // Setze das letzte Besuchsdatum
-        customer._lastVisitDate = new Date(completedAppointments[0].startTime);
-      }
-    });
+        // Eindeutige Kunden-IDs aus Terminen extrahieren
+        const customerIds = [...new Set(appointments.map(a => a.customerId))];
+        
+        // Termine nach Kunden gruppieren
+        const appointmentsByCustomer = customerIds.reduce((acc, id) => {
+          acc[id] = appointments.filter(a => a.customerId === id);
+          return acc;
+        }, {} as {[customerId: string]: Appointment[]});
+        
+        // Kunden mit ihren Terminen laden
+        return forkJoin(
+          customerIds.map(id => 
+            this.customerService.getCustomer(id).pipe(
+              map(customer => {
+                if (!customer) return null;
+                
+                const customerAppointments = appointmentsByCustomer[id] || [];
+                
+                // Letzten Besuch ermitteln
+                const sortedAppointments = [...customerAppointments].sort(
+                  (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+                );
+                
+                const lastVisit = sortedAppointments.length > 0 ? 
+                  new Date(sortedAppointments[0].startTime) : null;
+                
+                // Für jeden Kunden eine Beziehung erstellen oder aktualisieren
+                if (sortedAppointments.length > 0) {
+                  this.providerCustomerService.updateRelationAfterAppointment(
+                    this.provider!.userId,
+                    id,
+                    lastVisit || new Date(),
+                    0 // Betrag später ergänzen
+                  ).catch(err => console.error('Fehler beim Erstellen der Kundenbeziehung:', err));
+                }
+                
+                // Kombinierte Daten zurückgeben
+                return {
+                  ...customer,
+                  relationId: '',  // Wird später ergänzt
+                  notes: '',
+                  lastVisit,
+                  visitCount: customerAppointments.length,
+                  totalSpent: 0,  // Wird später berechnet
+                  tags: []
+                } as CustomerViewModel;
+              })
+            )
+          )
+        ).pipe(
+          // Nicht-existierende Kunden herausfiltern
+          map(customers => customers.filter(c => c !== null) as CustomerViewModel[])
+        );
+      })
+    );
   }
   
-  calculateCustomerStats(): void {
+  // Berechnet Statistiken basierend auf den geladenen Kunden
+  calculateStatistics(): void {
     // Gesamtanzahl der Kunden
     this.totalCustomers = this.allCustomers.length;
     
     // Stammkunden (mit mehr als 3 Besuchen)
     this.regularCustomers = this.allCustomers.filter(
-      customer => (customer._visitCount || 0) >= 3
+      customer => (customer.visitCount || 0) >= 3
     ).length;
     
-    // Neue Kunden diesen Monat - statt createdAt verwenden wir das erste Termin-Datum
+    // Neue Kunden diesen Monat - basierend auf firstVisit
     const today = new Date();
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     
     this.newCustomersThisMonth = this.allCustomers.filter(customer => {
-      const customerAppointments = this.appointmentsCache[customer.id] || [];
+      if (!customer.lastVisit) return false;
       
-      if (customerAppointments.length === 0) return false;
-      
-      // Sortiere Termine nach Datum (älteste zuerst)
-      customerAppointments.sort((a, b) => {
-        const dateA = new Date(a.startTime).getTime();
-        const dateB = new Date(b.startTime).getTime();
-        return dateA - dateB;
-      });
-      
-      // Prüfe, ob der erste Termin in diesem Monat war
-      const firstAppointmentDate = new Date(customerAppointments[0].startTime);
-      return firstAppointmentDate >= firstDayOfMonth;
+      const visitDate = new Date(customer.lastVisit);
+      return visitDate >= firstDayOfMonth;
     }).length;
   }
   
@@ -215,23 +241,33 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     
     let filtered = [...this.allCustomers];
     
-    // Status-Filter anwenden
+    // Status-Filter anwenden (aktiv = in den letzten 3 Monaten einen Termin)
     if (this.statusFilter !== 'all') {
-      filtered = filtered.filter(c => c.status === this.statusFilter);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      
+      filtered = filtered.filter(c => {
+        if (this.statusFilter === 'active') {
+          return c.lastVisit && new Date(c.lastVisit) >= threeMonthsAgo;
+        } else {
+          return !c.lastVisit || new Date(c.lastVisit) < threeMonthsAgo;
+        }
+      });
     }
     
-    // Suchquery anwenden - mit expliziten null-checks
+    // Suchquery anwenden
     if (this.searchQuery.trim() !== '') {
       const query = this.searchQuery.toLowerCase().trim();
       filtered = filtered.filter(c => {
-        // Explizite null-checks für TypeScript
-        const fullName = c.fullName || '';
-        const email = c.email || '';
-        const phone = c.phone || '';
+        const fullName = `${c.firstName} ${c.lastName}`.toLowerCase();
+        const email = (c.email || '').toLowerCase();
+        const phone = (c.phone || '').toLowerCase();
+        const notes = (c.notes || '').toLowerCase();
         
-        return fullName.toLowerCase().includes(query) ||
-               email.toLowerCase().includes(query) ||
-               phone.toLowerCase().includes(query);
+        return fullName.includes(query) || 
+               email.includes(query) || 
+               phone.includes(query) ||
+               notes.includes(query);
       });
     }
     
@@ -248,34 +284,33 @@ export class CustomersListComponent implements OnInit, OnDestroy {
       
       switch (this.sortField) {
         case 'name':
-          // Strings mit Null-Check
-          const nameA = a.fullName || '';
-          const nameB = b.fullName || '';
+          const nameA = `${a.firstName} ${a.lastName}`;
+          const nameB = `${b.firstName} ${b.lastName}`;
           comparison = nameA.localeCompare(nameB);
           break;
           
         case 'email':
-          // Strings mit Null-Check
           const emailA = a.email || '';
           const emailB = b.email || '';
           comparison = emailA.localeCompare(emailB);
           break;
           
         case 'lastVisit':
-          // Jetzt verwenden wir unsere lokale _lastVisitDate Eigenschaft
-          const aTime = a._lastVisitDate ? a._lastVisitDate.getTime() : 0;
-          const bTime = b._lastVisitDate ? b._lastVisitDate.getTime() : 0;
+          const aTime = a.lastVisit ? new Date(a.lastVisit).getTime() : 0;
+          const bTime = b.lastVisit ? new Date(b.lastVisit).getTime() : 0;
           comparison = aTime - bTime;
           break;
           
+        case 'visitCount':
+          comparison = (a.visitCount || 0) - (b.visitCount || 0);
+          break;
+          
         default:
-          // Standardfall: Nach Namen sortieren
-          const defaultNameA = a.fullName || '';
-          const defaultNameB = b.fullName || '';
+          const defaultNameA = `${a.firstName} ${a.lastName}`;
+          const defaultNameB = `${b.firstName} ${b.lastName}`;
           comparison = defaultNameA.localeCompare(defaultNameB);
       }
       
-      // Sortierrichtung berücksichtigen
       return this.sortDirection === 'asc' ? comparison : -comparison;
     });
   }
@@ -283,10 +318,8 @@ export class CustomersListComponent implements OnInit, OnDestroy {
   // Sortierung umschalten
   sortCustomers(field: string): void {
     if (this.sortField === field) {
-      // Wenn das gleiche Feld angeklickt wird, Sortierrichtung umschalten
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-      // Neues Feld, standardmäßig aufsteigend sortieren
       this.sortField = field;
       this.sortDirection = 'asc';
     }
@@ -312,9 +345,54 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     this.selectedCustomer = customer;
   }
   
+  // Notizen bearbeiten
+  editCustomerNotes(customer: CustomerViewModel): void {
+    this.selectedCustomer = customer;
+    this.isEditingNotes = true;
+  }
+  
+  // Notizen speichern
+  saveCustomerNotes(customerId: string, notes: string): void {
+    if (!this.provider) return;
+    
+    this.loadingService.setLoading(true, 'Speichere Notizen...');
+    
+    this.providerCustomerService.updateCustomerNotes(
+      this.provider.userId, 
+      customerId, 
+      notes
+    ).then(() => {
+      this.loadingService.setLoading(false);
+      
+      // Lokales Update ohne neu zu laden
+      const customerIndex = this.allCustomers.findIndex(c => c.customerId === customerId);
+      if (customerIndex >= 0) {
+        this.allCustomers[customerIndex].notes = notes;
+        
+        // Auch in gefilterten Kunden aktualisieren
+        const filteredIndex = this.filteredCustomers.findIndex(c => c.customerId === customerId);
+        if (filteredIndex >= 0) {
+          this.filteredCustomers[filteredIndex].notes = notes;
+        }
+      }
+      
+      this.isEditingNotes = false;
+      this.selectedCustomer = null;
+    }).catch(error => {
+      console.error('Fehler beim Speichern der Notizen:', error);
+      this.loadingService.setLoading(false);
+    });
+  }
+  
   // Detailansicht schließen
   closeCustomerDetails(): void {
     this.selectedCustomer = null;
+    this.isEditingNotes = false;
+  }
+  
+  // Notizen abbrechen
+  cancelNotes(): void {
+    this.isEditingNotes = false;
   }
   
   // Hilfsfunktionen für Datumsformatierung
@@ -337,19 +415,12 @@ export class CustomersListComponent implements OnInit, OnDestroy {
   }
   
   // Kundenstatus-Text formatieren
-  getStatusText(status: string): string {
-    switch (status) {
-      case 'active':
-        return 'Aktiv';
-      case 'inactive':
-        return 'Inaktiv';
-      default:
-        return status;
-    }
-  }
-  
-  // Letzten Besuch formatiert zurückgeben
-  getLastVisitDateFormatted(customer: CustomerViewModel): string {
-    return customer._lastVisitDate ? this.formatDate(customer._lastVisitDate) : 'Noch kein Besuch';
+  getStatusText(customer: CustomerViewModel): string {
+    if (!customer.lastVisit) return 'Neu';
+    
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    
+    return new Date(customer.lastVisit) >= threeMonthsAgo ? 'Aktiv' : 'Inaktiv';
   }
 }

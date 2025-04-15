@@ -4,6 +4,8 @@ import { Observable, from, of, catchError } from 'rxjs';
 import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, DocumentReference, query, where } from '@angular/fire/firestore';
 import { map, switchMap } from 'rxjs/operators';
 import { convertAppointmentDates } from '../utils/date-utils';
+import { ProviderCustomerService } from './provider-customer.service';
+
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +15,9 @@ export class AppointmentService {
     private ngZone = inject(NgZone);
     private collectionName = 'appointments';
 
-    constructor() {
+    constructor(
+        private providerCustomerService: ProviderCustomerService
+    ) {
     }
 
     getAppointments(): Observable<Appointment[]> {
@@ -74,18 +78,38 @@ export class AppointmentService {
 
     createAppointment(appointment: Appointment): Promise<DocumentReference> {
         return this.ngZone.run(async () => {
+          try {
+            console.log('Creating new appointment:', appointment);
+            const appointmentsCollection = collection(this.firestore, this.collectionName);
+            
+            // Zuerst Termin speichern
+            const docRef = await addDoc(appointmentsCollection, appointment);
+            console.log('Appointment created successfully with ID:', docRef.id);
+            
+            // Dann Provider-Kunden-Beziehung aktualisieren
             try {
-                console.log('Creating new appointment:', appointment);
-                const appointmentsCollection = collection(this.firestore, this.collectionName);
-                const docRef = await addDoc(appointmentsCollection, appointment);
-                console.log('Appointment created successfully with ID:', docRef.id);
-                return docRef;
-            } catch (error) {
-                console.error('Error creating appointment:', error);
-                throw error;
+              // Preis-Berechnung könnte hier aus der Service-ID ermittelt werden
+              const price = 0; // In einer echten Implementierung würde hier der Preis des Services stehen
+              
+              await this.providerCustomerService.updateRelationAfterAppointment(
+                appointment.providerId,
+                appointment.customerId,
+                appointment.startTime,
+                price
+              );
+              console.log('Provider-customer relation updated successfully');
+            } catch (relationError) {
+              console.error('Error updating provider-customer relation:', relationError);
+              // Wir werfen den Fehler hier nicht, da der Termin bereits erstellt wurde
             }
+            
+            return docRef;
+          } catch (error) {
+            console.error('Error creating appointment:', error);
+            throw error;
+          }
         });
-    }
+      }
 
     updateAppointment(appointment: Appointment): Observable<Appointment> {
         return new Observable<Appointment>(observer => {

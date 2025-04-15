@@ -1,102 +1,118 @@
 <div class="tab-content">
-    <h2 class="section-title">Kundenübersicht</h2>
-    
-    <!-- Statistik-Karten -->
-    <div class="customer-stats">
-      <div class="stat-card">
-        <h3>Gesamtkunden</h3>
-        <div class="value">{{ totalCustomers }}</div>
-      </div>
-      <div class="stat-card">
-        <h3>Neue Kunden (dieser Monat)</h3>
-        <div class="value new-customers">{{ newCustomersThisMonth }}</div>
-      </div>
-      <div class="stat-card">
-        <h3>Stammkunden</h3>
-        <div class="value regular-customers">{{ regularCustomers }}</div>
-      </div>
+  <h2 class="section-title">Kundenübersicht</h2>
+  
+  <!-- Statistik-Karten -->
+  <div class="customer-stats">
+    <div class="stat-card">
+      <h3>Gesamtkunden</h3>
+      <div class="value">{{ totalCustomers }}</div>
     </div>
-    
-    <!-- Filter Controls -->
-    <div class="customers-filters">
-      <div class="filter-group">
-        <label for="statusFilter">Status:</label>
-        <select id="statusFilter" [(ngModel)]="statusFilter" (change)="filterCustomers()">
-          <option value="all">Alle</option>
-          <option value="active">Aktiv</option>
-          <option value="inactive">Inaktiv</option>
-        </select>
-      </div>
-      
-      <div class="filter-group search">
-        <input type="text" placeholder="Nach Name, E-Mail oder Telefon suchen..." [(ngModel)]="searchQuery" (input)="filterCustomers()">
-        <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()">✕</button>
-      </div>
+    <div class="stat-card">
+      <h3>Neue Kunden (dieser Monat)</h3>
+      <div class="value new-customers">{{ newCustomersThisMonth }}</div>
     </div>
-    
-    <!-- Customers Table -->
-    <div class="customers-table-container" *ngIf="filteredCustomers.length > 0">
-      <table class="customers-table">
-        <thead>
-          <tr>
-            <th (click)="sortCustomers('name')">
-              Name
-              <span class="sort-icon" *ngIf="sortField === 'name'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th (click)="sortCustomers('email')">
-              E-Mail
-              <span class="sort-icon" *ngIf="sortField === 'email'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th>Telefon</th>
-            <th (click)="sortCustomers('lastVisit')">
-              Letzter Besuch
-              <span class="sort-icon" *ngIf="sortField === 'lastVisit'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th>Status</th>
-            <th>Aktionen</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let customer of filteredCustomers" [ngClass]="customer.status">
-            <td>{{ customer.fullName }}</td>
-            <td>{{ customer.email }}</td>
-            <td>{{ customer.phone }}</td>
-            <td>{{ customer.lastVisitDate ? formatDate(customer.lastVisitDate) : 'Noch kein Besuch' }}</td>
-            <td>
-              <span class="status-badge {{ customer.status }}">
-                {{ getStatusText(customer.status) }}
-              </span>
-            </td>
-            <td class="action-cell">
-              <button class="btn-action view" (click)="viewCustomerDetails(customer)" title="Details anzeigen">
-                <span class="action-icon">ℹ</span>
-              </button>
-              <button class="btn-action edit" title="Bearbeiten">
-                <span class="action-icon">✎</span>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="stat-card">
+      <h3>Stammkunden</h3>
+      <div class="value regular-customers">{{ regularCustomers }}</div>
     </div>
-    
-    <!-- Empty State -->
-    <div class="empty-state" *ngIf="filteredCustomers.length === 0">
-      <div class="empty-icon">👤</div>
-      <h3>Keine Kunden gefunden</h3>
-      <p *ngIf="statusFilter !== 'all' || searchQuery">
-        Versuche, deine Filtereinstellungen anzupassen.
-      </p>
-      <p *ngIf="statusFilter === 'all' && !searchQuery">
-        Es wurden keine Kunden gefunden. Kunden werden automatisch erstellt, wenn Termine gebucht werden.
-      </p>
-      <button class="btn btn-secondary" (click)="resetFilters()">Filter zurücksetzen</button>
-    </div>
-    
-    <!-- Customer Details Modal -->
-    <app-customer-detail
-      *ngIf="selectedCustomer"
-      [customer]="selectedCustomer"
-      (close)="closeCustomerDetails()">
-    </app-customer-detail>
   </div>
+  
+  <!-- Filter Controls -->
+  <div class="customers-filters">
+    <div class="filter-group">
+      <label for="statusFilter">Status:</label>
+      <select id="statusFilter" [(ngModel)]="statusFilter" (change)="filterCustomers()">
+        <option value="all">Alle</option>
+        <option value="active">Aktiv</option>
+        <option value="inactive">Inaktiv</option>
+      </select>
+    </div>
+    
+    <div class="filter-group search">
+      <input type="text" placeholder="Nach Name, E-Mail oder Telefon suchen..." [(ngModel)]="searchQuery" (input)="filterCustomers()">
+      <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()">✕</button>
+    </div>
+  </div>
+  
+  <!-- Customers Table -->
+  <div class="customers-table-container" *ngIf="filteredCustomers.length > 0">
+    <table class="customers-table">
+      <thead>
+        <tr>
+          <th (click)="sortCustomers('name')">
+            Name
+            <span class="sort-icon" *ngIf="sortField === 'name'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th (click)="sortCustomers('email')">
+            E-Mail
+            <span class="sort-icon" *ngIf="sortField === 'email'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th>Telefon</th>
+          <th (click)="sortCustomers('lastVisit')">
+            Letzter Besuch
+            <span class="sort-icon" *ngIf="sortField === 'lastVisit'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th (click)="sortCustomers('visitCount')">
+            Besuche
+            <span class="sort-icon" *ngIf="sortField === 'visitCount'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th>Notizen</th>
+          <th>Status</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let customer of filteredCustomers">
+          <td>{{ customer.firstName }} {{ customer.lastName }}</td>
+          <td>{{ customer.email }}</td>
+          <td>{{ customer.phone || '-' }}</td>
+          <td>{{ customer.lastVisit ? formatDate(customer.lastVisit) : 'Noch kein Besuch' }}</td>
+          <td>{{ customer.visitCount || 0 }}</td>
+          <td class="notes-preview">{{ customer.notes?.substring(0, 50) }}{{ customer.notes?.length > 50 ? '...' : '' }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusText(customer).toLowerCase()">
+              {{ getStatusText(customer) }}
+            </span>
+          </td>
+          <td class="action-cell">
+            <button class="btn-action view" (click)="viewCustomerDetails(customer)" title="Details anzeigen">
+              <span class="action-icon">ℹ</span>
+            </button>
+            <button class="btn-action edit" (click)="editCustomerNotes(customer)" title="Notizen bearbeiten">
+              <span class="action-icon">✎</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="filteredCustomers.length === 0">
+    <div class="empty-icon">👤</div>
+    <h3>Keine Kunden gefunden</h3>
+    <p *ngIf="statusFilter !== 'all' || searchQuery">
+      Versuche, deine Filtereinstellungen anzupassen.
+    </p>
+    <p *ngIf="statusFilter === 'all' && !searchQuery">
+      Es wurden keine Kunden gefunden. Kunden werden automatisch erstellt, wenn Termine gebucht werden.
+    </p>
+    <button class="btn btn-secondary" (click)="resetFilters()">Filter zurücksetzen</button>
+  </div>
+  
+  <!-- Customer Details Modal -->
+  <app-customer-detail
+    *ngIf="selectedCustomer && !isEditingNotes"
+    [customer]="selectedCustomer"
+    (close)="closeCustomerDetails()"
+    (editNotes)="editCustomerNotes(selectedCustomer)">
+  </app-customer-detail>
+  
+  <!-- Customer Notes Editor -->
+  <app-customer-notes
+    *ngIf="selectedCustomer && isEditingNotes"
+    [customer]="selectedCustomer"
+    (save)="saveCustomerNotes(selectedCustomer.customerId, $event)"
+    (cancel)="cancelNotes()">
+  </app-customer-notes>
+</div>

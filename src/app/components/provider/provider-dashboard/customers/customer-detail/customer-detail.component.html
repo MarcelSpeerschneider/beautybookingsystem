@@ -1,106 +1,90 @@
 <div class="customer-detail-overlay">
-    <div class="customer-detail-container">
-      <div class="detail-header">
-        <h3>Kundendetails</h3>
-        <button type="button" class="btn-close" (click)="closeModal()">✕</button>
-      </div>
-      
-      <div class="detail-content">
-        <!-- Persönliche Informationen -->
-        <div class="detail-section">
-          <h4 class="section-title">Persönliche Informationen</h4>
-          
-          <div class="detail-row">
-            <div class="detail-label">Name:</div>
-            <div class="detail-value">{{ customer.fullName }}</div>
-          </div>
-          
-          <div class="detail-row">
-            <div class="detail-label">E-Mail:</div>
-            <div class="detail-value">{{ customer.email || 'Nicht angegeben' }}</div>
-          </div>
-          
-          <div class="detail-row">
-            <div class="detail-label">Telefon:</div>
-            <div class="detail-value">{{ customer.phone || 'Nicht angegeben' }}</div>
-          </div>
-          
-          <div class="detail-row">
-            <div class="detail-label">Kunde seit:</div>
-            <div class="detail-value">{{ formatDate(customer.createdAt) }}</div>
-          </div>
-          
-          <div class="detail-row">
-            <div class="detail-label">Status:</div>
-            <div class="detail-value">
-              <span class="status-badge {{ customer.status }}">
-                {{ customer.status === 'active' ? 'Aktiv' : 'Inaktiv' }}
-              </span>
-            </div>
-          </div>
+  <div class="customer-detail-container">
+    <div class="detail-header">
+      <h3>Kundendetails</h3>
+      <button type="button" class="btn-close" (click)="closeModal()">✕</button>
+    </div>
+    
+    <div class="detail-content">
+      <!-- Persönliche Informationen -->
+      <div class="detail-section">
+        <h4 class="section-title">Persönliche Informationen</h4>
+        
+        <div class="detail-row">
+          <div class="detail-label">Name:</div>
+          <div class="detail-value">{{ customer.firstName }} {{ customer.lastName }}</div>
         </div>
         
-        <!-- Notizen -->
-        <div class="detail-section">
-          <div class="section-header">
-            <h4 class="section-title">Notizen</h4>
-            <button *ngIf="!isEditingNotes" class="btn-edit-notes" (click)="startEditingNotes()">
-              Bearbeiten
-            </button>
-          </div>
-          
-          <div *ngIf="!isEditingNotes" class="customer-notes">
-            {{ customer.notes || 'Keine Notizen vorhanden' }}
-          </div>
-          
-          <div *ngIf="isEditingNotes" class="notes-edit-form">
-            <textarea 
-              rows="4" 
-              [(ngModel)]="temporaryNotes"
-              placeholder="Notizen zu diesem Kunden eingeben..."></textarea>
-            
-            <div class="notes-actions">
-              <button class="btn btn-secondary" (click)="cancelEditingNotes()">Abbrechen</button>
-              <button class="btn btn-primary" (click)="saveNotes()">Speichern</button>
-            </div>
-          </div>
+        <div class="detail-row">
+          <div class="detail-label">E-Mail:</div>
+          <div class="detail-value">{{ customer.email || 'Nicht angegeben' }}</div>
         </div>
         
-        <!-- Besuchshistorie -->
-        <div class="detail-section">
-          <h4 class="section-title">Besuchshistorie</h4>
-          
-          <div *ngIf="customerAppointments.length === 0" class="no-appointments">
-            Dieser Kunde hat noch keine Termine.
-          </div>
-          
-          <table *ngIf="customerAppointments.length > 0" class="appointments-table">
-            <thead>
-              <tr>
-                <th>Datum</th>
-                <th>Uhrzeit</th>
-                <th>Dienstleistung</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let appointment of customerAppointments" [ngClass]="appointment.status">
-                <td>{{ formatDate(appointment.startTime) }}</td>
-                <td>{{ formatTime(appointment.startTime) }}</td>
-                <td>{{ appointment.serviceName }}</td>
-                <td>
-                  <span class="status-badge {{ appointment.status }}">
-                    {{ getAppointmentStatusText(appointment.status) }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="detail-row">
+          <div class="detail-label">Telefon:</div>
+          <div class="detail-value">{{ customer.phone || 'Nicht angegeben' }}</div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-label">Kunde seit:</div>
+          <div class="detail-value">{{ customer.lastVisit ? formatDate(customer.lastVisit) : 'Unbekannt' }}</div>
+        </div>
+        
+        <div class="detail-row">
+          <div class="detail-label">Besuche:</div>
+          <div class="detail-value">{{ customer.visitCount || 0 }}</div>
         </div>
       </div>
       
-      <div class="detail-footer">
-        <button class="btn btn-secondary" (click)="closeModal()">Schließen</button>
+      <!-- Notizen -->
+      <div class="detail-section">
+        <div class="section-header">
+          <h4 class="section-title">Notizen</h4>
+          <button class="btn-edit-notes" (click)="openNotesEditor()">
+            Bearbeiten
+          </button>
+        </div>
+        
+        <div class="customer-notes">
+          {{ customer.notes || 'Keine Notizen vorhanden' }}
+        </div>
+      </div>
+      
+      <!-- Besuchshistorie -->
+      <div class="detail-section">
+        <h4 class="section-title">Besuchshistorie</h4>
+        
+        <div *ngIf="customerAppointments.length === 0" class="no-appointments">
+          Dieser Kunde hat noch keine Termine.
+        </div>
+        
+        <table *ngIf="customerAppointments.length > 0" class="appointments-table">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Uhrzeit</th>
+              <th>Dienstleistung</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let appointment of customerAppointments" [ngClass]="appointment.status">
+              <td>{{ formatDate(appointment.startTime) }}</td>
+              <td>{{ formatTime(appointment.startTime) }}</td>
+              <td>{{ appointment.serviceName }}</td>
+              <td>
+                <span class="status-badge {{ appointment.status }}">
+                  {{ getAppointmentStatusText(appointment.status) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
+    
+    <div class="detail-footer">
+      <button class="btn btn-secondary" (click)="closeModal()">Schließen</button>
+    </div>
   </div>
+</div>

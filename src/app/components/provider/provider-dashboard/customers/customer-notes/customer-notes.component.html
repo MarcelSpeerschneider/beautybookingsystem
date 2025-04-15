@@ -1,0 +1,25 @@
+<div class="notes-modal-overlay">
+    <div class="notes-modal">
+      <div class="notes-header">
+        <h3>Notizen für {{ customer.firstName }} {{ customer.lastName }}</h3>
+        <button class="btn-close" (click)="cancelEdit()">✕</button>
+      </div>
+      
+      <div class="notes-content">
+        <p class="notes-instructions">Nutzen Sie diesen Bereich für persönliche Notizen zu diesem Kunden. Diese Notizen sind nur für Sie sichtbar.</p>
+        
+        <div class="notes-form">
+          <textarea 
+            [(ngModel)]="notes" 
+            placeholder="Notizen zum Kunden eingeben..." 
+            rows="10">
+          </textarea>
+        </div>
+      </div>
+      
+      <div class="notes-actions">
+        <button class="btn-cancel" (click)="cancelEdit()">Abbrechen</button>
+        <button class="btn-save" (click)="saveNotes()">Speichern</button>
+      </div>
+    </div>
+  </div>

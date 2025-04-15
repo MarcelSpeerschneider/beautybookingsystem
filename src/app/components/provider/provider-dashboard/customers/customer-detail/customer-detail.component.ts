@@ -1,10 +1,9 @@
 import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Customer } from '../../../../../models/customer.model';
-import { Appointment } from '../../../../../models/appointment.model';
 import { AppointmentService } from '../../../../../services/appointment.service';
 import { LoadingService } from '../../../../../services/loading.service';
+import { Appointment } from '../../../../../models/appointment.model';
 
 @Component({
   selector: 'app-customer-detail',
@@ -14,25 +13,23 @@ import { LoadingService } from '../../../../../services/loading.service';
   styleUrls: ['./customer-detail.component.css']
 })
 export class CustomerDetailComponent implements OnInit {
-  @Input() customer!: Customer;
+  @Input() customer!: any;
   @Output() close = new EventEmitter<void>();
+  @Output() editNotes = new EventEmitter<void>();
   
   customerAppointments: Appointment[] = [];
-  isEditingNotes: boolean = false;
-  temporaryNotes: string = '';
   
   private appointmentService = inject(AppointmentService);
   private loadingService = inject(LoadingService);
   
   ngOnInit(): void {
     this.loadCustomerAppointments();
-    this.temporaryNotes = this.customer.notes || '';
   }
   
   loadCustomerAppointments(): void {
     this.loadingService.setLoading(true, 'Lade Kundentermine...');
     
-    this.appointmentService.getAppointmentsByCustomer(this.customer.id)
+    this.appointmentService.getAppointmentsByUser(this.customer.customerId)
       .subscribe({
         next: (appointments) => {
           // Sortieren nach Datum absteigend (neueste zuerst)
@@ -52,28 +49,8 @@ export class CustomerDetailComponent implements OnInit {
     this.close.emit();
   }
   
-  startEditingNotes(): void {
-    this.isEditingNotes = true;
-    this.temporaryNotes = this.customer.notes || '';
-  }
-  
-  saveNotes(): void {
-    // In einem echten System würde hier ein Service-Call erfolgen
-    // um die Notizen in der Datenbank zu aktualisieren
-    
-    // Für dieses Beispiel simulieren wir den Speichervorgang
-    this.loadingService.setLoading(true, 'Speichere Kundennotizen...');
-    
-    setTimeout(() => {
-      this.customer.notes = this.temporaryNotes;
-      this.isEditingNotes = false;
-      this.loadingService.setLoading(false);
-    }, 500);
-  }
-  
-  cancelEditingNotes(): void {
-    this.isEditingNotes = false;
-    this.temporaryNotes = this.customer.notes || '';
+  openNotesEditor(): void {
+    this.editNotes.emit();
   }
   
   getAppointmentStatusText(status: string): string {
