@@ -2,24 +2,7 @@ import { Injectable, inject, NgZone } from '@angular/core';
 import { Customer } from '../models/customer.model';
 import { Observable, from, of, catchError } from 'rxjs';
 import { map, switchMap, timeout } from 'rxjs/operators';
-import { 
-  Firestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  collectionData, 
-  docData, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  DocumentReference, 
-  DocumentData, 
-  getDocs 
-} from '@angular/fire/firestore';
-import { Auth } from '@angular/fire/auth';
-
+import { Firestore, collection, doc, getDoc, collectionData, docData, addDoc, updateDoc, deleteDoc, query, where, DocumentReference, DocumentData, getDocs } from '@angular/fire/firestore';
 @Injectable({
   providedIn: 'root'
 })
@@ -27,7 +10,6 @@ export class CustomerService {
   private customersCollection = 'customers';
   firestore: Firestore = inject(Firestore);
   private ngZone = inject(NgZone);
-  private auth: Auth = inject(Auth);
   
   constructor(){}
 
@@ -56,50 +38,34 @@ export class CustomerService {
     });
   }
 
-  // Updated method with better error handling and direct document access
-  getCustomer(customerId: string): Observable<Customer | undefined> {
-    return this.ngZone.run(() => {
-      console.log('Lade Kundendaten für ID:', customerId);
-      
-      // Get the authenticated user ID for permission logging
-      const currentUserId = this.auth.currentUser?.uid;
-      if (!currentUserId) {
-        console.error('No authenticated user found');
+ // In customer.service.ts - die getCustomer-Methode anpassen
+
+ getCustomer(customerId: string): Observable<Customer | undefined> {
+  return this.ngZone.run(() => {
+    console.log('Lade Kundendaten für ID:', customerId);
+    
+    // Suche nach userId statt nach Dokument-ID
+    const customersCollection = collection(this.firestore, this.customersCollection);
+    const q = query(customersCollection, where('userId', '==', customerId));
+    
+    return from(getDocs(q)).pipe(
+      map(snapshot => {
+        if (!snapshot.empty) {
+          const doc = snapshot.docs[0];
+          console.log(`Kunde gefunden: ${doc.id}`);
+          return { ...doc.data(), customerId: doc.id } as Customer;
+        } else {
+          console.log(`Kunde mit ID ${customerId} nicht gefunden`);
+          return undefined;
+        }
+      }),
+      catchError(error => {
+        console.error(`Fehler beim Laden des Kunden ${customerId}:`, error);
         return of(undefined);
-      }
-      
-      // Direct document access instead of using a query
-      const customerDoc = doc(this.firestore, `${this.customersCollection}/${customerId}`);
-      
-      return from(getDoc(customerDoc)).pipe(
-        map(docSnapshot => {
-          if (!docSnapshot.exists()) {
-            console.log(`Kunde mit ID ${customerId} nicht gefunden`);
-            return undefined;
-          }
-          
-          const customerData = docSnapshot.data() as any;
-          console.log(`Kunde gefunden: ${customerId}`);
-          
-          // Check permissions for diagnostic purposes
-          const isOwner = customerData.userId === currentUserId;
-          const isProviderRef = customerData.providerRef === currentUserId || 
-                               customerData.createdBy === currentUserId;
-          
-          if (!isOwner && !isProviderRef) {
-            console.log(`Berechtigungsproblem: Benutzer ${currentUserId} hat keinen Zugriff auf Kunde ${customerId}`);
-            console.log(`Customer userId: ${customerData.userId}, providerRef: ${customerData.providerRef || 'nicht gesetzt'}, createdBy: ${customerData.createdBy || 'nicht gesetzt'}`);
-          }
-          
-          return { ...customerData, customerId: docSnapshot.id } as Customer;
-        }),
-        catchError(error => {
-          console.error(`Fehler beim Laden des Kunden ${customerId}:`, error);
-          return of(undefined);
-        })
-      );
-    });
-  }
+      })
+    );
+  });
+}
 
   getCustomerByUserId(userId: string): Observable<Customer | undefined> {
     return new Observable<Customer | undefined>(observer => {
@@ -213,21 +179,14 @@ export class CustomerService {
         
         const customerCollection = collection(this.firestore, this.customersCollection);
         
-        // Ensure required fields are present
+        // Make sure all fields are properly defined and not null/undefined
         const customerToSave = {
           userId: customer.userId,
           firstName: customer.firstName || '',
           lastName: customer.lastName || '',
           email: customer.email || '',
-          phone: customer.phone || '',
-          createdBy: this.auth.currentUser?.uid, // Add createdBy field for permission tracking
-          createdAt: new Date()
+          phone: customer.phone || ''
         };
-        
-        // If the customer is being created by a provider, include providerRef field
-        if (customer.providerRef || (this.auth.currentUser && customer.userId !== this.auth.currentUser.uid)) {
-          customerToSave['providerRef'] = customer.providerRef || this.auth.currentUser?.uid;
-        }
         
         // Log each field individually to verify values
         console.log('Customer fields being saved:', {
@@ -235,9 +194,7 @@ export class CustomerService {
           firstName: customerToSave.firstName,
           lastName: customerToSave.lastName,
           email: customerToSave.email,
-          phone: customerToSave.phone,
-          createdBy: customerToSave['createdBy'],
-          providerRef: customerToSave['providerRef'] || 'not set'
+          phone: customerToSave.phone
         });
         
         const docRef = await addDoc(customerCollection, customerToSave);
@@ -254,18 +211,13 @@ export class CustomerService {
     return this.ngZone.run(async () => {
       try {
         const customerDocument = doc(this.firestore, `${this.customersCollection}/${customer.customerId}`);
-        
-        // Don't overwrite certain fields that might be needed for permissions
-        const update = {
+        return updateDoc(customerDocument, {
+          userId: customer.userId,
           firstName: customer.firstName,
           lastName: customer.lastName,
           email: customer.email,
-          phone: customer.phone,
-          updatedAt: new Date(),
-          updatedBy: this.auth.currentUser?.uid
-        };
-        
-        return updateDoc(customerDocument, update);
+          phone: customer.phone
+        } as Partial<Customer>);
       } catch (error) {
         console.error('Error updating customer:', error);
         throw error;
