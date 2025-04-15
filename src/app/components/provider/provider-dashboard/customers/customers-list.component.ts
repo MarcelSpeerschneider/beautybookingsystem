@@ -12,6 +12,7 @@ import { AppointmentService } from '../../../../services/appointment.service';
 import { CustomerDetailComponent } from './customer-detail/customer-detail.component';
 import { ProviderCustomerService } from '../../../../services/provider-customer.service';
 import { CustomerNotesComponent } from './customer-notes/customer-notes.component';
+import { CustomerAddComponent } from './customer-add/customer-add.component';
 import { timeout, tap, catchError } from 'rxjs/operators';
 
 
@@ -32,7 +33,8 @@ interface CustomerViewModel extends Customer {
     CommonModule,
     FormsModule,
     CustomerDetailComponent,
-    CustomerNotesComponent
+    CustomerNotesComponent,
+    CustomerAddComponent
   ],
   templateUrl: './customers-list.component.html',
   styleUrls: ['./customers-list.component.css']
@@ -59,6 +61,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
   // UI-Steuerung
   isEditingNotes: boolean = false;
   selectedCustomerId: string | null = null;
+  showAddCustomerForm = false;
   
   private subscriptions: Subscription[] = [];
   
@@ -470,5 +473,47 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     
     return new Date(customer.lastVisit) >= threeMonthsAgo ? 'Aktiv' : 'Inaktiv';
+  }
+
+  /**
+   * Zeigt das Formular zum Hinzufügen eines Kunden an
+   */
+  showAddCustomer(): void {
+    this.showAddCustomerForm = true;
+  }
+
+  /**
+   * Versteckt das Formular zum Hinzufügen eines Kunden
+   */
+  hideAddCustomer(): void {
+    this.showAddCustomerForm = false;
+  }
+
+  /**
+   * Wird aufgerufen, wenn ein neuer Kunde erstellt wurde
+   */
+  handleCustomerCreated(customer: CustomerViewModel): void {
+    console.log('Neuer Kunde erstellt:', customer);
+    
+    // Erstelle das CustomerViewModel für die UI
+    const newCustomer: CustomerViewModel = {
+      ...customer,
+      visitCount: 0,
+      lastVisit: null,
+      totalSpent: 0,
+      tags: [],
+      notes: customer.notes || ''
+    };
+    
+    // Füge den neuen Kunden zur Liste hinzu
+    this.allCustomers = [newCustomer, ...this.allCustomers];
+    
+    // Aktualisiere die Statistik
+    this.totalCustomers = this.allCustomers.length;
+    this.newCustomersThisMonth++;
+    this.calculateStatistics();
+    
+    // Wende Filter an, um den Kunden in der Liste anzuzeigen
+    this.filterCustomers();
   }
 }

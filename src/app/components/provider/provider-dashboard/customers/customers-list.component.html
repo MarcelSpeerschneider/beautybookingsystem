@@ -1,5 +1,8 @@
 <div class="tab-content">
-  <h2 class="section-title">Kundenübersicht</h2>
+  <div class="section-header">
+    <h2 class="section-title">Kundenübersicht</h2>
+    <button class="btn btn-primary" (click)="showAddCustomer()">+ Neuer Kunde</button>
+  </div>
   
   <!-- Statistik-Karten -->
   <div class="customer-stats">
@@ -114,4 +117,10 @@
     (save)="saveCustomerNotes(selectedCustomer.customerId, $event)"
     (cancel)="cancelNotes()">
   </app-customer-notes>
+  <app-customer-add
+  *ngIf="showAddCustomerForm && provider"
+  [provider]="provider"
+  (close)="hideAddCustomer()"
+  (customerCreated)="handleCustomerCreated($event)">
+</app-customer-add>
 </div>
