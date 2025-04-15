@@ -143,9 +143,10 @@ export class AppointmentService {
                 try {
                     console.log("AppointmentService: Getting appointments for user ID (customer):", userId);
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    // IMPORTANT: Use 'customerId' here for customers
+                    
+                    // IMPORTANT: Immer innerhalb von ngZone.run() arbeiten
                     const q = query(appointmentsCollection, where('customerId', '==', userId));
-                    collectionData(q, { idField: 'appointmentId' }).pipe(
+                    const subscription = collectionData(q, { idField: 'appointmentId' }).pipe(
                         map(data => {
                             console.log("AppointmentService: Raw results:", data);
                             // Datumswerte konvertieren
@@ -156,10 +157,13 @@ export class AppointmentService {
                             return of([]);
                         })
                     ).subscribe({
-                        next: appointments => observer.next(appointments),
-                        error: err => observer.error(err),
-                        complete: () => observer.complete()
+                        next: appointments => this.ngZone.run(() => observer.next(appointments)),
+                        error: err => this.ngZone.run(() => observer.error(err)),
+                        complete: () => this.ngZone.run(() => observer.complete())
                     });
+                    
+                    // Aufräumen beim Abbestellen
+                    return () => subscription.unsubscribe();
                 } catch (error) {
                     console.error('Error in getAppointmentsByUser:', error);
                     observer.next([]);

@@ -15,32 +15,34 @@ export class ServiceService {
   constructor() { }
 
   getServices(): Observable<Service[]> {
-    // Zone-spezifischer Ansatz: Verwenden Sie ngZone zum Umschließen der Firebase-Aufrufe
     return new Observable<Service[]>(observer => {
-      this.ngZone.run(() => {
-        try {
-          const collectionRef = collection(this.firestore, this.collectionName);
-          collectionData(collectionRef, { idField: 'serviceId' })
-            .pipe(
-              map(data => data as Service[]),
-              catchError(error => {
-                console.error('Error fetching services:', error);
-                return of([]);
-              })
-            )
-            .subscribe({
-              next: services => observer.next(services),
-              error: err => observer.error(err),
-              complete: () => observer.complete()
-            });
-        } catch (error) {
-          console.error('Error in getServices:', error);
-          observer.next([]);
-          observer.complete();
-        }
-      });
+        this.ngZone.run(() => {
+            try {
+                const collectionRef = collection(this.firestore, this.collectionName);
+                const subscription = collectionData(collectionRef, { idField: 'serviceId' })
+                    .pipe(
+                        map(data => data as Service[]),
+                        catchError(error => {
+                            console.error('Error fetching services:', error);
+                            return of([]);
+                        })
+                    )
+                    .subscribe({
+                        next: services => this.ngZone.run(() => observer.next(services)),
+                        error: err => this.ngZone.run(() => observer.error(err)),
+                        complete: () => this.ngZone.run(() => observer.complete())
+                    });
+                
+                // Aufräumen beim Abbestellen    
+                return () => subscription.unsubscribe();
+            } catch (error) {
+                console.error('Error in getServices:', error);
+                observer.next([]);
+                observer.complete();
+            }
+        });
     });
-  }
+}
 
   getService(serviceId: string): Observable<Service> {
     return new Observable<Service>(observer => {

@@ -3,6 +3,7 @@ import { Customer } from '../models/customer.model';
 import { Observable, from, of, catchError } from 'rxjs';
 import { map, switchMap, timeout } from 'rxjs/operators';
 import { Firestore, collection, doc, getDoc, collectionData, docData, addDoc, updateDoc, deleteDoc, query, where, DocumentReference, DocumentData, getDocs } from '@angular/fire/firestore';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -67,45 +68,50 @@ export class CustomerService {
   });
 }
 
-  getCustomerByUserId(userId: string): Observable<Customer | undefined> {
-    return new Observable<Customer | undefined>(observer => {
-      this.ngZone.run(() => {
-        try {
-          console.log('Fetching customer for userId:', userId);
-          const customerCollection = collection(this.firestore, this.customersCollection);
-          const q = query(customerCollection, where('userId', '==', userId));
-          
-          collectionData(q, { idField: 'customerId' }).pipe(
-            map(data => {
-              const customers = data as Customer[];
-              // If multiple customers found, log a warning
-              if (customers.length > 1) {
-                console.warn(`Multiple customers found for userId ${userId}, using the first one.`);
-              }
-              const customer = customers.length > 0 ? customers[0] : undefined;
-              console.log('Customer query result:', customer ? 'Found' : 'Not found');
-              return customer;
-            }),
-            catchError(error => {
-              console.error(`Error fetching customer for user ID ${userId}:`, error);
-              if (error.code === 'permission-denied') {
-                console.warn('Permission denied. Check Firestore rules.');
-              }
-              return of(undefined);
-            })
-          ).subscribe({
-            next: customer => observer.next(customer),
-            error: err => observer.error(err),
-            complete: () => observer.complete()
-          });
-        } catch (error) {
-          console.error('Error in getCustomerByUserId:', error);
-          observer.next(undefined);
-          observer.complete();
-        }
-      });
+getCustomerByUserId(userId: string): Observable<Customer | undefined> {
+  return new Observable<Customer | undefined>(observer => {
+    this.ngZone.run(() => {
+      try {
+        console.log('Fetching customer for userId:', userId);
+        
+        // Erstelle die Abfrage innerhalb von ngZone.run
+        const customerCollection = collection(this.firestore, this.customersCollection);
+        const q = query(customerCollection, where('userId', '==', userId));
+        
+        // Starte das Abhören innerhalb von ngZone
+        const subscription = collectionData(q, { idField: 'customerId' }).pipe(
+          map(data => {
+            const customers = data as Customer[];
+            if (customers.length > 1) {
+              console.warn(`Multiple customers found for userId ${userId}, using the first one.`);
+            }
+            const customer = customers.length > 0 ? customers[0] : undefined;
+            console.log('Customer query result:', customer ? 'Found' : 'Not found');
+            return customer;
+          }),
+          catchError(error => {
+            console.error(`Error fetching customer for user ID ${userId}:`, error);
+            if (error.code === 'permission-denied') {
+              console.warn('Permission denied. Check Firestore rules.');
+            }
+            return of(undefined);
+          })
+        ).subscribe({
+          next: customer => this.ngZone.run(() => observer.next(customer)),
+          error: err => this.ngZone.run(() => observer.error(err)),
+          complete: () => this.ngZone.run(() => observer.complete())
+        });
+        
+        // Aufräumen beim Abbestellen
+        return () => subscription.unsubscribe();
+      } catch (error) {
+        console.error('Error in getCustomerByUserId:', error);
+        observer.next(undefined);
+        observer.complete();
+      }
     });
-  }
+  });
+}
 
   getCustomersBySubscriptionStatus(subscriptionStatus: string): Observable<Customer[]> {
     return new Observable<Customer[]>(observer => {

@@ -18,6 +18,44 @@ export class ProviderCustomerService {
 
   constructor() { }
 
+  // Verbesserte Methode zum Abrufen der Kundenbeziehungen eines Providers
+  getCustomerRelationsByProvider(providerId: string): Observable<ProviderCustomerRelation[]> {
+    return new Observable<ProviderCustomerRelation[]>(observer => {
+      this.ngZone.run(() => {
+        try {
+          console.log('Lade Kundenbeziehungen für Provider:', providerId);
+          
+          const relationsCollection = collection(this.firestore, this.collectionName);
+          const q = query(relationsCollection, where('providerId', '==', providerId));
+          
+          // Verwende collectionData anstelle von getDocs für ein reaktives Observable
+          const subscription = collectionData(q, { idField: 'relationId' }).pipe(
+            map(relations => {
+              console.log(`${relations.length} Kundenbeziehungen gefunden`);
+              return relations as ProviderCustomerRelation[];
+            }),
+            catchError(error => {
+              console.error('Fehler beim Laden der Kundenbeziehungen:', error);
+              return of([]);
+            })
+          ).subscribe({
+            next: relations => this.ngZone.run(() => observer.next(relations)),
+            error: err => this.ngZone.run(() => observer.error(err)),
+            complete: () => this.ngZone.run(() => observer.complete())
+          });
+          
+          // Aufräumen beim Abbestellen
+          return () => subscription.unsubscribe();
+          
+        } catch (error) {
+          console.error('Fehler in getCustomerRelationsByProvider:', error);
+          observer.next([]);
+          observer.complete();
+        }
+      });
+    });
+  }
+
   // Beziehung zwischen Provider und Kunde abrufen
   getRelation(providerId: string, customerId: string): Observable<ProviderCustomerRelation | undefined> {
     return new Observable<ProviderCustomerRelation | undefined>(observer => {
@@ -30,17 +68,21 @@ export class ProviderCustomerService {
             where('customerId', '==', customerId)
           );
           
-          collectionData(q, { idField: 'relationId' }).pipe(
+          const subscription = collectionData(q, { idField: 'relationId' }).pipe(
             map(relations => relations.length > 0 ? relations[0] as ProviderCustomerRelation : undefined),
             catchError(error => {
               console.error('Error fetching provider-customer relation:', error);
               return of(undefined);
             })
           ).subscribe({
-            next: relation => observer.next(relation),
-            error: err => observer.error(err),
-            complete: () => observer.complete()
+            next: relation => this.ngZone.run(() => observer.next(relation)),
+            error: err => this.ngZone.run(() => observer.error(err)),
+            complete: () => this.ngZone.run(() => observer.complete())
           });
+          
+          // Aufräumen beim Abbestellen
+          return () => subscription.unsubscribe();
+          
         } catch (error) {
           console.error('Error in getRelation:', error);
           observer.next(undefined);
@@ -50,32 +92,13 @@ export class ProviderCustomerService {
     });
   }
   
-  // Alle Kundenbeziehungen eines Providers abrufen
-  getCustomerRelationsByProvider(providerId: string): Observable<ProviderCustomerRelation[]> {
-    // Statt "new Observable" verwenden wir die Zone-konforme Methode
-    return from(this.ngZone.run(() => {
-      console.log('Lade Kundenbeziehungen für Provider:', providerId);
-      
-      const relationsCollection = collection(this.firestore, this.collectionName);
-      const q = query(relationsCollection, where('providerId', '==', providerId));
-      
-      // Verwende from() um Promise in Observable zu wandeln
-      return getDocs(q).then((snapshot: QuerySnapshot<DocumentData>) => {
-        const relations = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
-          return { ...doc.data(), relationId: doc.id } as ProviderCustomerRelation;
-        });
-        console.log(`${relations.length} Kundenbeziehungen gefunden`);
-        return relations;
-      });
-    }));
-  }
-  
   // Notizen zu einem Kunden für einen Provider aktualisieren
   updateCustomerNotes(providerId: string, customerId: string, notes: string): Promise<void> {
     return this.ngZone.run(async () => {
       try {
         // Bestehende Beziehung prüfen
-        const relation = await firstValueFrom(this.getRelation(providerId, customerId));
+        const relationObservable = this.getRelation(providerId, customerId);
+        const relation = await firstValueFrom(relationObservable);
         
         if (relation) {
           // Bestehende Beziehung aktualisieren
@@ -116,7 +139,8 @@ export class ProviderCustomerService {
         console.log(`Trying to update relation for provider: ${providerId}, customer: ${customerId}`);
         
         // Bestehende Beziehung prüfen
-        const relation = await firstValueFrom(this.getRelation(providerId, customerId));
+        const relationObservable = this.getRelation(providerId, customerId);
+        const relation = await firstValueFrom(relationObservable);
         
         if (relation) {
           console.log('Existing relation found, updating...', relation);
@@ -154,7 +178,6 @@ export class ProviderCustomerService {
           console.log('Creating relation with data:', newRelation);
           
           // Dokument mit setDoc und der generierten ID erstellen
-          // Dies erfordert nur eine einzelne Schreiboperation
           return setDoc(newDocRef, newRelation);
         }
       } catch (error) {
@@ -165,7 +188,7 @@ export class ProviderCustomerService {
   }
 }
 
-// Hilfsfunktion für firstValueFrom (da RxJS 6 noch kein firstValueFrom hat)
+// Hilfsfunktion für firstValueFrom (da rxjs 6 noch kein firstValueFrom hat)
 export function firstValueFrom<T>(source: Observable<T>): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const subscription = source.pipe(
