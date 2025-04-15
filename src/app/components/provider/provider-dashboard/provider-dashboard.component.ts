@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule, RouterOutlet } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';  // RouterOutlet entfernt
 import { Subscription } from 'rxjs';
 import { AuthenticationService } from '../../../services/authentication.service';
 import { ProviderService } from '../../../services/provider.service';
@@ -14,7 +14,7 @@ import { CustomersListComponent } from './customers/customers-list.component';
 @Component({
   selector: 'app-provider-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet, DashboardOverviewComponent, AppointmentListComponent, ServiceListComponent, CustomersListComponent ],
+  imports: [CommonModule, RouterModule, DashboardOverviewComponent, AppointmentListComponent, ServiceListComponent, CustomersListComponent ],
   templateUrl: './provider-dashboard.component.html',
   styleUrls: ['./provider-dashboard.component.css']
 })

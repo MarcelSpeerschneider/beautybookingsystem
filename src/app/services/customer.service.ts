@@ -157,7 +157,19 @@ export class CustomerService {
       try {
         console.log('Creating new customer:', customer);
         const customerCollection = collection(this.firestore, this.customersCollection);
-        const docRef = await addDoc(customerCollection, customer);
+        
+        // Explicitly set all fields to ensure they are included
+        const customerToSave = {
+          userId: customer.userId,
+          firstName: customer.firstName || '',
+          lastName: customer.lastName || '',
+          email: customer.email || '',
+          phone: customer.phone || ''
+        };
+        
+        console.log('Customer data being saved:', customerToSave);
+        
+        const docRef = await addDoc(customerCollection, customerToSave);
         console.log('Customer created successfully with ID:', docRef.id);
         return docRef;
       } catch (error) {

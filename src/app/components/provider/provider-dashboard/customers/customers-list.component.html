@@ -68,8 +68,7 @@
           <td>{{ customer.phone || '-' }}</td>
           <td>{{ customer.lastVisit ? formatDate(customer.lastVisit) : 'Noch kein Besuch' }}</td>
           <td>{{ customer.visitCount || 0 }}</td>
-          <td class="notes-preview">{{ customer.notes?.substring(0, 50) }}{{ customer.notes?.length > 50 ? '...' : '' }}</td>
-          <td>
+          <td class="notes-preview">{{ customer.notes?.substring(0, 50) }}{{ (customer.notes && customer.notes.length > 50) ? '...' : '' }}</td>          <td>
             <span class="status-badge" [ngClass]="getStatusText(customer).toLowerCase()">
               {{ getStatusText(customer) }}
             </span>

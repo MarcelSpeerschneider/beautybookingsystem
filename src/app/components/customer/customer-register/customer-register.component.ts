@@ -3,8 +3,6 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router } from '@angular/router';
 import { AuthenticationService } from '../../../services/authentication.service';
 
-
-
 export interface UserWithData {
   firstName: string;
   lastName: string;
@@ -43,27 +41,30 @@ export class CustomerRegisterComponent implements OnInit {
   onSubmit(): void {
     if (this.registerForm.valid) {
       const { firstName, lastName, phone, email, password } = this.registerForm.value;
-        if(password === this.registerForm.get('passwordAgain')?.value) {
-          this.authService.register({ firstName, lastName, phone, email, password })
-            .then(() => {
-              this.router.navigate(['/customer-booking']); // Corrected from /costumer-booking
-            })
-            .catch((error) => {
-              console.error('Registration failed: ', error);   
-              if(error.code === 'auth/email-already-in-use'){
-                alert('The email address is already in use');
-              } else {
-                alert('Registration failed: ' + error.message);
-              }
-            });
-        } else {
-          alert("The passwords are not the same")
-        }
+        
+      // Log the data to see what's being sent
+      console.log('Form data being sent:', { firstName, lastName, phone, email });
+      
+      if(password === this.registerForm.get('passwordAgain')?.value) {
+        this.authService.register({ firstName, lastName, phone, email, password })
+          .then(() => {
+            this.router.navigate(['/customer-booking']);
+          })
+          .catch((error) => {
+            console.error('Registration failed: ', error);   
+            if(error.code === 'auth/email-already-in-use'){
+              alert('The email address is already in use');
+            } else {
+              alert('Registration failed: ' + error.message);
+            }
+          });
+      } else {
+        alert("The passwords are not the same")
+      }
     }
   }
 
   navigateToLogin(): void {
     this.router.navigate(['/login']);
   }
-
 }

@@ -205,11 +205,11 @@ export class CustomersListComponent implements OnInit, OnDestroy {
               })
             )
           )
-        ).pipe(
-          // Nicht-existierende Kunden herausfiltern
-          map(customers => customers.filter(c => c !== null) as CustomerViewModel[])
         );
-      })
+      }),
+      switchMap(observableArray => observableArray),
+      // Nicht-existierende Kunden herausfiltern
+      map(customers => customers.filter(c => c !== null) as CustomerViewModel[])
     );
   }
   
