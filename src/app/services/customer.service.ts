@@ -1,8 +1,8 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Customer } from '../models/customer.model';
 import { Observable, from, of, catchError } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
-import { Firestore, collection, doc, collectionData, docData, addDoc, updateDoc, deleteDoc, query, where, DocumentReference, DocumentData, getDocs } from '@angular/fire/firestore';
+import { map, switchMap, timeout } from 'rxjs/operators';
+import { Firestore, collection, doc, getDoc, collectionData, docData, addDoc, updateDoc, deleteDoc, query, where, DocumentReference, DocumentData, getDocs } from '@angular/fire/firestore';
 @Injectable({
   providedIn: 'root'
 })
@@ -38,30 +38,34 @@ export class CustomerService {
     });
   }
 
-  getCustomer(customerId: string): Observable<Customer | undefined> {
-    return new Observable<Customer | undefined>(observer => {
-      this.ngZone.run(() => {
-        try {
-          const customerDocument = doc(this.firestore, `${this.customersCollection}/${customerId}`);
-          docData(customerDocument, { idField: 'customerId' }).pipe(
-            map(data => data as Customer),
-            catchError(error => {
-              console.error(`Error fetching customer with ID ${customerId}:`, error);
-              return of(undefined);
-            })
-          ).subscribe({
-            next: customer => observer.next(customer),
-            error: err => observer.error(err),
-            complete: () => observer.complete()
-          });
-        } catch (error) {
-          console.error('Error in getCustomer:', error);
-          observer.next(undefined);
-          observer.complete();
+ // In customer.service.ts - die getCustomer-Methode anpassen
+
+ getCustomer(customerId: string): Observable<Customer | undefined> {
+  return this.ngZone.run(() => {
+    console.log('Lade Kundendaten für ID:', customerId);
+    
+    // Suche nach userId statt nach Dokument-ID
+    const customersCollection = collection(this.firestore, this.customersCollection);
+    const q = query(customersCollection, where('userId', '==', customerId));
+    
+    return from(getDocs(q)).pipe(
+      map(snapshot => {
+        if (!snapshot.empty) {
+          const doc = snapshot.docs[0];
+          console.log(`Kunde gefunden: ${doc.id}`);
+          return { ...doc.data(), customerId: doc.id } as Customer;
+        } else {
+          console.log(`Kunde mit ID ${customerId} nicht gefunden`);
+          return undefined;
         }
-      });
-    });
-  }
+      }),
+      catchError(error => {
+        console.error(`Fehler beim Laden des Kunden ${customerId}:`, error);
+        return of(undefined);
+      })
+    );
+  });
+}
 
   getCustomerByUserId(userId: string): Observable<Customer | undefined> {
     return new Observable<Customer | undefined>(observer => {

@@ -4,7 +4,7 @@ import { map, switchMap, take, catchError } from 'rxjs/operators';
 import { 
   Firestore, collection, doc, collectionData, docData, 
   addDoc, updateDoc, deleteDoc, query, where, DocumentReference, 
-  setDoc
+  setDoc, getDoc, QuerySnapshot, DocumentData, QueryDocumentSnapshot, getDocs,
 } from '@angular/fire/firestore';
 import { ProviderCustomerRelation } from '../models/provider-customer-relation.model';
 
@@ -52,30 +52,22 @@ export class ProviderCustomerService {
   
   // Alle Kundenbeziehungen eines Providers abrufen
   getCustomerRelationsByProvider(providerId: string): Observable<ProviderCustomerRelation[]> {
-    return new Observable<ProviderCustomerRelation[]>(observer => {
-      this.ngZone.run(() => {
-        try {
-          const relationsCollection = collection(this.firestore, this.collectionName);
-          const q = query(relationsCollection, where('providerId', '==', providerId));
-          
-          collectionData(q, { idField: 'relationId' }).pipe(
-            map(data => data as ProviderCustomerRelation[]),
-            catchError(error => {
-              console.error(`Error fetching relations for provider ${providerId}:`, error);
-              return of([]);
-            })
-          ).subscribe({
-            next: relations => observer.next(relations),
-            error: err => observer.error(err),
-            complete: () => observer.complete()
-          });
-        } catch (error) {
-          console.error('Error in getCustomerRelationsByProvider:', error);
-          observer.next([]);
-          observer.complete();
-        }
+    // Statt "new Observable" verwenden wir die Zone-konforme Methode
+    return from(this.ngZone.run(() => {
+      console.log('Lade Kundenbeziehungen für Provider:', providerId);
+      
+      const relationsCollection = collection(this.firestore, this.collectionName);
+      const q = query(relationsCollection, where('providerId', '==', providerId));
+      
+      // Verwende from() um Promise in Observable zu wandeln
+      return getDocs(q).then((snapshot: QuerySnapshot<DocumentData>) => {
+        const relations = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
+          return { ...doc.data(), relationId: doc.id } as ProviderCustomerRelation;
+        });
+        console.log(`${relations.length} Kundenbeziehungen gefunden`);
+        return relations;
       });
-    });
+    }));
   }
   
   // Notizen zu einem Kunden für einen Provider aktualisieren

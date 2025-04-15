@@ -12,6 +12,8 @@ import { AppointmentService } from '../../../../services/appointment.service';
 import { CustomerDetailComponent } from './customer-detail/customer-detail.component';
 import { ProviderCustomerService } from '../../../../services/provider-customer.service';
 import { CustomerNotesComponent } from './customer-notes/customer-notes.component';
+import { timeout, tap, catchError } from 'rxjs/operators';
+
 
 // Erweitertes Customer-Interface für lokale Verwendung
 interface CustomerViewModel extends Customer {
@@ -78,31 +80,57 @@ export class CustomersListComponent implements OnInit, OnDestroy {
   loadCustomersWithRelations(): void {
     if (!this.provider) {
       console.error('Provider ist null!');
+      this.loadingService.setLoading(false);
       return;
     }
     
+    console.log('Starte Laden der Kundenbeziehungen für Provider:', this.provider.userId);
     this.loadingService.setLoading(true, 'Lade Kundendaten...');
+    
+    // Sicherheits-Timeout für den Loading-Indikator
+    const loadingTimeout = setTimeout(() => {
+      console.log('Timeout beim Laden der Kundendaten - breche ab');
+      this.loadingService.setLoading(false);
+      this.allCustomers = [];
+      this.filteredCustomers = [];
+      this.calculateStatistics();
+    }, 10000); // 10 Sekunden Timeout
     
     // 1. Lade alle Kundenbeziehungen dieses Providers
     const relationsSub = this.providerCustomerService
       .getCustomerRelationsByProvider(this.provider.userId)
       .pipe(
+        // Timeout für die erste Anfrage
+        timeout(5000),
+        tap(relations => console.log('Gefundene Kundenbeziehungen:', relations.length)),
         // 2. Für jede Beziehung die vollständigen Kundendaten laden
         switchMap(relations => {
           if (relations.length === 0) {
-            // Keine Kundenbeziehungen gefunden, versuche über Termine
-            return this.loadCustomersFromAppointments();
+            console.log('Keine Kundenbeziehungen gefunden, versuche über Termine');
+            return this.loadCustomersFromAppointments().pipe(
+              // Fallback für keine Termine
+              catchError(err => {
+                console.error('Fehler beim Laden der Kunden über Termine:', err);
+                return of([]);
+              })
+            );
           }
           
           // Kunden-IDs extrahieren
           const customerIds = relations.map(rel => rel.customerId);
+          console.log('Lade Kundendaten für IDs:', customerIds);
           
-          // Für jeden Kunden vollständige Daten laden und mit Beziehungsdaten kombinieren
+          // Für jeden Kunden vollständige Daten laden mit Timeout
           return forkJoin(
             customerIds.map(id => 
               this.customerService.getCustomer(id).pipe(
+                timeout(10000),
+                tap(customer => console.log(`Kunde ${id} gefunden:`, !!customer)),
                 map(customer => {
-                  if (!customer) return null;
+                  if (!customer) {
+                    console.log(`Kein Kundendatensatz für ID ${id} gefunden`);
+                    return null;
+                  }
                   
                   // Finde zugehörige Beziehungsdaten
                   const relation = relations.find(rel => rel.customerId === id);
@@ -117,6 +145,10 @@ export class CustomersListComponent implements OnInit, OnDestroy {
                     totalSpent: relation?.totalSpent || 0,
                     tags: relation?.tags || []
                   } as CustomerViewModel;
+                }),
+                catchError(err => {
+                  console.error(`Fehler beim Laden des Kunden ${id}:`, err);
+                  return of(null);
                 })
               )
             )
@@ -124,10 +156,17 @@ export class CustomersListComponent implements OnInit, OnDestroy {
             // Nicht-existierende Kunden herausfiltern
             map(customers => customers.filter(c => c !== null) as CustomerViewModel[])
           );
+        }),
+        // Globale Fehlerbehandlung
+        catchError(error => {
+          console.error('Fehler in der Kundenladekette:', error);
+          return of([]);
         })
       )
       .subscribe({
         next: (customers) => {
+          clearTimeout(loadingTimeout); // Timeout aufheben
+          console.log('Kunden erfolgreich geladen:', customers.length);
           this.allCustomers = customers;
           this.totalCustomers = customers.length;
           
@@ -140,7 +179,16 @@ export class CustomersListComponent implements OnInit, OnDestroy {
           this.loadingService.setLoading(false);
         },
         error: (error) => {
+          clearTimeout(loadingTimeout); // Timeout aufheben
           console.error('Fehler beim Laden der Kunden:', error);
+          this.loadingService.setLoading(false);
+          this.allCustomers = [];
+          this.filteredCustomers = [];
+          this.calculateStatistics();
+        },
+        complete: () => {
+          clearTimeout(loadingTimeout); // Timeout aufheben
+          console.log('Kundenladen abgeschlossen');
           this.loadingService.setLoading(false);
         }
       });
