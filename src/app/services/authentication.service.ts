@@ -307,9 +307,9 @@ export class AuthenticationService {
         
         console.log("Creating customer data:", customerData);
         
-        // Save customer to Firestore
+        // Save customer to Firestore using the user's UID as the document ID
         try {
-          const customerId = await this.customerService.createCustomer(customerData);
+          const customerId = await this.customerService.createCustomer(customerData, response.user.uid);
           console.log("Customer data created in Firestore successfully with ID:", customerId);
           
           // Create the customer with the ID returned from Firestore

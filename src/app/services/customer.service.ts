@@ -23,7 +23,7 @@ import {
   providedIn: 'root'
 })
 export class CustomerService {
-  private customersCollection = 'customers';
+  private collectionName = 'customers';
   firestore: Firestore = inject(Firestore);
   private ngZone = inject(NgZone);
   
@@ -33,7 +33,7 @@ export class CustomerService {
     return new Observable<Customer[]>(observer => {
       this.ngZone.run(() => {
         try {
-          const customerCollection = collection(this.firestore, this.customersCollection);
+          const customerCollection = collection(this.firestore, this.collectionName);
           collectionData(customerCollection, { idField: 'id' }).pipe(
             map(data => data as Customer[]),
             catchError(error => {
@@ -60,7 +60,7 @@ export class CustomerService {
         try {
           console.log('Lade Kundendaten für ID:', customerId);
           
-          const customerDocument = doc(this.firestore, this.customersCollection, customerId);
+          const customerDocument = doc(this.firestore, this.collectionName, customerId);
           
           getDoc(customerDocument)
             .then(docSnap => {
@@ -89,12 +89,11 @@ export class CustomerService {
     });
   }
 
-  // Neue Methode, die besser für die Suche nach Email/anderen Kriterien geeignet ist
   getCustomerByEmail(email: string): Observable<Customer | undefined> {
     return new Observable<Customer | undefined>(observer => {
       this.ngZone.run(() => {
         try {
-          const customerCollection = collection(this.firestore, this.customersCollection);
+          const customerCollection = collection(this.firestore, this.collectionName);
           const q = query(customerCollection, where('email', '==', email));
           
           getDocs(q)
@@ -122,18 +121,18 @@ export class CustomerService {
     });
   }
 
-   /**
-   * Erstellt einen neuen Kunden mit der angegebenen userId als document ID
-   * @param customer Kundendaten ohne ID
-   * @param userId Die Auth UID, die als document ID verwendet werden soll
-   * @returns Die ID des erstellten Kunden (identisch mit userId)
+  /**
+   * Creates a new customer
+   * @param customer Customer data without ID
+   * @param userId Optional user ID to use as document ID
+   * @returns The ID of the created customer
    */
-   async createCustomer(customer: Omit<Customer, 'id'>, userId: string): Promise<string> {
+  async createCustomer(customer: Omit<Customer, 'id'>, userId?: string): Promise<string> {
     return this.ngZone.run(async () => {
       try {
-        console.log('Creating new customer with specific ID:', userId);
+        console.log('Creating new customer' + (userId ? ` with ID ${userId}` : ''));
         
-        // Prüfe, ob ein Kunde mit dieser E-Mail bereits existiert
+        // Check if a customer with this email already exists
         if (customer.email) {
           const existingCustomerQuery = query(
             collection(this.firestore, this.collectionName), 
@@ -147,27 +146,35 @@ export class CustomerService {
           }
         }
         
-        // Prüfe, ob der Customer mit dieser ID bereits existiert
-        const existingCustomerDoc = doc(this.firestore, this.collectionName, userId);
-        const existingCustomerSnapshot = await getDoc(existingCustomerDoc);
-        
-        if (existingCustomerSnapshot.exists()) {
-          console.warn(`Customer with ID ${userId} already exists`);
-          return userId;
-        }
-        
-        // Bereite die Kundendaten vor
+        // Prepare customer data with timestamps
         const customerToSave = {
           ...customer,
           createdAt: new Date(),
           updatedAt: new Date()
         };
         
-        // Document mit spezifischer ID erstellen (userId = document ID)
-        await setDoc(existingCustomerDoc, customerToSave);
-        console.log('Customer created successfully with ID:', userId);
-        
-        return userId;
+        // If userId is provided, use it as the document ID
+        if (userId) {
+          // Check if customer with this ID already exists
+          const customerDoc = doc(this.firestore, this.collectionName, userId);
+          const customerSnapshot = await getDoc(customerDoc);
+          
+          if (customerSnapshot.exists()) {
+            console.log(`Customer with ID ${userId} already exists`);
+            return userId;
+          }
+          
+          // Use explicit document ID (user's Auth UID)
+          await setDoc(customerDoc, customerToSave);
+          console.log(`Customer created with specific ID: ${userId}`);
+          return userId;
+        } else {
+          // Create document with auto-generated ID
+          const customersCollection = collection(this.firestore, this.collectionName);
+          const docRef = await addDoc(customersCollection, customerToSave);
+          console.log('Customer created with auto-generated ID:', docRef.id);
+          return docRef.id;
+        }
       } catch (error) {
         console.error('Error creating customer:', error);
         throw error;
@@ -179,9 +186,9 @@ export class CustomerService {
     return this.ngZone.run(async () => {
       try {
         const { id, ...customerData } = customer;
-        const customerDocument = doc(this.firestore, this.customersCollection, id);
+        const customerDocument = doc(this.firestore, this.collectionName, id);
         
-        // Aktualisiere das updatedAt-Feld
+        // Update the updatedAt field
         const updatedCustomer = {
           ...customerData,
           updatedAt: new Date()
@@ -198,7 +205,7 @@ export class CustomerService {
   deleteCustomer(customerId: string): Promise<void> {
     return this.ngZone.run(async () => {
       try {
-        const customerDocument = doc(this.firestore, this.customersCollection, customerId);
+        const customerDocument = doc(this.firestore, this.collectionName, customerId);
         return deleteDoc(customerDocument);
       } catch (error) {
         console.error('Error deleting customer:', error);
