@@ -8,6 +8,9 @@ import { Provider } from '../../../../models/provider.model';
 import { Appointment } from '../../../../models/appointment.model';
 import { AppointmentDetailComponent } from './appointment-detail/appointment-detail.component';
 
+// Define a type that includes the document ID with the Appointment model
+type AppointmentWithId = Appointment & { id: string };
+
 @Component({
   selector: 'app-appointment-list',
   standalone: true,
@@ -22,14 +25,14 @@ import { AppointmentDetailComponent } from './appointment-detail/appointment-det
 export class AppointmentListComponent implements OnInit, OnDestroy {
   @Input() provider: Provider & { providerId: string } | null = null;
 
-  // Alle Termine
-  allAppointments: Appointment[] = [];
-  // Gefilterte Termine für die Tabelle
-  filteredAppointments: Appointment[] = [];
-  // Ausgewählter Termin für Detailansicht
-  selectedAppointment: Appointment | null = null;
+  // All appointments with their IDs
+  allAppointments: AppointmentWithId[] = [];
+  // Filtered appointments for the table
+  filteredAppointments: AppointmentWithId[] = [];
+  // Selected appointment for detail view
+  selectedAppointment: AppointmentWithId | null = null;
 
-  // Filter- und Sortierungsvariablen
+  // Filter and sorting variables
   statusFilter: string = 'all';
   dateFilter: string = 'all';
   searchQuery: string = '';
@@ -60,17 +63,18 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
     this.loadingService.setLoading(true, 'Lade Termine...');
     console.log('Provider-ID für loadAllAppointments:', this.provider.providerId);
   
-    // Verwende die korrekte Methode für Provider-Termine
+    // Use the correct method for provider appointments
     const appointmentsSub = this.appointmentService
       .getAppointmentsByProvider(this.provider.providerId)
       .subscribe({
         next: (appointments) => {
           console.log('Alle geladenen Termine:', appointments);
-          this.allAppointments = appointments;
+          // The appointments from the service already have IDs attached
+          this.allAppointments = appointments as AppointmentWithId[];
           this.filterAppointments();
           this.loadingService.setLoading(false);
           
-          // Debug-Ausgabe, falls keine Termine gefunden wurden
+          // Debug output if no appointments were found
           if (this.allAppointments.length === 0) {
             console.warn('Keine Termine für providerId', this.provider?.providerId, 'gefunden. Bitte prüfe, ob Termine in der Datenbank vorhanden sind.');
           }
@@ -85,18 +89,18 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
     this.subscriptions.push(appointmentsSub);
   }
 
-  // Filtert die Termine basierend auf den aktuellen Filtereinstellungen
+  // Filters appointments based on current filter settings
   filterAppointments(): void {
     if (!this.allAppointments) return;
   
     let filtered = [...this.allAppointments];
   
-    // Statusfilter anwenden
+    // Apply status filter
     if (this.statusFilter !== 'all') {
       filtered = filtered.filter(a => a.status === this.statusFilter);
     }
   
-    // Datumsfilter anwenden
+    // Apply date filter
     if (this.dateFilter !== 'all') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -129,7 +133,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
       });
     }
   
-    // Suchfilter anwenden
+    // Apply search filter
     if (this.searchQuery.trim() !== '') {
       const query = this.searchQuery.toLowerCase().trim();
       filtered = filtered.filter(a =>
@@ -138,14 +142,14 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
       );
     }
   
-    // Sortierung anwenden
+    // Apply sorting
     this.sortAppointmentsArray(filtered);
   
     this.filteredAppointments = filtered;
   }
   
-  // Private Methode zur Sortierung der Termine
-  private sortAppointmentsArray(appointments: Appointment[]): void {
+  // Private method for sorting appointments
+  private sortAppointmentsArray(appointments: AppointmentWithId[]): void {
     appointments.sort((a, b) => {
       let comparison = 0;
   
@@ -175,13 +179,13 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
     });
   }
   
-  // Sortierung umschalten
+  // Toggle sorting
   sortAppointments(field: string): void {
     if (this.sortField === field) {
-      // Wenn das gleiche Feld angeklickt wird, Sortierrichtung umschalten
+      // If the same field is clicked, toggle the sort direction
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-      // Neues Feld, standardmäßig aufsteigend sortieren
+      // New field, sort ascending by default
       this.sortField = field;
       this.sortDirection = 'asc';
     }
@@ -189,7 +193,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
     this.filterAppointments();
   }
   
-  // Filter zurücksetzen
+  // Reset filters
   resetFilters(): void {
     this.statusFilter = 'all';
     this.dateFilter = 'all';
@@ -197,23 +201,23 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
     this.filterAppointments();
   }
   
-  // Suche löschen
+  // Clear search
   clearSearch(): void {
     this.searchQuery = '';
     this.filterAppointments();
   }
   
-  // Termin-Details anzeigen
-  viewAppointmentDetails(appointment: Appointment): void {
+  // View appointment details
+  viewAppointmentDetails(appointment: AppointmentWithId): void {
     this.selectedAppointment = appointment;
   }
   
-  // Detailansicht schließen
+  // Close detail view
   closeAppointmentDetails(): void {
     this.selectedAppointment = null;
   }
 
-  // Format-Hilfsfunktionen
+  // Formatting helper functions
   formatTime(date: any): string {
     try {
       const validDate = date instanceof Date ? date : new Date(date);
@@ -286,7 +290,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Terminaktionen
+  // Appointment actions
   confirmAppointment(appointmentId: string): void {
     this.loadingService.setLoading(true, 'Bestätige Termin...');
     this.appointmentService.confirmAppointment(appointmentId)
@@ -296,7 +300,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
           alert('Termin wurde bestätigt.');
           this.loadAllAppointments();
           
-          // Schließe Detailansicht, falls geöffnet
+          // Close detail view if open
           if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
             this.selectedAppointment = null;
           }
@@ -319,7 +323,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
             alert('Termin wurde abgelehnt.');
             this.loadAllAppointments();
             
-            // Schließe Detailansicht, falls geöffnet
+            // Close detail view if open
             if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
               this.selectedAppointment = null;
             }
@@ -343,7 +347,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
             alert('Termin wurde storniert.');
             this.loadAllAppointments();
             
-            // Schließe Detailansicht, falls geöffnet
+            // Close detail view if open
             if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
               this.selectedAppointment = null;
             }
@@ -366,7 +370,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
           alert('Termin wurde als erledigt markiert.');
           this.loadAllAppointments();
           
-          // Schließe Detailansicht, falls geöffnet
+          // Close detail view if open
           if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
             this.selectedAppointment = null;
           }

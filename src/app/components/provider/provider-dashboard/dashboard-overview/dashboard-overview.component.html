@@ -1,64 +1,64 @@
 <div class="tab-content">
-    <h2 class="section-title">Dashboard <span class="date">{{ formatDate(today) }}</span></h2>
-    
-    <div class="stats-container">
-      <div class="stat-card">
-        <h3>Termine heute</h3>
-        <div class="value">{{ todayAppointments.length }}</div>
-      </div>
-      <div class="stat-card">
-        <h3>Umsatz heute</h3>
-        <div class="value">{{ todayRevenue }} €</div>
-      </div>
-      <div class="stat-card">
-        <h3>Buchungsanfragen</h3>
-        <div class="value requests">{{ pendingAppointments }}</div>
-      </div>
+  <h2 class="section-title">Dashboard <span class="date">{{ formatDate(today) }}</span></h2>
+  
+  <div class="stats-container">
+    <div class="stat-card">
+      <h3>Termine heute</h3>
+      <div class="value">{{ todayAppointments.length }}</div>
     </div>
-    
-    <div class="schedule-container">
-      <h3>Tagesplanung</h3>
-      
-      <div class="timeline" *ngIf="todayAppointments.length > 0">
-        <div class="time-slot" *ngFor="let appointment of todayAppointments">
-          <div class="time-label">{{ formatTime(appointment.startTime) }}</div>
-          <div class="appointment" 
-               [ngClass]="{
-                 'pending': appointment.status === 'pending',
-                 'confirmed': appointment.status === 'confirmed',
-                 'completed': appointment.status === 'completed',
-                 'canceled': appointment.status === 'canceled'
-               }">
-            <div class="appointment-header">
-              <div class="client-name">{{ appointment.customerName || 'Kunde' }}</div> 
-              <div class="appointment-status" *ngIf="appointment.status === 'pending'">
-                <button class="btn-confirm" (click)="confirmAppointment(appointment.id)">Bestätigen</button>
-              </div>
-            </div>
-            <div class="service-details">
-              {{ appointment.serviceName || 'Service' }} · 
-              {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }} · 
-              {{ getAppointmentDuration(appointment) }} Min.
-            </div>
-            <div class="appointment-notes" *ngIf="appointment.notes">
-              <strong>Notizen:</strong> {{ appointment.notes }}
-            </div>
-          </div> 
-        </div>
-        
-        <div class="cleaning-break" *ngFor="let appointment of todayAppointments">
-          <div class="time-label">{{ formatTime(appointment.endTime) }}</div>
-          <div class="break-content">{{ appointment.cleaningTime }} Min. Reinigungspause</div>
-        </div>
-      </div>
-      
-      <div class="no-appointments" *ngIf="todayAppointments.length === 0">
-        <p>Keine Termine für heute</p>
-      </div>
+    <div class="stat-card">
+      <h3>Umsatz heute</h3>
+      <div class="value">{{ todayRevenue }} €</div>
     </div>
-    
-    <div class="action-buttons">
-      <button class="btn btn-primary" (click)="createAppointment()">+ Neuer Termin</button>
-      <button class="btn btn-secondary" (click)="createBreak()">Pause eintragen</button>
+    <div class="stat-card">
+      <h3>Buchungsanfragen</h3>
+      <div class="value requests">{{ pendingAppointments }}</div>
     </div>
   </div>
+  
+  <div class="schedule-container">
+    <h3>Tagesplanung</h3>
+    
+    <div class="timeline" *ngIf="todayAppointments.length > 0">
+      <div class="time-slot" *ngFor="let appointment of todayAppointments">
+        <div class="time-label">{{ formatTime(appointment.startTime) }}</div>
+        <div class="appointment" 
+             [ngClass]="{
+               'pending': appointment.status === 'pending',
+               'confirmed': appointment.status === 'confirmed',
+               'completed': appointment.status === 'completed',
+               'canceled': appointment.status === 'canceled'
+             }">
+          <div class="appointment-header">
+            <div class="client-name">{{ appointment.customerName || 'Kunde' }}</div> 
+            <div class="appointment-status" *ngIf="appointment.status === 'pending'">
+              <button class="btn-confirm" (click)="confirmAppointment(appointment.id)">Bestätigen</button>
+            </div>
+          </div>
+          <div class="service-details">
+            {{ appointment.serviceName || 'Service' }} · 
+            {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }} · 
+            {{ getAppointmentDuration(appointment) }} Min.
+          </div>
+          <div class="appointment-notes" *ngIf="appointment.notes">
+            <strong>Notizen:</strong> {{ appointment.notes }}
+          </div>
+        </div> 
+      </div>
+      
+      <div class="cleaning-break" *ngFor="let appointment of todayAppointments">
+        <div class="time-label">{{ formatTime(appointment.endTime) }}</div>
+        <div class="break-content">{{ appointment.cleaningTime }} Min. Reinigungspause</div>
+      </div>
+    </div>
+    
+    <div class="no-appointments" *ngIf="todayAppointments.length === 0">
+      <p>Keine Termine für heute</p>
+    </div>
+  </div>
+  
+  <div class="action-buttons">
+    <button class="btn btn-primary" (click)="createAppointment()">+ Neuer Termin</button>
+    <button class="btn btn-secondary" (click)="createBreak()">Pause eintragen</button>
+  </div>
+</div>

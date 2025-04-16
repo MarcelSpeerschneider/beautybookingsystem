@@ -7,7 +7,10 @@ import { Service } from '../../../../../models/service.model';
 import { ServiceService } from '../../../../../services/service.service';
 import { Provider } from '../../../../../models/provider.model';
 
-// Definiere den exakten Typ für den Status
+// Define a type that includes the document ID with the Appointment model
+type AppointmentWithId = Appointment & { id: string };
+
+// Define the exact type for status
 type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'canceled';
 
 interface FormViewModel {
@@ -15,7 +18,7 @@ interface FormViewModel {
   customerName: string;
   notes: string;
   cleaningTime: number;
-  status: AppointmentStatus; // Korrigierter Typ
+  status: AppointmentStatus;
 }
 
 @Component({
@@ -28,9 +31,9 @@ interface FormViewModel {
 export class AppointmentFormComponent implements OnInit, OnDestroy {
   @Input() isEditMode: boolean = false;
   @Input() provider!: Provider & { providerId: string };
-  @Input() appointment: Appointment | null = null;
+  @Input() appointment: AppointmentWithId | null = null;
   
-  @Output() formSubmit = new EventEmitter<Appointment>();
+  @Output() formSubmit = new EventEmitter<AppointmentWithId | Appointment>();
   @Output() formCancel = new EventEmitter<void>();
   
   // View model instead of direct binding to appointment
@@ -54,7 +57,7 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
   customerEmail: string = '';
   customerPhone: string = '';
   
-  // Status options für die Typensicherheit
+  // Status options for type safety
   statusOptions: AppointmentStatus[] = ['pending', 'confirmed', 'completed', 'canceled'];
   
   private subscriptions: Subscription[] = [];
@@ -139,15 +142,34 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     if (this.validateForm()) {
       // Create or update appointment from the view model
-      const appointmentToSave: Appointment = this.isEditMode && this.appointment ? 
-        { ...this.appointment } : this.createEmptyAppointment();
+      let appointmentToSave: Appointment | AppointmentWithId;
+      
+      if (this.isEditMode && this.appointment) {
+        // In edit mode, keep the existing id
+        appointmentToSave = { ...this.appointment };
+      } else {
+        // For new appointments, don't include an id field
+        appointmentToSave = {
+          customerId: '',
+          customerName: '',
+          providerId: this.provider ? this.provider.providerId : '',
+          serviceIds: [],
+          serviceName: '',
+          startTime: new Date(),
+          endTime: new Date(),
+          status: 'pending',
+          notes: '',
+          cleaningTime: 15,
+          createdAt: new Date()
+        };
+      }
       
       // Set basic properties from the view model
       appointmentToSave.customerName = this.viewModel.customerName;
       appointmentToSave.notes = this.viewModel.notes;
       appointmentToSave.cleaningTime = this.viewModel.cleaningTime;
       
-      // Hier verwenden wir den explizit typisierten Status
+      // Use the explicitly typed status
       appointmentToSave.status = this.viewModel.status;
       
       // Set service information
@@ -232,22 +254,5 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
     const [hours, minutes] = timeStr.split(':').map(Number);
     
     return new Date(year, month - 1, day, hours, minutes);
-  }
-  
-  createEmptyAppointment(): Appointment {
-    return {
-      id: '',
-      customerId: '',
-      customerName: '',
-      providerId: this.provider ? this.provider.providerId : '',
-      serviceIds: [],
-      serviceName: '',
-      startTime: new Date(),
-      endTime: new Date(),
-      status: 'pending',
-      notes: '',
-      cleaningTime: 15,
-      createdAt: new Date()
-    };
   }
 }

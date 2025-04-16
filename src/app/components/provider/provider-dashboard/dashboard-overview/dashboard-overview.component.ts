@@ -8,6 +8,9 @@ import { Provider } from '../../../../models/provider.model';
 import { Appointment } from '../../../../models/appointment.model';
 import { Service } from '../../../../models/service.model';
 
+// Define a type that includes the document ID with the Appointment model
+type AppointmentWithId = Appointment & { id: string };
+
 // Define the extended Provider type with providerId
 type ProviderWithId = Provider & { providerId: string };
 
@@ -22,7 +25,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
   @Input() provider: ProviderWithId | null = null;
 
   today: Date = new Date();
-  todayAppointments: Appointment[] = [];
+  todayAppointments: AppointmentWithId[] = [];
   services: Service[] = [];
   pendingAppointments: number = 0;
   todayRevenue: number = 0;
@@ -61,7 +64,8 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (appointments) => {
           console.log('Geladene Termine für heute:', appointments);
-          this.todayAppointments = appointments;
+          // The appointments from the service already have IDs attached
+          this.todayAppointments = appointments as AppointmentWithId[];
 
           // Count pending appointments
           this.pendingAppointments = appointments.filter(a => a.status === 'pending').length;

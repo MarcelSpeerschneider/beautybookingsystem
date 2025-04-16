@@ -2,6 +2,9 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Appointment } from '../../../../../models/appointment.model';
 
+// Define a type that includes the document ID with the Appointment model
+type AppointmentWithId = Appointment & { id: string };
+
 @Component({
   selector: 'app-appointment-detail',
   standalone: true,
@@ -10,7 +13,7 @@ import { Appointment } from '../../../../../models/appointment.model';
   styleUrls: ['./appointment-detail.component.css']
 })
 export class AppointmentDetailComponent {
-  @Input() appointment!: Appointment;
+  @Input() appointment!: AppointmentWithId;
   
   @Output() close = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<string>();

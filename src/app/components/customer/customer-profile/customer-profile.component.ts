@@ -15,6 +15,9 @@ import { LoadingService } from '../../../services/loading.service';
 import { collection, collectionData } from '@angular/fire/firestore';
 import { catchError, map } from 'rxjs/operators';
 
+// Define a type that includes the document ID with the Customer model
+type CustomerWithId = Customer & { id: string };
+
 interface AppointmentWithDetails extends Appointment {
   providerName?: string;
   servicePrice?: number;
@@ -28,7 +31,7 @@ interface AppointmentWithDetails extends Appointment {
   styleUrls: ['./customer-profile.component.css']
 })
 export class CustomerProfileComponent implements OnInit, OnDestroy {
-  customer: Customer | null = null;
+  customer: CustomerWithId | null = null;
   user: User | null = null;
   isLoading: boolean = true;
   isEditing: boolean = false;
@@ -64,7 +67,8 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
         if (userWithCustomer.user) {
           this.user = userWithCustomer.user;
           if (userWithCustomer.customer) {
-            this.customer = userWithCustomer.customer;
+            // The customer from AuthService already has an id field
+            this.customer = userWithCustomer.customer as CustomerWithId;
             this.editedPhone = this.customer.phone || '';
             this.loadAppointments();
           } else {

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
 // Services
 import { CartService } from '../../../services/cart.service';
 import { AuthenticationService } from '../../../services/authentication.service';
@@ -17,6 +16,10 @@ import { Provider } from '../../../models/provider.model';
 import { Customer } from '../../../models/customer.model';
 import { Appointment } from '../../../models/appointment.model';
 
+// Define types that include the document ID
+type CustomerWithId = Customer & { id: string };
+type AppointmentWithId = Appointment & { id: string };
+
 @Component({
   selector: 'app-booking-confirmation',
   standalone: true,
@@ -28,7 +31,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   // Properties
   provider: Provider | null | undefined = null;
   providerUserId: string = ''; // Store just the provider ID separately
-  customer: Customer | null = null;
+  customer: CustomerWithId | null = null;
   cartItems: Service[] = [];
   selectedDate: Date | null = null;
   selectedTime: string | null = null;
@@ -38,7 +41,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   termsAccepted: boolean = false;
   showSuccessMessage: boolean = false;
   bookingNumber: string = '';
-  savedAppointment: Appointment;
+  savedAppointment: AppointmentWithId | null = null;
   
   // Subscriptions
   private subscriptions: Subscription[] = [];
@@ -50,24 +53,6 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   private appointmentService = inject(AppointmentService);
   private providerService = inject(ProviderService);
   private loadingService = inject(LoadingService);
-  
-  constructor() {
-    // Initialize savedAppointment with default values using the updated model structure
-    this.savedAppointment = {
-      id: '',
-      customerId: '',
-      providerId: '',
-      serviceIds: [],
-      serviceName: '',
-      customerName: '',
-      startTime: new Date(),
-      endTime: new Date(),
-      status: 'pending',
-      cleaningTime: 0,
-      notes: '',
-      createdAt: new Date()
-    };
-  }
   
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Buchungsdetails...');
@@ -138,7 +123,8 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
       }
       
       if (userWithCustomer.customer) {
-        this.customer = userWithCustomer.customer;
+        // The customer from AuthService already has an id field
+        this.customer = userWithCustomer.customer as CustomerWithId;
       }
       this.loadingService.setLoading(false);
     });
@@ -174,12 +160,10 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     const endTime = new Date(appointmentDate);
     endTime.setMinutes(endTime.getMinutes() + totalDuration);
   
-    // Create appointment object
+    // Create appointment object - without id property
     const serviceIds = this.cartItems.map(service => service.id);
     
     const appointment: Appointment = {
-      id: uuidv4(),
-      // Use the stored provider ID instead of trying to access provider.providerId
       customerId: this.customer.id,
       providerId: this.providerUserId,
       serviceIds: serviceIds,
@@ -193,14 +177,15 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
       customerName: `${this.customer.firstName} ${this.customer.lastName}`,
       notes: localStorage.getItem('notes') ?? ''
     };
-      
-    this.savedAppointment = appointment;
     
     // Save appointment to Firestore using the new API
     this.appointmentService.createAppointment(appointment)
       .then((appointmentId) => {
-        // Update the saved appointment with the returned ID if needed
-        this.savedAppointment.id = appointmentId;
+        // Create a new object with the returned ID for display
+        this.savedAppointment = {
+          ...appointment,
+          id: appointmentId
+        };
         
         // Show success message
         this.showSuccessMessage = true;

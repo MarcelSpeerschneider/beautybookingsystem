@@ -7,8 +7,9 @@ import { Customer } from '../../../../../models/customer.model';
 import { Provider } from '../../../../../models/provider.model';
 import { ProviderCustomerService } from '../../../../../services/provider-customer.service';
 
-// Erweiterter Provider-Typ für die Dokument-ID
+// Extended type definitions for models with IDs
 type ProviderWithId = Provider & { providerId: string };
+type CustomerWithId = Customer & { id: string };
 
 @Component({
   selector: 'app-customer-add',
@@ -18,9 +19,9 @@ type ProviderWithId = Provider & { providerId: string };
   styleUrls: ['./customer-add.component.css']
 })
 export class CustomerAddComponent implements OnInit {
-  @Input() provider!: ProviderWithId; // Angepasster Typ
+  @Input() provider!: ProviderWithId;
   @Output() close = new EventEmitter<void>();
-  @Output() customerCreated = new EventEmitter<Customer>();
+  @Output() customerCreated = new EventEmitter<CustomerWithId>();
   
   customerForm: FormGroup;
   formErrors: { [key: string]: string } = {};
@@ -41,7 +42,7 @@ export class CustomerAddComponent implements OnInit {
   }
   
   ngOnInit(): void {
-    if (!this.provider || !this.provider.providerId) { // Verwende providerId statt id
+    if (!this.provider || !this.provider.providerId) {
       console.error('Provider-Daten fehlen oder sind ungültig!');
     }
   }
@@ -50,7 +51,8 @@ export class CustomerAddComponent implements OnInit {
     if (this.validateForm()) {
       this.loadingService.setLoading(true, 'Kunde wird erstellt...');
       
-      const customerData: Omit<Customer, 'id'> = {
+      // Create a customer object without the ID field
+      const customerData: Customer = {
         firstName: this.customerForm.value.firstName,
         lastName: this.customerForm.value.lastName,
         email: this.customerForm.value.email || '',
@@ -61,36 +63,36 @@ export class CustomerAddComponent implements OnInit {
       
       console.log('Erstelle Kunden mit Daten:', customerData);
       
-      // Schritt 1: Erstelle den Kunden und erhalte seine ID
+      // Step 1: Create the customer and get their ID
       this.customerService.createCustomer(customerData)
         .then(customerId => {
           console.log('Kunde erstellt mit ID:', customerId);
           
-          // Schritt 2: Erstelle die Relation mit Notizen (falls vorhanden)
+          // Step 2: Create the relation with notes (if any)
           const notes = this.customerForm.value.notes || '';
           
           return this.providerCustomerService.updateCustomerNotes(
-            this.provider.providerId, // Verwende providerId statt id
+            this.provider.providerId,
             customerId,
             notes
           ).then(() => {
-            // Vollständiges Kundenobjekt erstellen und zurückgeben
-            const createdCustomer: Customer = {
-              id: customerId,
-              ...customerData
+            // Create a customer object with ID for the UI
+            const createdCustomerWithId: CustomerWithId = {
+              ...customerData,
+              id: customerId
             };
             
-            return createdCustomer;
+            return createdCustomerWithId;
           });
         })
-        .then(createdCustomer => {
+        .then(createdCustomerWithId => {
           this.loadingService.setLoading(false);
-          console.log('Kunde erfolgreich erstellt:', createdCustomer);
+          console.log('Kunde erfolgreich erstellt:', createdCustomerWithId);
           
-          // Event nach oben an die Parent-Komponente emittieren
-          this.customerCreated.emit(createdCustomer);
+          // Emit event to parent component
+          this.customerCreated.emit(createdCustomerWithId);
           
-          // Formular schließen
+          // Close form
           this.close.emit();
         })
         .catch(error => {
