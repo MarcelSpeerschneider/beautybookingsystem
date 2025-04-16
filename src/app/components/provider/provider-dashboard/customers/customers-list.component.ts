@@ -76,7 +76,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (this.provider) {
-      this.loadAllData();
+      this.loadCustomerRelations();
     }
   }
 
@@ -84,129 +84,151 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  loadAllData(): void {
+  // Überarbeitete Methode - lädt nur die Kunden, die über eine Relation verbunden sind
+  loadCustomerRelations(): void {
     if (!this.provider) return;
     
-    this.loadingService.setLoading(true, 'Lade Daten...');
+    this.loadingService.setLoading(true, 'Lade Kundendaten...');
     
-    // Schritt 1: Alle Kunden laden
-    const customerSub = this.customerService.getCustomers().subscribe(
-      customers => {
-        console.log("1. Alle Kunden geladen:", customers);
-        
-        // Kunden in einer Map speichern für schnellen Zugriff
-        this.customerMap.clear();
-        customers.forEach(customer => {
-          this.customerMap.set(customer.id, customer);
-        });
-        
-        // Schritt 2: Alle Beziehungen zwischen Provider und Kunden laden
-        this.loadRelationsAndCombine();
-      },
-      error => {
-        console.error("Fehler beim Laden der Kunden:", error);
-        this.loadingService.setLoading(false);
-      }
-    );
-    
-    this.subscriptions.push(customerSub);
-  }
-  
-  loadRelationsAndCombine(): void {
-    if (!this.provider) return;
-    
+    // GEÄNDERT: Nur Provider-Customer Relations laden, nicht alle Kunden
     const relationSub = this.providerCustomerService
-      .getCustomerRelationsByProvider(this.provider.providerId) // Verwende providerId statt id
-      .subscribe(
-        relations => {
-          console.log("2. Provider-Customer Relations geladen:", relations);
+      .getCustomerRelationsByProvider(this.provider.providerId)
+      .subscribe({
+        next: (relations) => {
+          console.log("Provider-Customer Relations geladen:", relations);
+          
+          // Leere die alten Daten
+          this.relationMap.clear();
+          this.customerMap.clear();
+          this.allCustomers = [];
           
           // Relations in Map speichern
-          this.relationMap.clear();
           relations.forEach(relation => {
             this.relationMap.set(relation.customerId, relation);
           });
           
-          // Daten kombinieren
-          this.combineCustomersAndRelations(relations);
+          // Keine Kunden? Dann sind wir fertig
+          if (relations.length === 0) {
+            this.filteredCustomers = [];
+            this.calculateStatistics();
+            this.loadingService.setLoading(false);
+            return;
+          }
+          
+          // Für jede Relation den zugehörigen Kunden laden
+          relations.forEach((relation, index) => {
+            const customerId = relation.customerId;
+            
+            // Nur wenn wir den Kunden noch nicht geladen haben
+            if (!this.customerMap.has(customerId)) {
+              this.customerService.getCustomer(customerId).subscribe({
+                next: (customer) => {
+                  if (customer) {
+                    // Kunde gefunden - in die Map speichern
+                    this.customerMap.set(customerId, customer);
+                    
+                    // Erstelle ein CustomerViewModel mit Relationsdaten
+                    const customerViewModel: CustomerViewModel = {
+                      id: customer.id,
+                      firstName: customer.firstName,
+                      lastName: customer.lastName,
+                      email: customer.email,
+                      phone: customer.phone || '',
+                      relationId: relation.id,
+                      notes: relation.notes || '',
+                      lastVisit: relation.lastVisit,
+                      visitCount: relation.visitCount || 0,
+                      totalSpent: relation.totalSpent || 0,
+                      tags: relation.tags || []
+                    };
+                    
+                    // Zum Array hinzufügen
+                    this.allCustomers.push(customerViewModel);
+                    
+                    // Wenn wir alle Kunden geladen haben, finalisieren
+                    if (this.allCustomers.length === relations.length) {
+                      this.finalizeCustomerLoading();
+                    }
+                  } else {
+                    // Kein Kunde gefunden - Platzhalter erstellen
+                    console.log(`Keinen Kunden für Relation mit ID ${customerId} gefunden - erstelle Platzhalter`);
+                    
+                    const placeholderCustomer: CustomerViewModel = {
+                      id: customerId,
+                      firstName: 'Kunde',
+                      lastName: customerId.substring(0, 5),
+                      email: '',
+                      phone: '',
+                      relationId: relation.id,
+                      notes: relation.notes || '',
+                      lastVisit: relation.lastVisit,
+                      visitCount: relation.visitCount || 0,
+                      totalSpent: relation.totalSpent || 0,
+                      tags: relation.tags || []
+                    };
+                    
+                    this.allCustomers.push(placeholderCustomer);
+                    
+                    // Wenn wir alle Kunden geladen haben, finalisieren
+                    if (this.allCustomers.length === relations.length) {
+                      this.finalizeCustomerLoading();
+                    }
+                  }
+                },
+                error: (error) => {
+                  console.error(`Fehler beim Laden des Kunden ${customerId}:`, error);
+                  
+                  // Bei Fehlern trotzdem weitermachen - Platzhalter erstellen
+                  const errorCustomer: CustomerViewModel = {
+                    id: customerId,
+                    firstName: 'Fehlender',
+                    lastName: 'Kunde',
+                    email: '',
+                    phone: '',
+                    relationId: relation.id,
+                    notes: relation.notes || '',
+                    lastVisit: relation.lastVisit,
+                    visitCount: relation.visitCount || 0,
+                    totalSpent: relation.totalSpent || 0,
+                    tags: relation.tags || []
+                  };
+                  
+                  this.allCustomers.push(errorCustomer);
+                  
+                  // Wenn wir alle Kunden geladen haben, finalisieren
+                  if (this.allCustomers.length === relations.length) {
+                    this.finalizeCustomerLoading();
+                  }
+                }
+              });
+            }
+          });
         },
-        error => {
+        error: (error) => {
           console.error("Fehler beim Laden der Relations:", error);
           this.loadingService.setLoading(false);
         }
-      );
+      });
       
     this.subscriptions.push(relationSub);
   }
   
-  combineCustomersAndRelations(relations: any[]): void {
-    const combinedData: CustomerViewModel[] = [];
-    const processedIds: Set<string> = new Set();
-    
-    // Gehe durch alle Relations und füge Kunden hinzu
-    relations.forEach(relation => {
-      const customerId = relation.customerId;
-      let customer = this.customerMap.get(customerId);
-      
-      if (customer) {
-        // Kunde existiert in der Map - ViewModell erstellen
-        combinedData.push({
-          id: customer.id,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          email: customer.email,
-          phone: customer.phone || '',
-          relationId: relation.id,
-          notes: relation.notes || '',
-          lastVisit: relation.lastVisit,
-          visitCount: relation.visitCount || 0,
-          totalSpent: relation.totalSpent || 0,
-          tags: relation.tags || []
-        });
-        processedIds.add(customer.id);
-      } else {
-        // Kein Kunde gefunden - Platzhalter erstellen
-        console.log(`Keinen Kunden für Relation mit ID ${customerId} gefunden - erstelle Platzhalter`);
-        
-        combinedData.push({
-          id: customerId,
-          firstName: relation.customerFirstName || 'Kunde',
-          lastName: relation.customerLastName || customerId.substring(0, 5),
-          email: relation.customerEmail || '',
-          phone: relation.customerPhone || '',
-          relationId: relation.id,
-          notes: relation.notes || '',
-          lastVisit: relation.lastVisit,
-          visitCount: relation.visitCount || 0,
-          totalSpent: relation.totalSpent || 0,
-          tags: relation.tags || []
-        });
-      }
+  // Hilfsmethode zum Abschließen des Ladevorgangs
+  private finalizeCustomerLoading(): void {
+    // Sortiere nach Namen
+    this.allCustomers.sort((a, b) => {
+      const nameA = `${a.firstName} ${a.lastName}`;
+      const nameB = `${b.firstName} ${b.lastName}`;
+      return nameA.localeCompare(nameB);
     });
     
-    // Füge auch Kunden ohne Relations hinzu
-    this.customerMap.forEach((customer, id) => {
-      if (!processedIds.has(customer.id)) {
-        combinedData.push({
-          id: customer.id,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          email: customer.email,
-          phone: customer.phone || '',
-          notes: '',
-          lastVisit: null,
-          visitCount: 0,
-          totalSpent: 0,
-          tags: []
-        });
-      }
-    });
-
-    // Setze die kombinierten Daten
-    this.allCustomers = combinedData;
-    this.filteredCustomers = [...combinedData];
+    // Anwenden der Filter
+    this.filterCustomers();
+    
+    // Statistiken berechnen
     this.calculateStatistics();
     
+    // Ladevorgang beenden
     this.loadingService.setLoading(false);
   }
 
@@ -374,7 +396,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
       alert('Notizen erfolgreich gespeichert!');
       
       // Daten optional neu laden
-      setTimeout(() => this.loadAllData(), 500);
+      setTimeout(() => this.loadCustomerRelations(), 500);
       
     }).catch(error => {
       console.error('Fehler beim Speichern der Notizen:', error);
@@ -433,32 +455,9 @@ export class CustomersListComponent implements OnInit, OnDestroy {
   handleCustomerCreated(customer: Customer): void {
     console.log('Neuer Kunde erstellt:', customer);
 
-    // Create CustomerViewModel for UI
-    const newCustomer: CustomerViewModel = {
-      id: customer.id,
-      firstName: customer.firstName,
-      lastName: customer.lastName,
-      email: customer.email,
-      phone: customer.phone,
-      visitCount: 0,
-      lastVisit: null
-    };
-
-    // Add to customer list
-    this.allCustomers = [newCustomer, ...this.allCustomers];
-    
-    // Update customer map
-    this.customerMap.set(customer.id, customer);
-
-    // Update statistics
-    this.calculateStatistics();
-
-    // Apply filters to show the new customer
-    this.filterCustomers();
-    
-    // Daten neu laden
+    // Daten neu laden, um die aktualisierte Kundenliste zu erhalten
     setTimeout(() => {
-      this.loadAllData();
+      this.loadCustomerRelations();
     }, 1000);
   }
 }

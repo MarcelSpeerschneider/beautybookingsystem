@@ -1,7 +1,7 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Appointment } from '../models/appointment.model';
 import { Observable, from, of, catchError } from 'rxjs';
-import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, query, where } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, query, where, limit } from '@angular/fire/firestore';
 import { map, switchMap } from 'rxjs/operators';
 import { convertAppointmentDates } from '../utils/date-utils';
 import { ProviderCustomerService } from './provider-customer.service';
@@ -80,35 +80,35 @@ export class AppointmentService {
             try {
                 console.log('Creating new appointment:', appointment);
                 const appointmentsCollection = collection(this.firestore, this.collectionName);
-                
+
                 // Appointment-Objekt vorbereiten (ohne ID)
                 const appointmentToSave = {
                     ...appointment,
                     createdAt: new Date() // Stelle sicher, dass createdAt gesetzt ist
                 };
-                
+
                 // First save the appointment
                 const docRef = await addDoc(appointmentsCollection, appointmentToSave);
                 console.log('Appointment created successfully with ID:', docRef.id);
-                
+
                 // Check if we have at least the customer name
                 const hasCustomerData = appointment.customerName;
-                
+
                 // Then update provider-customer relationship
                 try {
                     // Price calculation could be done here from the service ID
                     const price = 0; // In a real implementation, get the price from the service
-                    
+
                     // Parse customer name if available
                     let firstName = '';
                     let lastName = '';
-                    
+
                     if (appointment.customerName) {
                         const nameParts = appointment.customerName.split(' ');
                         firstName = nameParts[0] || '';
                         lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
                     }
-                    
+
                     await this.providerCustomerService.updateRelationAfterAppointment(
                         appointment.providerId,
                         appointment.customerId,
@@ -126,7 +126,7 @@ export class AppointmentService {
                     console.error('Error updating provider-customer relation:', relationError);
                     // We don't throw the error here since the appointment was already created
                 }
-                
+
                 return docRef.id;
             } catch (error) {
                 console.error('Error creating appointment:', error);
@@ -140,13 +140,13 @@ export class AppointmentService {
             this.ngZone.run(() => {
                 try {
                     const { id, ...appointmentData } = appointment;
-                    
+
                     // Aktualisiere auch den updatedAt-Timestamp
                     const updatedAppointment = {
                         ...appointmentData,
                         updatedAt: new Date()
                     };
-                    
+
                     const appointmentDocument = doc(this.firestore, this.collectionName, id);
                     from(updateDoc(appointmentDocument, updatedAppointment)).pipe(
                         switchMap(() => this.getAppointment(id)),
@@ -216,28 +216,31 @@ export class AppointmentService {
 
                     // Entscheide, ob wir nach customerId oder providerId filtern
                     const fieldName = isProvider ? 'providerId' : 'customerId';
-                    const q = query(appointmentsCollection, where(fieldName, '==', userId));
+
+                    // Datum für die Firestore-Abfrage aufbereiten
+                    const startOfDay = new Date(date);
+                    startOfDay.setHours(0, 0, 0, 0);
+
+                    const endOfDay = new Date(date);
+                    endOfDay.setHours(23, 59, 59, 999);
+
+                    // VERBESSERT: Filtere nach Benutzer UND Datum direkt in der Firestore-Abfrage
+                    const q = query(
+                        appointmentsCollection,
+                        where(fieldName, '==', userId),
+                        where('startTime', '>=', startOfDay),
+                        where('startTime', '<=', endOfDay)
+                    );
 
                     collectionData(q, { idField: 'id' }).pipe(
                         map(data => {
-                            console.log(`AppointmentService: Raw results for ${fieldName}=${userId}:`, data);
+                            console.log(`AppointmentService: Raw results for ${fieldName}=${userId} on date ${date}:`, data);
 
                             // Konvertiere Datumswerte und erstelle Appointment-Objekte
-                            const appointments = (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
+                            return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
 
-                            // Filtere nach Datum
-                            // Wir vergleichen nur das Datum, nicht die Uhrzeit
-                            const compareDate = new Date(date);
-                            compareDate.setHours(0, 0, 0, 0);
-
-                            return appointments.filter(appointment => {
-                                if (!appointment.startTime) return false;
-
-                                const appointmentDate = new Date(appointment.startTime);
-                                appointmentDate.setHours(0, 0, 0, 0);
-
-                                return appointmentDate.getTime() === compareDate.getTime();
-                            });
+                            // Die Datums-Filterung erfolgt jetzt in der Firestore-Abfrage,
+                            // nicht mehr im Client-Code
                         }),
                         catchError(error => {
                             console.error(`Error fetching appointments for ${fieldName} ${userId} on date ${date}:`, error);
@@ -263,7 +266,7 @@ export class AppointmentService {
             this.ngZone.run(() => {
                 try {
                     const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
-                    from(updateDoc(appointmentDocument, { 
+                    from(updateDoc(appointmentDocument, {
                         status: 'confirmed',
                         updatedAt: new Date()
                     })).pipe(
@@ -292,7 +295,7 @@ export class AppointmentService {
             this.ngZone.run(() => {
                 try {
                     const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
-                    from(updateDoc(appointmentDocument, { 
+                    from(updateDoc(appointmentDocument, {
                         status: 'canceled',
                         updatedAt: new Date()
                     })).pipe(
@@ -321,7 +324,7 @@ export class AppointmentService {
             this.ngZone.run(() => {
                 try {
                     const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
-                    from(updateDoc(appointmentDocument, { 
+                    from(updateDoc(appointmentDocument, {
                         status: 'completed',
                         updatedAt: new Date()
                     })).pipe(
@@ -377,12 +380,19 @@ export class AppointmentService {
                 try {
                     console.log("AppointmentService: Getting appointments for provider ID:", providerId);
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    // Nutze providerId zum Filtern
-                    const q = query(appointmentsCollection, where('providerId', '==', providerId));
+                    
+                    // WICHTIG: Der providerId-Filter muss als erster Filter verwendet werden
+                    // und genau so formuliert sein, wie in den Firestore-Regeln erwartet
+                    const q = query(
+                        appointmentsCollection, 
+                        where('providerId', '==', providerId),
+                        limit(500) // Optional: Begrenze die Anzahl der zurückgegebenen Dokumente
+                    );
+                    
                     collectionData(q, { idField: 'id' }).pipe(
                         map(data => {
                             console.log("AppointmentService: Raw results for provider:", data);
-
+                            
                             // Konvertiere alle Appointments mit korrekten Datumswerten
                             return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
                         }),
