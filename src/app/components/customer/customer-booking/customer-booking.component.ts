@@ -11,6 +11,9 @@ import { Service } from '../../../models/service.model';
 import { Provider } from '../../../models/provider.model';
 import { Appointment } from '../../../models/appointment.model';
 
+// Erweiterter Typ für Provider mit providerId
+type ProviderWithId = Provider & { providerId: string };
+
 @Component({
   selector: 'app-customer-booking',
   templateUrl: './customer-booking.component.html',
@@ -28,7 +31,7 @@ export class CustomerBookingComponent implements OnInit {
   
   // Daten für die Auswahl
   services: Service[] = [];
-  providers: Provider[] = [];
+  providers: ProviderWithId[] = []; // Angepasster Typ mit providerId
   availableDates: Date[] = [];
   availableTimeSlots: string[] = [];
   
@@ -76,12 +79,14 @@ export class CustomerBookingComponent implements OnInit {
     
     this.providerService.getProvidersByService(serviceId).subscribe({
       next: (providers) => {
-        this.providers = providers;
+        // Jedes Provider-Objekt einzeln umwandeln
+        const providersWithId = providers.map(p => p as ProviderWithId);
+        this.providers = providersWithId;
         this.loadingService.setLoading(false);
         
-        // Wenn nur ein Anbieter verfügbar ist, automatisch auswählen
-        if (providers.length === 1) {
-          this.selectProvider(providers[0].id);
+        // Jetzt mit korrekter Typinformation
+        if (providersWithId.length === 1) {
+          this.selectProvider(providersWithId[0].providerId);
           this.nextStep();
         }
       },
@@ -198,11 +203,12 @@ export class CustomerBookingComponent implements OnInit {
     return this.services.find(service => service.id === serviceId) || null;
   }
   
-  getSelectedProvider(): Provider | null {
+  getSelectedProvider(): ProviderWithId | null {
     const providerId = this.bookingForm.get('providerId')?.value;
     if (!providerId) return null;
     
-    return this.providers.find(provider => provider.id === providerId) || null;
+    // Suche nach providerId statt id
+    return this.providers.find(provider => provider.providerId === providerId) || null;
   }
   
   formatDate(date: Date): string {
@@ -246,7 +252,7 @@ export class CustomerBookingComponent implements OnInit {
       // Appointment-Objekt erstellen
       const appointment: Omit<Appointment, 'id'> = {
         customerId: userWithCustomer.customer.id,
-        providerId: selectedProvider.id,
+        providerId: selectedProvider.providerId, // Verwende providerId statt id
         serviceIds: [selectedService.id],
         serviceName: selectedService.name,
         customerName: `${userWithCustomer.customer.firstName} ${userWithCustomer.customer.lastName}`,

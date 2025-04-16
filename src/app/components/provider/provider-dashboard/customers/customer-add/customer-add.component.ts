@@ -7,6 +7,9 @@ import { Customer } from '../../../../../models/customer.model';
 import { Provider } from '../../../../../models/provider.model';
 import { ProviderCustomerService } from '../../../../../services/provider-customer.service';
 
+// Erweiterter Provider-Typ für die Dokument-ID
+type ProviderWithId = Provider & { providerId: string };
+
 @Component({
   selector: 'app-customer-add',
   standalone: true,
@@ -15,7 +18,7 @@ import { ProviderCustomerService } from '../../../../../services/provider-custom
   styleUrls: ['./customer-add.component.css']
 })
 export class CustomerAddComponent implements OnInit {
-  @Input() provider!: Provider;
+  @Input() provider!: ProviderWithId; // Angepasster Typ
   @Output() close = new EventEmitter<void>();
   @Output() customerCreated = new EventEmitter<Customer>();
   
@@ -38,7 +41,7 @@ export class CustomerAddComponent implements OnInit {
   }
   
   ngOnInit(): void {
-    if (!this.provider || !this.provider.id) {
+    if (!this.provider || !this.provider.providerId) { // Verwende providerId statt id
       console.error('Provider-Daten fehlen oder sind ungültig!');
     }
   }
@@ -67,7 +70,7 @@ export class CustomerAddComponent implements OnInit {
           const notes = this.customerForm.value.notes || '';
           
           return this.providerCustomerService.updateCustomerNotes(
-            this.provider.id,
+            this.provider.providerId, // Verwende providerId statt id
             customerId,
             notes
           ).then(() => {

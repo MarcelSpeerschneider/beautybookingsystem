@@ -1,3 +1,4 @@
+// src/app/services/provider.service.ts
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Provider } from '../models/provider.model';
 import { BusinessHours } from '../models/business-hours.model';
@@ -9,13 +10,11 @@ import {
   collectionData, 
   doc, 
   docData, 
-  addDoc, 
-  setDoc,
+  setDoc,  // Verwende setDoc statt addDoc
   updateDoc, 
   deleteDoc, 
   query, 
   where, 
-  DocumentReference,
   getDocs 
 } from '@angular/fire/firestore';
 import { map } from 'rxjs/operators';
@@ -38,7 +37,7 @@ export class ProviderService {
       this.ngZone.run(() => {
         try {
           const myCollection = collection(this.firestore, this.collectionName);
-          from(collectionData(myCollection, { idField: 'id' })).pipe(
+          from(collectionData(myCollection, { idField: 'providerId' })).pipe(
             map(data => data.map(d => ({...d} as Provider))),
             catchError(error => {
               console.error('Error fetching providers:', error);
@@ -67,7 +66,7 @@ export class ProviderService {
         try {
           const providersCollection = collection(this.firestore, this.collectionName);
           const q = query(providersCollection, where('services', 'array-contains', service));
-          from(collectionData(q, { idField: 'id' })).pipe(
+          from(collectionData(q, { idField: 'providerId' })).pipe(
             map((data) => data.map((d) => ({ ...d } as Provider))),
             catchError(error => {
               console.error(`Error fetching providers with service ${service}:`, error);
@@ -95,7 +94,7 @@ export class ProviderService {
         try {
           const myCollection = collection(this.firestore, this.collectionName);                    
           const q = query(myCollection, where('email', '==', email));
-          from(collectionData(q, { idField: 'id' })).pipe(
+          from(collectionData(q, { idField: 'providerId' })).pipe(
             map((providers) => {
               if(providers.length > 0) {
                 return providers[0] as Provider;
@@ -127,7 +126,7 @@ export class ProviderService {
       this.ngZone.run(() => {
         try {
           const document = doc(this.firestore, this.collectionName, providerId);
-          from(docData(document, { idField: 'id' })).pipe(
+          from(docData(document, { idField: 'providerId' })).pipe(
             map(d => ({...d} as Provider)),
             catchError(error => {
               console.error(`Error fetching provider with ID ${providerId}:`, error);
@@ -149,7 +148,7 @@ export class ProviderService {
     });
   }
   
-  async addProvider(provider: Omit<Provider, 'id'>): Promise<string> { 
+  async addProvider(provider: Omit<Provider, 'providerId'>, userId: string): Promise<string> { 
     return this.ngZone.run(async () => {
       try {
         console.log('Creating provider with data:', provider);
@@ -161,10 +160,11 @@ export class ProviderService {
           updatedAt: new Date()
         };
         
-        const myCollection = collection(this.firestore, this.collectionName);                
-        const docRef = await addDoc(myCollection, providerWithDefaults);                
-        console.log('Provider created successfully with ID:', docRef.id);                
-        return docRef.id;       
+        // GEÄNDERT: Verwende setDoc mit expliziter Dokument-ID (Auth-UID)
+        const providerDoc = doc(this.firestore, this.collectionName, userId);             
+        await setDoc(providerDoc, providerWithDefaults);                
+        console.log('Provider created successfully with ID:', userId);                
+        return userId;       
       } catch (error) {
         console.error('Error creating provider:', error);
         throw error;
@@ -172,11 +172,10 @@ export class ProviderService {
     });
   }
   
-  updateProvider(provider: Provider): Promise<void> {        
+  updateProvider(providerId: string, providerData: Partial<Provider>): Promise<void> {        
     return this.ngZone.run(async () => {
       try {
-        const { id, ...providerData } = provider;
-        const document = doc(this.firestore, this.collectionName, id);                    
+        const document = doc(this.firestore, this.collectionName, providerId);                    
         
         // Update updatedAt field
         const updatedProvider = {

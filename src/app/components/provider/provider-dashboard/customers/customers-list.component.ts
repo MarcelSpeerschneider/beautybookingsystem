@@ -11,6 +11,9 @@ import { ProviderCustomerService } from '../../../../services/provider-customer.
 import { CustomerNotesComponent } from './customer-notes/customer-notes.component';
 import { CustomerAddComponent } from './customer-add/customer-add.component';
 
+// Erweiterter Provider-Typ für die Dokument-ID
+type ProviderWithId = Provider & { providerId: string };
+
 // Extended Customer interface for UI display
 interface CustomerViewModel {
   id: string;            // Diese ID entspricht der Firestore Document-ID
@@ -40,7 +43,7 @@ interface CustomerViewModel {
   styleUrls: ['./customers-list.component.css']
 })
 export class CustomersListComponent implements OnInit, OnDestroy {
-  @Input() provider: Provider | null = null;
+  @Input() provider: ProviderWithId | null = null;
 
   // Customer data
   allCustomers: CustomerViewModel[] = [];
@@ -113,7 +116,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     if (!this.provider) return;
     
     const relationSub = this.providerCustomerService
-      .getCustomerRelationsByProvider(this.provider.id)
+      .getCustomerRelationsByProvider(this.provider.providerId) // Verwende providerId statt id
       .subscribe(
         relations => {
           console.log("2. Provider-Customer Relations geladen:", relations);
@@ -352,7 +355,7 @@ export class CustomersListComponent implements OnInit, OnDestroy {
     this.loadingService.setLoading(true, 'Speichere Notizen...');
 
     this.providerCustomerService.updateCustomerNotes(
-      this.provider.id,
+      this.provider.providerId, // Verwende providerId statt id
       customerId,
       notes
     ).then(() => {

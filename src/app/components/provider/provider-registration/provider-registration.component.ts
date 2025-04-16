@@ -22,7 +22,7 @@ export class ProviderRegistrationComponent implements OnInit {
   providerForm!: FormGroup;
   authForm!: FormGroup;
   step = 1;
-  
+
   // Business Hours configuration
   businessDays = [
     { key: 'mon', label: 'Montag', openTime: '09:00', closeTime: '18:00', closed: false },
@@ -40,7 +40,7 @@ export class ProviderRegistrationComponent implements OnInit {
     '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
     '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'
   ];
-  
+
   private formBuilder = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthenticationService);
@@ -51,7 +51,7 @@ export class ProviderRegistrationComponent implements OnInit {
     // Explicitly set provider registration flag
     localStorage.setItem('registering_provider', 'true');
     sessionStorage.setItem('registering_provider', 'true');
-    
+
     // Authentication step form
     this.authForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
@@ -96,7 +96,7 @@ export class ProviderRegistrationComponent implements OnInit {
       this.step--;
     }
   }
-  
+
   // Business Hours methods
   updateClosedStatus(day: any): void {
     if (day.closed) {
@@ -119,20 +119,20 @@ export class ProviderRegistrationComponent implements OnInit {
       .filter(day => !day.closed)
       .map(day => `${day.label}: ${day.openTime} - ${day.closeTime}`)
       .join(' | ');
-    
+
     return formatted || 'Keine Öffnungszeiten festgelegt';
   }
 
   getFormattedBusinessHours(): string {
     const openDays = this.businessDays.filter(day => !day.closed);
-    
+
     // Group consecutive days with same hours
     const groups: any[] = [];
     let currentGroup: any = null;
-    
+
     openDays.forEach(day => {
-      if (!currentGroup || 
-          (currentGroup.openTime !== day.openTime || currentGroup.closeTime !== day.closeTime)) {
+      if (!currentGroup ||
+        (currentGroup.openTime !== day.openTime || currentGroup.closeTime !== day.closeTime)) {
         currentGroup = {
           days: [day],
           openTime: day.openTime,
@@ -143,27 +143,27 @@ export class ProviderRegistrationComponent implements OnInit {
         currentGroup.days.push(day);
       }
     });
-    
+
     // Format each group
     return groups.map(group => {
       const dayKeys = group.days.map((d: any) => d.key);
       let dayString = '';
-      
+
       // Handle special cases for better formatting
       if (dayKeys.length === 7) {
         dayString = 'Täglich';
-      } else if (dayKeys.includes('mon') && dayKeys.includes('tue') && 
-                 dayKeys.includes('wed') && dayKeys.includes('thu') && 
-                 dayKeys.includes('fri') && !dayKeys.includes('sat') && 
-                 !dayKeys.includes('sun')) {
+      } else if (dayKeys.includes('mon') && dayKeys.includes('tue') &&
+        dayKeys.includes('wed') && dayKeys.includes('thu') &&
+        dayKeys.includes('fri') && !dayKeys.includes('sat') &&
+        !dayKeys.includes('sun')) {
         dayString = 'Mo-Fr';
-      } else if (dayKeys.includes('sat') && dayKeys.includes('sun') && 
-                 dayKeys.length === 2) {
+      } else if (dayKeys.includes('sat') && dayKeys.includes('sun') &&
+        dayKeys.length === 2) {
         dayString = 'Sa-So';
       } else {
         dayString = group.days.map((d: any) => d.key.charAt(0).toUpperCase() + d.key.slice(1, 3)).join(', ');
       }
-      
+
       return `${dayString} ${group.openTime}-${group.closeTime}`;
     }).join(' | ');
   }
@@ -180,7 +180,7 @@ export class ProviderRegistrationComponent implements OnInit {
       const specialtiesArray = providerData.specialties
         ? providerData.specialties.split(',').map((s: string) => s.trim())
         : [];
-      
+
       // Get formatted business hours
       const formattedBusinessHours = this.getFormattedBusinessHours();
 
@@ -205,13 +205,13 @@ export class ProviderRegistrationComponent implements OnInit {
       }).then(response => {
         if (response && response.user) {
           const userId = response.user.uid;
-          
+
           // Make sure to mark as provider for subsequent operations
           localStorage.setItem(`user_role_${userId}`, 'provider');
-          
-          // Create provider object
+
+          // Create provider object ohne id-Feld
           const provider: Provider = {
-            id: userId,
+            // id: userId, <- Dieses Feld wird entfernt!
             firstName: providerData.firstName,
             lastName: providerData.lastName,
             email: authData.email,
@@ -219,20 +219,20 @@ export class ProviderRegistrationComponent implements OnInit {
             businessName: providerData.businessName,
             description: providerData.description,
             address: `${providerData.street}, ${providerData.zip} ${providerData.city}`,
-            logo: providerData.logo || '', // Default empty, will be updated with image upload
+            logo: providerData.logo || '',
             website: providerData.website || '',
             socialMedia: {
               instagram: providerData.instagram || '',
               facebook: providerData.facebook || ''
             },
-            openingHours: formattedBusinessHours, // Use the same formatted hours
+            openingHours: formattedBusinessHours,
             specialties: specialtiesArray,
             acceptsOnlinePayments: providerData.acceptsOnlinePayments,
           };
 
           // Save provider to database
-          this.providerService.addProvider(provider)
-            .then(docRef => {
+          this.providerService.addProvider(provider, userId)
+            .then(() => {
               this.loadingService.setLoading(false);
               this.successMessage = 'Provider-Konto erfolgreich erstellt!';
               setTimeout(() => {

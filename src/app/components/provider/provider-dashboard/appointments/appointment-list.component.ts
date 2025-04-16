@@ -20,7 +20,7 @@ import { AppointmentDetailComponent } from './appointment-detail/appointment-det
   styleUrls: ['./appointment-list.component.css']
 })
 export class AppointmentListComponent implements OnInit, OnDestroy {
-  @Input() provider: Provider | null = null;
+  @Input() provider: Provider & { providerId: string } | null = null;
 
   // Alle Termine
   allAppointments: Appointment[] = [];
@@ -58,11 +58,11 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
     }
   
     this.loadingService.setLoading(true, 'Lade Termine...');
-    console.log('Provider-ID für loadAllAppointments:', this.provider.id);
+    console.log('Provider-ID für loadAllAppointments:', this.provider.providerId);
   
     // Verwende die korrekte Methode für Provider-Termine
     const appointmentsSub = this.appointmentService
-      .getAppointmentsByProvider(this.provider.id)
+      .getAppointmentsByProvider(this.provider.providerId)
       .subscribe({
         next: (appointments) => {
           console.log('Alle geladenen Termine:', appointments);
@@ -72,7 +72,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
           
           // Debug-Ausgabe, falls keine Termine gefunden wurden
           if (this.allAppointments.length === 0) {
-            console.warn('Keine Termine für providerId', this.provider?.id, 'gefunden. Bitte prüfe, ob Termine in der Datenbank vorhanden sind.');
+            console.warn('Keine Termine für providerId', this.provider?.providerId, 'gefunden. Bitte prüfe, ob Termine in der Datenbank vorhanden sind.');
           }
         },
         error: (error) => {

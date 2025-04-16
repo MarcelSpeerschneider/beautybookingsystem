@@ -27,7 +27,7 @@ interface FormViewModel {
 })
 export class AppointmentFormComponent implements OnInit, OnDestroy {
   @Input() isEditMode: boolean = false;
-  @Input() provider!: Provider;
+  @Input() provider!: Provider & { providerId: string };
   @Input() appointment: Appointment | null = null;
   
   @Output() formSubmit = new EventEmitter<Appointment>();
@@ -97,7 +97,7 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
     }
     
     const servicesSub = this.serviceService
-      .getServicesByProvider(this.provider.id)
+      .getServicesByProvider(this.provider.providerId)
       .subscribe({
         next: (services) => {
           this.availableServices = services;
@@ -239,7 +239,7 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
       id: '',
       customerId: '',
       customerName: '',
-      providerId: this.provider ? this.provider.id : '',
+      providerId: this.provider ? this.provider.providerId : '',
       serviceIds: [],
       serviceName: '',
       startTime: new Date(),

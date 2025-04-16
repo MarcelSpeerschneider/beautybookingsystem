@@ -30,15 +30,15 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Dashboard...');
-
+  
     // Check if user is authenticated and is a provider
     const userSub = this.authService.user.subscribe(userWithCustomer => {
       if (!userWithCustomer.user) {
         this.router.navigate(['/provider-login']);
         return;
       }
-
-      // Get provider info
+  
+      // Get provider info using Auth UID
       const providerSub = this.providerService.getProvider(userWithCustomer.user.uid)
         .subscribe(provider => {
           if (provider) {
@@ -49,10 +49,10 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
           }
           this.loadingService.setLoading(false);
         });
-
+  
       this.subscriptions.push(providerSub);
     });
-
+  
     this.subscriptions.push(userSub);
   }
 

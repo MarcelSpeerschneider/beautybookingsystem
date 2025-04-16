@@ -41,8 +41,8 @@
       <div class="providers-grid">
         <div *ngFor="let provider of providers" 
              class="provider-card" 
-             [ngClass]="{'selected': bookingForm.get('providerId')?.value === provider.id}" 
-             (click)="selectProvider(provider.id)">
+             [ngClass]="{'selected': bookingForm.get('providerId')?.value === provider.providerId}" 
+             (click)="selectProvider(provider.providerId)">
              <div class="provider-name">{{ provider.businessName }}</div>
           <div class="provider-description">{{ provider.description }}</div>
           <div *ngIf="provider.address" class="provider-address">{{ provider.address }}</div>
