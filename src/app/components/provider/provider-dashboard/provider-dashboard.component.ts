@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';  // RouterOutlet entfernt
+import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthenticationService } from '../../../services/authentication.service';
 import { ProviderService } from '../../../services/provider.service';
@@ -11,15 +11,18 @@ import { AppointmentListComponent } from './appointments/appointment-list.compon
 import { ServiceListComponent } from './services/service-list.component';
 import { CustomersListComponent } from './customers/customers-list.component';
 
+// Extended provider type with providerId
+type ProviderWithId = Provider & { providerId: string };
+
 @Component({
   selector: 'app-provider-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, DashboardOverviewComponent, AppointmentListComponent, ServiceListComponent, CustomersListComponent ],
+  imports: [CommonModule, RouterModule, DashboardOverviewComponent, AppointmentListComponent, ServiceListComponent, CustomersListComponent],
   templateUrl: './provider-dashboard.component.html',
   styleUrls: ['./provider-dashboard.component.css']
 })
 export class ProviderDashboardComponent implements OnInit, OnDestroy {
-  provider: Provider | null = null;
+  provider: ProviderWithId | null = null;
   currentTab: string = 'dashboard';
   private subscriptions: Subscription[] = [];
 
@@ -42,7 +45,8 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
       const providerSub = this.providerService.getProvider(userWithCustomer.user.uid)
         .subscribe(provider => {
           if (provider) {
-            this.provider = provider;
+            // Cast to the expected ProviderWithId type
+            this.provider = provider as ProviderWithId;
           } else {
             // User is not a provider, redirect to provider registration
             this.router.navigate(['/provider-registration']);
@@ -63,7 +67,7 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
 
   changeTab(tab: string): void {
     this.currentTab = tab;
-    // In Zukunft könnte hier auch ein Router-Navigation stehen:
+    // In the future, this could be a router navigation:
     // this.router.navigate(['/provider-dashboard', tab]);
   }
 

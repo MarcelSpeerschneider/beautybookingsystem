@@ -8,6 +8,9 @@ import { Provider } from '../../../../models/provider.model';
 import { Appointment } from '../../../../models/appointment.model';
 import { Service } from '../../../../models/service.model';
 
+// Define the extended Provider type with providerId
+type ProviderWithId = Provider & { providerId: string };
+
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
@@ -16,7 +19,7 @@ import { Service } from '../../../../models/service.model';
   styleUrls: ['./dashboard-overview.component.css']
 })
 export class DashboardOverviewComponent implements OnInit, OnDestroy {
-  @Input() provider: Provider | null = null;
+  @Input() provider: ProviderWithId | null = null;
 
   today: Date = new Date();
   todayAppointments: Appointment[] = [];
@@ -48,13 +51,13 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     }
 
     this.loadingService.setLoading(true, 'Lade heutige Termine...');
-    console.log('Provider-ID für loadTodayAppointments:', this.provider.id);
+    console.log('Provider-ID für loadTodayAppointments:', this.provider.providerId);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // WICHTIG: Parameter 'true' hinzugefügt, um als Provider zu filtern
     const appointmentsSub = this.appointmentService
-      .getAppointmentsByUserAndDate(this.provider.id, today, true)
+      .getAppointmentsByUserAndDate(this.provider.providerId, today, true)
       .subscribe({
         next: (appointments) => {
           console.log('Geladene Termine für heute:', appointments);
@@ -80,7 +83,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     if (!this.provider) return;
 
     const servicesSub = this.serviceService
-      .getServicesByProvider(this.provider.id)
+      .getServicesByProvider(this.provider.providerId)
       .subscribe({
         next: (services: Service[]) => {
           this.services = services;

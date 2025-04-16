@@ -27,6 +27,7 @@ import { Appointment } from '../../../models/appointment.model';
 export class BookingConfirmationComponent implements OnInit, OnDestroy {
   // Properties
   provider: Provider | null | undefined = null;
+  providerUserId: string = ''; // Store just the provider ID separately
   customer: Customer | null = null;
   cartItems: Service[] = [];
   selectedDate: Date | null = null;
@@ -87,6 +88,9 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
       this.router.navigate(['/']);
       return;
     }
+    
+    // Store provider ID
+    this.providerUserId = providerId;
     
     // Load provider details
     const providerSub = this.providerService.getProvider(providerId).subscribe({
@@ -175,9 +179,9 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     
     const appointment: Appointment = {
       id: uuidv4(),
-      // Use the id field instead of userId for both customer and provider
+      // Use the stored provider ID instead of trying to access provider.providerId
       customerId: this.customer.id,
-      providerId: this.provider.id,
+      providerId: this.providerUserId,
       serviceIds: serviceIds,
       startTime: appointmentDate,
       endTime: endTime,

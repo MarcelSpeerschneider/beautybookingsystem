@@ -9,6 +9,9 @@ import { ServiceService } from '../../../../services/service.service';
 import { LoadingService } from '../../../../services/loading.service';
 import { ServiceFormComponent } from './service-form/service-form.component';
 
+// Define the extended Provider type with providerId
+type ProviderWithId = Provider & { providerId: string };
+
 @Component({
   selector: 'app-service-list',
   standalone: true,
@@ -21,7 +24,7 @@ import { ServiceFormComponent } from './service-form/service-form.component';
   styleUrls: ['./service-list.component.css']
 })
 export class ServiceListComponent implements OnInit, OnDestroy {
-  @Input() provider: Provider | null = null;
+  @Input() provider: ProviderWithId | null = null;
   
   services: Service[] = [];
   selectedService: Service | null = null;
@@ -49,7 +52,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
     this.loadingService.setLoading(true, 'Lade Dienstleistungen...');
     
     const servicesSub = this.serviceService
-      .getServicesByProvider(this.provider.id)
+      .getServicesByProvider(this.provider.providerId)
       .subscribe({
         next: (services: Service[]) => {
           this.services = services;
@@ -131,7 +134,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   private createEmptyService(): Service {
     return {
       id: '', // Leere ID, wird von Firestore beim Speichern generiert
-      providerId: this.provider?.id || '',
+      providerId: this.provider?.providerId || '',
       name: '',
       description: '',
       price: 0,

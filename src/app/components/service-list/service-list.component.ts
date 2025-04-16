@@ -20,6 +20,7 @@ import { LoadingService } from '../../services/loading.service';
 export class ServiceListComponent implements OnInit, OnDestroy {
   @Input() provider: Provider | null = null;
   
+  providerUserId: string = ''; // Separate variable to store provider ID
   services: Service[] = [];
   selectedService: Service | null = null;
   showAddServiceForm: boolean = false;
@@ -32,7 +33,12 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   
   ngOnInit(): void {
     if (this.provider) {
-      this.loadServices();
+      // Extract provider ID
+      this.extractProviderId();
+      // Then load services if we have an ID
+      if (this.providerUserId) {
+        this.loadServices();
+      }
     }
   }
   
@@ -40,13 +46,36 @@ export class ServiceListComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
   
-  loadServices(): void {
+  // Extract provider ID from the provider object
+  private extractProviderId(): void {
     if (!this.provider) return;
+    
+    // Cast to any to access potential ID fields
+    const providerAny = this.provider as any;
+    
+    // Check which ID field exists and is a string
+    if (providerAny.id && typeof providerAny.id === 'string') {
+      this.providerUserId = providerAny.id;
+    } else if (providerAny.providerId && typeof providerAny.providerId === 'string') {
+      this.providerUserId = providerAny.providerId;
+    } else {
+      console.error('No valid provider ID found', this.provider);
+      this.providerUserId = '';
+    }
+    
+    console.log('Provider ID extracted:', this.providerUserId);
+  }
+  
+  loadServices(): void {
+    if (!this.providerUserId) {
+      console.error('Cannot load services: No provider ID available');
+      return;
+    }
     
     this.loadingService.setLoading(true, 'Lade Dienstleistungen...');
     
     const servicesSub = this.serviceService
-      .getServicesByProvider(this.provider.id)
+      .getServicesByProvider(this.providerUserId)
       .subscribe({
         next: (services: Service[]) => {
           this.services = services;
@@ -128,7 +157,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   private createEmptyService(): Service {
     return {
       id: '',
-      providerId: this.provider?.id || '',
+      providerId: this.providerUserId, // Use the extracted provider ID
       name: '',
       description: '',
       price: 0,

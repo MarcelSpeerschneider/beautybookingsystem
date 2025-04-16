@@ -24,28 +24,29 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   public authService = inject(AuthenticationService);
   
   provider: Provider | null = null;
+  providerUserId: string = ''; // Speichert die Provider-ID
   businessName: string | null = null;
   isLoggedIn = false;
-  isOwnProviderPage: boolean = false; // Indicates if the logged-in user is viewing their own provider page
+  isOwnProviderPage: boolean = false; // Zeigt an, ob der angemeldete User seine eigene Provider-Seite ansieht
   
   private subscriptions: Subscription[] = [];
   
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Dienstleister...');
     
-    // Clear any existing cart when starting a new booking flow
+    // Warenkorb leeren, wenn ein neuer Buchungsablauf beginnt
     this.cartService.clearCart();
     
-    // Also clear date/time selection from session storage
+    // Auch Datum/Zeit-Auswahl aus dem Session Storage löschen
     sessionStorage.removeItem('selectedDate');
     sessionStorage.removeItem('selectedTime');
     
-    // Get the business name from the route parameter
+    // Business-Namen aus dem Routen-Parameter holen
     const routeSub = this.route.paramMap.subscribe(params => {
       this.businessName = params.get('businessName');
       
       if (this.businessName) {
-        // Find provider by business name
+        // Provider anhand des Business-Namens finden
         this.findProviderByBusinessName(this.businessName);
       } else {
         this.loadingService.setLoading(false);
@@ -54,7 +55,7 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
     
     this.subscriptions.push(routeSub);
     
-    // Check if user is logged in
+    // Prüfen, ob User angemeldet ist
     const authSub = this.authService.isLoggedIn().subscribe(loggedIn => {
       this.isLoggedIn = loggedIn;
     });
@@ -63,7 +64,7 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   }
   
   ngOnDestroy(): void {
-    // Unsubscribe from all subscriptions
+    // Alle Subscriptions beenden
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
   
@@ -73,25 +74,44 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
     const providersSub = this.providerService.getProviders().subscribe(providers => {
       console.log('Gefundene Provider:', providers);
       
-      // Find provider with matching business name, case insensitive
+      // Provider mit passendem Business-Namen finden (case-insensitive)
       const provider = providers.find(p => {
         console.log('Vergleiche:', p.businessName.toLowerCase(), '==', businessName.toLowerCase());
-          return p.businessName.toLowerCase() === businessName.toLowerCase();
-        });
+        return p.businessName.toLowerCase() === businessName.toLowerCase();
+      });
       
       if (provider) {
         console.log('Provider gefunden:', provider);
         this.provider = provider;
-        this.cartService.setProviderId(provider.id);
         
-        // Check if the logged-in user is the provider of this page
-        const userSub = this.authService.user$.subscribe(user => {
-          if (user && provider) {
-            this.isOwnProviderPage = user.uid === provider.id;
-            console.log('Is own provider page:', this.isOwnProviderPage);
-          }
-        });
-        this.subscriptions.push(userSub);
+        // Die ID extrahieren - wir benötigen ein explizites Casting, da der normale Provider-Typ 
+        // möglicherweise keine id-Eigenschaft hat
+        const providerAny = provider as any;
+        
+        // Prüfen, welches ID-Feld vorhanden ist
+        if (providerAny.id && typeof providerAny.id === 'string') {
+          this.providerUserId = providerAny.id;
+        } else if (providerAny.providerId && typeof providerAny.providerId === 'string') {
+          this.providerUserId = providerAny.providerId;
+        } else {
+          // Wenn keine ID gefunden wurde, Fehler loggen
+          console.error('Keine Provider-ID gefunden', provider);
+          this.providerUserId = '';
+        }
+        
+        if (this.providerUserId) {
+          console.log('Provider-ID gefunden:', this.providerUserId);
+          this.cartService.setProviderId(this.providerUserId);
+          
+          // Prüfen, ob der angemeldete User der Provider dieser Seite ist
+          const userSub = this.authService.user$.subscribe(user => {
+            if (user) {
+              this.isOwnProviderPage = user.uid === this.providerUserId;
+              console.log('Is own provider page:', this.isOwnProviderPage);
+            }
+          });
+          this.subscriptions.push(userSub);
+        }
       } else {
         console.log('Provider nicht gefunden');
       }
@@ -103,21 +123,21 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   
   viewServices(): void {
     if (this.isOwnProviderPage) {
-      // Show a message that providers can't book with themselves
+      // Meldung, dass Provider keine Termine bei sich selbst buchen können
       alert('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
       
-      // Still allow navigation to view services in preview mode
-      if (this.provider && this.provider.id) {
-        this.router.navigate(['/services', this.provider.id], { queryParams: { previewMode: 'true' } });
+      // Trotzdem Navigation zu Dienstleistungen im Vorschau-Modus erlauben
+      if (this.providerUserId) {
+        this.router.navigate(['/services', this.providerUserId], { queryParams: { previewMode: 'true' } });
       }
       return;
     }
     
-    // Original navigation for customers
-    if (this.provider && this.provider.id) {
-      this.router.navigate(['/services', this.provider.id]);
+    // Normale Navigation für Kunden
+    if (this.providerUserId) {
+      this.router.navigate(['/services', this.providerUserId]);
     } else { 
-      console.error('Provider not set') 
+      console.error('Provider-ID nicht gesetzt'); 
     }
   }
   
