@@ -1,9 +1,18 @@
 import { Injectable, inject } from '@angular/core';
 import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
-import { Observable, of } from 'rxjs';
-import { tap, catchError, timeout, map } from 'rxjs/operators';
+import { Observable, of, from } from 'rxjs';
+import { catchError, timeout, map, switchMap } from 'rxjs/operators';
 import { AuthenticationService } from '../services/authentication.service';
 import { LoadingService } from '../services/loading.service';
+import { 
+  Firestore, 
+  doc, 
+  getDoc,
+  collection, 
+  query, 
+  where, 
+  getDocs
+} from '@angular/fire/firestore';
 
 @Injectable({
   providedIn: 'root',
@@ -12,6 +21,7 @@ export class AuthGuard implements CanActivate {
   private authService = inject(AuthenticationService);
   private router = inject(Router);
   private loadingService = inject(LoadingService);
+  private firestore = inject(Firestore);
 
   canActivate(
     route: ActivatedRouteSnapshot,
@@ -39,26 +49,30 @@ export class AuthGuard implements CanActivate {
       // For provider routes, check if user is logged in and has provider role
       return this.authService.user$.pipe(
         timeout(5000),
-        map(user => {
-          this.loadingService.setLoading(false);
-          
+        switchMap(user => {
           if (!user) {
             console.log('AuthGuard: User not logged in, redirecting to provider login');
+            this.loadingService.setLoading(false);
             this.router.navigate(['/provider-login']);
-            return false;
+            return of(false);
           }
           
-          // Check if user is a provider
-          const userRole = localStorage.getItem(`user_role_${user.uid}`);
-          const isProvider = userRole === 'provider';
+          // Check if user is a provider by looking for a document in the providers collection
+          const providerDoc = doc(this.firestore, 'providers', user.uid);
           
-          if (!isProvider) {
-            console.log('AuthGuard: User is not a provider, redirecting to provider login');
-            this.router.navigate(['/provider-login']);
-            return false;
-          }
-          
-          return true;
+          return from(getDoc(providerDoc)).pipe(
+            map(docSnapshot => {
+              this.loadingService.setLoading(false);
+              
+              if (!docSnapshot.exists()) {
+                console.log('AuthGuard: User is not a provider, redirecting to provider login');
+                this.router.navigate(['/provider-login']);
+                return false;
+              }
+              
+              return true;
+            })
+          );
         }),
         catchError(error => {
           this.loadingService.setLoading(false);
@@ -69,38 +83,65 @@ export class AuthGuard implements CanActivate {
       );
     } else {
       // For customer routes that actually require customer data
-      return this.authService.user.pipe(
+      return this.authService.user$.pipe(
         timeout(5000),
-        map(userWithCustomer => {
-          this.loadingService.setLoading(false);
-          
-          // First check if user is logged in at all
-          if (!userWithCustomer.user) {
+        switchMap(user => {
+          if (!user) {
             console.log('AuthGuard: User not logged in, redirecting to login');
+            this.loadingService.setLoading(false);
             this.router.navigate(['/customer-login']);
-            return false;
+            return of(false);
           }
           
-          // Check if this is a provider trying to access customer routes
-          const userRole = localStorage.getItem(`user_role_${userWithCustomer.user.uid}`);
-          if (userRole === 'provider') {
-            console.log('AuthGuard: Provider trying to access customer route, redirecting to provider dashboard');
-            this.router.navigate(['/provider-dashboard']);
-            return false;
-          }
+          console.log('AuthGuard: User found with UID:', user.uid);
           
-          // For customers, we need the customer data
-          if (!userWithCustomer.customer) {
-            console.log('AuthGuard: Customer data not found, redirecting to login');
-            this.router.navigate(['/customer-login']);
-            return false;
-          }
+          // First check if the user is a provider
+          const providerDoc = doc(this.firestore, 'providers', user.uid);
           
-          return true;
+          return from(getDoc(providerDoc)).pipe(
+            switchMap(providerDocSnapshot => {
+              console.log('AuthGuard: Provider check - document exists?', providerDocSnapshot.exists());
+              
+              // If user is a provider, redirect to provider dashboard
+              if (providerDocSnapshot.exists()) {
+                console.log('AuthGuard: Provider trying to access customer route, redirecting to provider dashboard');
+                this.loadingService.setLoading(false);
+                this.router.navigate(['/provider-dashboard']);
+                return of(false);
+              }
+              
+              // Now check if customer data exists
+              const customerDoc = doc(this.firestore, 'customers', user.uid);
+              console.log('AuthGuard: Checking customer document path:', customerDoc.path);
+              
+              return from(getDoc(customerDoc)).pipe(
+                map(customerDocSnapshot => {
+                  this.loadingService.setLoading(false);
+                  
+                  console.log("AuthGuard: Customer doc exists?", customerDocSnapshot.exists());
+                  console.log("AuthGuard: Customer doc path:", customerDoc.path);
+                  
+                  if (customerDocSnapshot.exists()) {
+                    console.log("AuthGuard: Customer doc data:", customerDocSnapshot.data());
+                  }
+                  
+                  if (!customerDocSnapshot.exists()) {
+                    console.log('AuthGuard: Customer data not found, redirecting to login');
+                    this.router.navigate(['/customer-login']);
+                    return false;
+                  }
+                  
+                  console.log('AuthGuard: Customer data found, allowing access');
+                  return true;
+                })
+              );
+            })
+          );
         }),
         catchError(error => {
           this.loadingService.setLoading(false);
           console.log('AuthGuard: Error or timeout', error);
+          console.error('AuthGuard Detailed Error:', error);
           this.router.navigate(['/customer-login']);
           return of(false);
         })

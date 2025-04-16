@@ -2,21 +2,21 @@ import { Injectable, inject, NgZone } from '@angular/core';
 import { Customer } from '../models/customer.model';
 import { Observable, from, of, catchError } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
-import { 
-  Firestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  collectionData, 
-  docData, 
-  addDoc, 
+import {
+  Firestore,
+  collection,
+  doc,
+  getDoc,
+  collectionData,
+  docData,
+  addDoc,
   setDoc,
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  DocumentReference, 
-  getDocs 
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  DocumentReference,
+  getDocs
 } from '@angular/fire/firestore';
 
 @Injectable({
@@ -26,8 +26,8 @@ export class CustomerService {
   private collectionName = 'customers';
   firestore: Firestore = inject(Firestore);
   private ngZone = inject(NgZone);
-  
-  constructor(){}
+
+  constructor() { }
 
   getCustomers(): Observable<Customer[]> {
     return new Observable<Customer[]>(observer => {
@@ -59,9 +59,9 @@ export class CustomerService {
       this.ngZone.run(() => {
         try {
           console.log('Lade Kundendaten für ID:', customerId);
-          
+
           const customerDocument = doc(this.firestore, this.collectionName, customerId);
-          
+
           getDoc(customerDocument)
             .then(docSnap => {
               if (docSnap.exists()) {
@@ -95,7 +95,7 @@ export class CustomerService {
         try {
           const customerCollection = collection(this.firestore, this.collectionName);
           const q = query(customerCollection, where('email', '==', email));
-          
+
           getDocs(q)
             .then(querySnapshot => {
               if (!querySnapshot.empty) {
@@ -130,46 +130,49 @@ export class CustomerService {
   async createCustomer(customer: Omit<Customer, 'id'>, userId?: string): Promise<string> {
     return this.ngZone.run(async () => {
       try {
-        console.log('Creating new customer' + (userId ? ` with ID ${userId}` : ''));
-        
-        // Check if a customer with this email already exists
-        if (customer.email) {
-          const existingCustomerQuery = query(
-            collection(this.firestore, this.collectionName), 
-            where('email', '==', customer.email)
-          );
-          
-          const querySnapshot = await getDocs(existingCustomerQuery);
-          if (!querySnapshot.empty) {
-            console.warn(`Customer with email ${customer.email} already exists`);
-            return querySnapshot.docs[0].id;
-          }
-        }
-        
+        console.log('Creating new customer' + (userId ? ` with Auth ID ${userId}` : ' with auto-generated ID'));
+
         // Prepare customer data with timestamps
         const customerToSave = {
           ...customer,
           createdAt: new Date(),
           updatedAt: new Date()
         };
-        
-        // If userId is provided, use it as the document ID
+
+        // BEVORZUGTE METHODE: Wenn userId (Auth-ID) vorhanden ist
         if (userId) {
           // Check if customer with this ID already exists
           const customerDoc = doc(this.firestore, this.collectionName, userId);
           const customerSnapshot = await getDoc(customerDoc);
-          
+
           if (customerSnapshot.exists()) {
             console.log(`Customer with ID ${userId} already exists`);
             return userId;
           }
-          
+
           // Use explicit document ID (user's Auth UID)
           await setDoc(customerDoc, customerToSave);
-          console.log(`Customer created with specific ID: ${userId}`);
+          console.log(`Customer created with Auth ID: ${userId}`);
           return userId;
-        } else {
-          // Create document with auto-generated ID
+        }
+        // FALLBACK: Email-Check und auto-generierte ID
+        else {
+          // Check if a customer with this email already exists
+          if (customer.email) {
+            const existingCustomerQuery = query(
+              collection(this.firestore, this.collectionName),
+              where('email', '==', customer.email)
+            );
+
+            const querySnapshot = await getDocs(existingCustomerQuery);
+            if (!querySnapshot.empty) {
+              console.warn(`Customer with email ${customer.email} already exists`);
+              return querySnapshot.docs[0].id;
+            }
+          }
+
+          // Create document with auto-generated ID (FALLBACK, NICHT EMPFOHLEN)
+          console.warn('Creating customer with auto-generated ID is not recommended');
           const customersCollection = collection(this.firestore, this.collectionName);
           const docRef = await addDoc(customersCollection, customerToSave);
           console.log('Customer created with auto-generated ID:', docRef.id);
@@ -187,13 +190,13 @@ export class CustomerService {
       try {
         const { id, ...customerData } = customer;
         const customerDocument = doc(this.firestore, this.collectionName, id);
-        
+
         // Update the updatedAt field
         const updatedCustomer = {
           ...customerData,
           updatedAt: new Date()
         };
-        
+
         return updateDoc(customerDocument, updatedCustomer);
       } catch (error) {
         console.error('Error updating customer:', error);

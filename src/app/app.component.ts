@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { AuthenticationService } from './services/authentication.service';
-import { filter } from 'rxjs/operators';
+import { filter, switchMap } from 'rxjs/operators';
 import { LoadingComponent } from './components/loading/loading.component';
-import { CommonModule } from '@angular/common'; 
+import { CommonModule } from '@angular/common';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
+import { from, of } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +19,8 @@ import { CommonModule } from '@angular/common';
 })
 export class AppComponent implements OnInit {
   title = 'Beauty Booking System';
+  
+  private firestore = inject(Firestore);
   
   constructor(
     private authService: AuthenticationService,
@@ -34,6 +38,7 @@ export class AppComponent implements OnInit {
         
         if (redirectUrl) {
           console.log('Potential redirect URL:', redirectUrl);
+          console.log('Debug - current URL:', this.router.url);
           
           // Don't redirect to public routes like /:businessName
           if (this.isPublicRoute(redirectUrl)) {
@@ -52,31 +57,59 @@ export class AppComponent implements OnInit {
           
           console.log('User fully authenticated, redirecting to:', redirectUrl);
           
-          // Check user role before redirecting
-          const userRole = localStorage.getItem(`user_role_${userWithCustomer.user.uid}`);
-          const isProvider = userRole === 'provider';
+          // Verwende Firestore-basierte Rollenprüfung anstelle von localStorage
+          const userId = userWithCustomer.user.uid;
           
-          if (isProvider && redirectUrl.includes('provider-dashboard')) {
-            // Provider accessing provider dashboard - allow
-            this.router.navigateByUrl(redirectUrl);
-            sessionStorage.removeItem('redirectUrl');
-          } 
-          else if (!isProvider && redirectUrl.includes('provider-dashboard')) {
-            // Customer trying to access provider dashboard - redirect to customer profile
-            console.log('Customer trying to access provider route, redirecting to customer profile');
-            this.router.navigate(['/customer-profile']);
-            sessionStorage.removeItem('redirectUrl');
-          }
-          else if (!isProvider && userWithCustomer.customer) {
-            // Customer with customer data - allow normal redirect 
-            this.router.navigateByUrl(redirectUrl);
-            sessionStorage.removeItem('redirectUrl');
-          }
-          else {
-            // Handle other cases
-            console.log('Redirect not applicable, clearing');
-            sessionStorage.removeItem('redirectUrl');
-          }
+          // Überprüfe, ob der Benutzer ein Provider ist
+          const providerDoc = doc(this.firestore, 'providers', userId);
+          
+          from(getDoc(providerDoc)).pipe(
+            switchMap(providerSnapshot => {
+              const isProvider = providerSnapshot.exists();
+              console.log('Debug - Provider check:', isProvider ? 'Is Provider' : 'Not a Provider');
+              
+              if (isProvider && redirectUrl.includes('provider-dashboard')) {
+                // Provider accessing provider dashboard - allow
+                this.router.navigateByUrl(redirectUrl);
+                sessionStorage.removeItem('redirectUrl');
+                return of(true);
+              } 
+              else if (!isProvider && redirectUrl.includes('provider-dashboard')) {
+                // Customer trying to access provider dashboard - redirect to customer profile
+                console.log('Customer trying to access provider route, redirecting to customer profile');
+                this.router.navigate(['/customer-profile']);
+                sessionStorage.removeItem('redirectUrl');
+                return of(true);
+              }
+              else if (!isProvider) {
+                // Check if customer document exists
+                const customerDoc = doc(this.firestore, 'customers', userId);
+                return from(getDoc(customerDoc)).pipe(
+                  switchMap(customerSnapshot => {
+                    console.log('Debug - Customer check:', customerSnapshot.exists() ? 'Customer document exists' : 'No customer document');
+                    
+                    if (customerSnapshot.exists() || userWithCustomer.customer) {
+                      // Customer with customer data - allow normal redirect
+                      console.log('Customer with data, proceeding with redirect to:', redirectUrl);
+                      this.router.navigateByUrl(redirectUrl);
+                      sessionStorage.removeItem('redirectUrl');
+                      return of(true);
+                    } else {
+                      // No customer document found
+                      console.log('No customer document exists, clearing redirect');
+                      sessionStorage.removeItem('redirectUrl');
+                      return of(false);
+                    }
+                  })
+                );
+              }
+              
+              // Handle other cases
+              console.log('Redirect not applicable, clearing');
+              sessionStorage.removeItem('redirectUrl');
+              return of(false);
+            })
+          ).subscribe();
         }
       }
     });

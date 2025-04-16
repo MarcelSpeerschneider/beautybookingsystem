@@ -9,7 +9,7 @@ import { Provider } from '../models/provider.model';
 import { Router } from '@angular/router';
 import { LoadingService } from './loading.service';
 import { Auth } from '@angular/fire/auth';
-import { Firestore, collection, addDoc } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDoc, setDoc, addDoc } from '@angular/fire/firestore';
 import { FirebaseError } from 'firebase/app';
 
 export interface UserWithCustomer {
@@ -58,135 +58,82 @@ export class AuthenticationService {
           
           if (user) {
             // Check for provider registration in progress
-            const isRegisteringProvider = sessionStorage.getItem('registering_provider') === 'true' || 
-                                          localStorage.getItem('registering_provider') === 'true';
+            const isRegisteringProvider = sessionStorage.getItem('registering_provider') === 'true';
                                          
             // If registration is in progress, don't try to load/create customer
             if (this.registrationInProgress || isRegisteringProvider) {
               console.log("Registration in progress, skipping customer auto-creation");
               
               // Clear temporary marker once used
-              localStorage.removeItem('registering_provider');
               sessionStorage.removeItem('registering_provider');
               return;
             }
             
-            // Check if user is a provider - enhanced check with multiple methods
-            const userRole = localStorage.getItem(`user_role_${user.uid}`);
+            // First check if user is a provider by looking for a provider document
+            const providerDoc = doc(this.firestore, 'providers', user.uid);
             
-            if (userRole === 'provider') {
-              console.log("User is a provider, loading provider data");
-              // Load provider data instead of customer
-              this.loadingService.setLoading(true, 'Lade Anbieter-Daten...');
-              this.providerService.getProvider(user.uid).subscribe({
-                next: (provider) => {
-                  console.log("Provider data loaded:", provider ? "Found" : "Not found");
-                  this.userWithCustomerSubject.next({
-                    user: user,
-                    customer: null // No customer for providers
-                  });
-                  this.loadingService.setLoading(false);
-                },
-                error: (error: unknown) => {
-                  console.error("Error loading provider data:", error);
-                  this.loadingService.setLoading(false);
-                }
-              });
-            } else {
-              // Before proceeding with customer flow, check if a provider exists
-              this.providerService.getProvider(user.uid).subscribe({
-                next: (provider) => {
-                  if (provider) {
-                    console.log("Provider found for user, skipping customer creation");
-                    localStorage.setItem(`user_role_${user.uid}`, 'provider');
-                    
+            getDoc(providerDoc).then(docSnapshot => {
+              if (docSnapshot.exists()) {
+                console.log("User is a provider, loading provider data");
+                // Load provider data instead of customer
+                this.loadingService.setLoading(true, 'Lade Anbieter-Daten...');
+                this.providerService.getProvider(user.uid).subscribe({
+                  next: (provider) => {
+                    console.log("Provider data loaded:", provider ? "Found" : "Not found");
                     this.userWithCustomerSubject.next({
                       user: user,
                       customer: null // No customer for providers
                     });
                     this.loadingService.setLoading(false);
-                  } else {
-                    // No provider found, proceed with regular customer flow
-                    this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
-                    this.customerService.getCustomer(user.uid).subscribe({
-                      next: (customer: Customer | undefined) => {
-                        this.loadingService.setLoading(false);
-                        this.userWithCustomerSubject.next({
-                          user: user,
-                          customer: customer || null
-                        });
-                        
-                        if (!customer) {
-                          console.log("No customer data found, attempting to create fallback");
-                          
-                          // Add a slight delay to prevent race conditions with recent registrations
-                          setTimeout(() => {
-                            // Check once more if customer exists before creating
-                            this.customerService.getCustomer(user.uid).subscribe(
-                              (latestCustomer: Customer | undefined) => {
-                                if (!latestCustomer && !this.registrationInProgress) {
-                                  this.createEmptyCustomerIfNeeded().subscribe();
-                                }
-                              }
-                            );
-                          }, 1000);
-                        }
-                      },
-                      error: (error: FirebaseError | unknown) => {
-                        this.loadingService.setLoading(false);
-                        console.error("Error loading customer data:", error);
-                        
-                        // Try to create an empty customer record for permission errors
-                        if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
-                          console.log("Permission denied, attempting to create fallback");
-                          this.createEmptyCustomerIfNeeded().subscribe();
-                        }
-                      }
-                    });
+                  },
+                  error: (error: unknown) => {
+                    console.error("Error loading provider data:", error);
+                    this.loadingService.setLoading(false);
                   }
-                },
-                error: (error: unknown) => {
-                  console.error("Error checking for provider:", error);
-                  // Continue with regular customer flow
-                  this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
-                  this.customerService.getCustomer(user.uid).subscribe({
-                    next: (customer: Customer | undefined) => {
-                      this.loadingService.setLoading(false);
-                      this.userWithCustomerSubject.next({
-                        user: user,
-                        customer: customer || null
-                      });
+                });
+              } else {
+                // Not a provider, look for customer data
+                this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
+                this.customerService.getCustomer(user.uid).subscribe({
+                  next: (customer: Customer | undefined) => {
+                    this.loadingService.setLoading(false);
+                    this.userWithCustomerSubject.next({
+                      user: user,
+                      customer: customer || null
+                    });
+                    
+                    if (!customer) {
+                      console.log("No customer data found, attempting to create fallback");
                       
-                      if (!customer) {
-                        console.log("No customer data found, attempting to create fallback");
-                        
-                        // Add a slight delay to prevent race conditions with recent registrations
-                        setTimeout(() => {
-                          // Check once more if customer exists before creating
-                          this.customerService.getCustomer(user.uid).subscribe(
-                            (latestCustomer: Customer | undefined) => {
-                              if (!latestCustomer && !this.registrationInProgress) {
-                                this.createEmptyCustomerIfNeeded().subscribe();
-                              }
+                      // Add a slight delay to prevent race conditions with recent registrations
+                      setTimeout(() => {
+                        // Check once more if customer exists before creating
+                        this.customerService.getCustomer(user.uid).subscribe(
+                          (latestCustomer: Customer | undefined) => {
+                            if (!latestCustomer && !this.registrationInProgress) {
+                              this.createEmptyCustomerIfNeeded().subscribe();
                             }
-                          );
-                        }, 1000);
-                      }
-                    },
-                    error: (error: FirebaseError | unknown) => {
-                      this.loadingService.setLoading(false);
-                      console.error("Error loading customer data:", error);
-                      
-                      // Try to create an empty customer record for permission errors
-                      if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
-                        console.log("Permission denied, attempting to create fallback");
-                        this.createEmptyCustomerIfNeeded().subscribe();
-                      }
+                          }
+                        );
+                      }, 1000);
                     }
-                  });
-                }
-              });
-            }
+                  },
+                  error: (error: unknown) => {
+                    this.loadingService.setLoading(false);
+                    console.error("Error loading customer data:", error);
+                    
+                    // Try to create an empty customer record for permission errors
+                    if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
+                      console.log("Permission denied, attempting to create fallback");
+                      this.createEmptyCustomerIfNeeded().subscribe();
+                    }
+                  }
+                });
+              }
+            }).catch(error => {
+              console.error("Error checking for provider:", error);
+              this.loadingService.setLoading(false);
+            });
           } else {
             // If no user, set both to null
             this.userWithCustomerSubject.next({
@@ -206,17 +153,12 @@ export class AuthenticationService {
       return of(null);
     }
 
-    // Check if this is a provider before creating a customer
-    const userRole = localStorage.getItem(`user_role_${currentUser.uid}`);
-    if (userRole === 'provider') {
-      console.log("User is a provider, skipping customer creation");
-      return of(null);
-    }
-
-    // Make one final check to see if a provider record exists
-    return from(this.providerService.getProvider(currentUser.uid)).pipe(
-      switchMap(provider => {
-        if (provider) {
+    // First check if a provider record exists
+    const providerDoc = doc(this.firestore, 'providers', currentUser.uid);
+    
+    return from(getDoc(providerDoc)).pipe(
+      switchMap(providerSnapshot => {
+        if (providerSnapshot.exists()) {
           console.log("Provider record exists, skipping customer creation");
           return of(null);
         }
@@ -236,7 +178,7 @@ export class AuthenticationService {
           phone: ''
         };
 
-        return from(this.customerService.createCustomer(customer as Omit<Customer, 'id'>)).pipe(
+        return from(this.customerService.createCustomer(customer as Omit<Customer, 'id'>, currentUser.uid)).pipe(
           switchMap((customerId: string) => {
             console.log("Empty customer created with ID:", customerId);
             // Update customer object with the new ID
@@ -349,9 +291,8 @@ export class AuthenticationService {
     try {
       this.registrationInProgress = true;
       
-      // Set this flag to permanently mark this account as a provider
+      // Set this flag to mark the registration process
       sessionStorage.setItem('registering_provider', 'true');
-      localStorage.setItem('registering_provider', 'true');
       
       this.loadingService.setLoading(true, 'Registriere Provider-Konto...');
       
@@ -365,28 +306,16 @@ export class AuthenticationService {
         });
       }
       
-      // IMPORTANT: Set user role in localStorage immediately after user creation
-      if (response.user) {
-        localStorage.setItem(`user_role_${response.user.uid}`, 'provider');
-        
-        // Create a custom claim or custom user data field if possible
-        // This is more reliable than localStorage
-        const metadata = {
+      // Store user metadata in Firestore
+      try {
+        const metadataCollection = collection(this.firestore, 'user_metadata');
+        await addDoc(metadataCollection, {
+          userId: response.user.uid,
           userType: 'provider',
-          creationTime: new Date().toISOString()
-        };
-        
-        // Store this in Firestore if possible in a 'user_metadata' collection
-        try {
-          const metadataCollection = collection(this.firestore, 'user_metadata');
-          await addDoc(metadataCollection, {
-            userId: response.user.uid,
-            userType: 'provider',
-            createdAt: new Date()
-          });
-        } catch (error: unknown) {
-          console.error("Could not save user metadata", error);
-        }
+          createdAt: new Date()
+        });
+      } catch (error: unknown) {
+        console.error("Could not save user metadata", error);
       }
       
       // Don't create the provider object here - let the component handle that
@@ -403,7 +332,6 @@ export class AuthenticationService {
       this.loadingService.setLoading(false);
       this.registrationInProgress = false;
       sessionStorage.removeItem('registering_provider');
-      localStorage.removeItem('registering_provider');
       console.error("Provider registration error", error);
       throw error;
     }
@@ -454,6 +382,24 @@ export class AuthenticationService {
     );
   }
 
+  // Check if a user is a provider
+  isProvider(userId: string): Observable<boolean> {
+    const providerDoc = doc(this.firestore, 'providers', userId);
+    return from(getDoc(providerDoc)).pipe(
+      map(docSnapshot => docSnapshot.exists()),
+      take(1)
+    );
+  }
+
+  // Check if a user is a customer
+  isCustomer(userId: string): Observable<boolean> {
+    const customerDoc = doc(this.firestore, 'customers', userId);
+    return from(getDoc(customerDoc)).pipe(
+      map(docSnapshot => docSnapshot.exists()),
+      take(1)
+    );
+  }
+
   // Checks if a user with customer data is fully loaded
   isUserWithCustomerReady(): Observable<boolean> {
     return this.user.pipe(
@@ -461,15 +407,8 @@ export class AuthenticationService {
         // If user doesn't exist, return false
         if (!userWithCustomer.user) return false;
         
-        // Check if this is a provider
-        const userRole = localStorage.getItem(`user_role_${userWithCustomer.user.uid}`);
-        if (userRole === 'provider') {
-          // For providers, we only need the user to be logged in
-          return true;
-        } else {
-          // For customers, we need both user and customer data
-          return !!userWithCustomer.customer;
-        }
+        // For customers, we need both user and customer data
+        return !!userWithCustomer.customer;
       }),
       take(1)
     );
