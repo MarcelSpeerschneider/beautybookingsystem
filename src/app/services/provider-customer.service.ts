@@ -2,9 +2,17 @@ import { Injectable, inject, NgZone } from '@angular/core';
 import { Observable, from, of } from 'rxjs';
 import { map, switchMap, take, catchError } from 'rxjs/operators';
 import { 
-  Firestore, collection, doc, collectionData, docData, 
-  addDoc, updateDoc, deleteDoc, query, where, DocumentReference, 
-  setDoc, getDoc, getDocs,
+  Firestore, 
+  collection, 
+  doc, 
+  collectionData, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  where, 
+  getDocs,
+  setDoc
 } from '@angular/fire/firestore';
 import { ProviderCustomerRelation } from '../models/provider-customer-relation.model';
 
@@ -27,7 +35,7 @@ export class ProviderCustomerService {
           const relationsCollection = collection(this.firestore, this.collectionName);
           const q = query(relationsCollection, where('providerId', '==', providerId));
           
-          const subscription = collectionData(q, { idField: 'relationId' }).pipe(
+          const subscription = collectionData(q, { idField: 'id' }).pipe(
             map(relations => {
               console.log(`Found ${relations.length} customer relations for provider ${providerId}`);
               return relations as ProviderCustomerRelation[];
@@ -65,7 +73,7 @@ export class ProviderCustomerService {
             where('customerId', '==', customerId)
           );
           
-          const subscription = collectionData(q, { idField: 'relationId' }).pipe(
+          const subscription = collectionData(q, { idField: 'id' }).pipe(
             map(relations => {
               if (relations.length > 0) {
                 console.log(`Relation found between provider ${providerId} and customer ${customerId}`);
@@ -96,7 +104,7 @@ export class ProviderCustomerService {
   }
   
   // Kundennotes aktualisieren - Vereinfacht, speichert nur Notizen
-  updateCustomerNotes(providerId: string, customerId: string, notes: string): Promise<void> {
+  async updateCustomerNotes(providerId: string, customerId: string, notes: string): Promise<void> {
     return this.ngZone.run(async () => {
       try {
         console.log(`Updating notes for customer ${customerId} by provider ${providerId}`);
@@ -114,7 +122,7 @@ export class ProviderCustomerService {
         if (!querySnapshot.empty) {
           // Bestehende Beziehung aktualisieren
           const relationDoc = querySnapshot.docs[0];
-          const docRef = doc(this.firestore, `${this.collectionName}/${relationDoc.id}`);
+          const docRef = doc(this.firestore, this.collectionName, relationDoc.id);
           
           console.log(`Updating existing relation with ID: ${relationDoc.id}`);
           return updateDoc(docRef, { 
@@ -124,8 +132,7 @@ export class ProviderCustomerService {
         } else {
           // Neue Beziehung erstellen
           console.log(`Creating new relation between provider ${providerId} and customer ${customerId}`);
-          const newRelation: ProviderCustomerRelation = {
-            relationId: '',  // Wird von Firestore generiert
+          const newRelation = {
             providerId,
             customerId,
             notes,
@@ -136,6 +143,7 @@ export class ProviderCustomerService {
             updatedAt: new Date()
           };
           
+          // Document-ID wird automatisch von Firestore generiert
           await addDoc(relationsCollection, newRelation);
           return;
         }
@@ -147,7 +155,7 @@ export class ProviderCustomerService {
   }
   
   // Beziehung nach Termin aktualisieren
-  updateRelationAfterAppointment(
+  async updateRelationAfterAppointment(
     providerId: string, 
     customerId: string, 
     appointmentDate: Date, 
@@ -172,7 +180,7 @@ export class ProviderCustomerService {
           console.log('Existing relation found, updating...');
           // Bestehende Beziehung aktualisieren
           const relationDoc = querySnapshot.docs[0];
-          const docRef = doc(this.firestore, `${this.collectionName}/${relationDoc.id}`);
+          const docRef = doc(this.firestore, this.collectionName, relationDoc.id);
           const existingData = relationDoc.data() as ProviderCustomerRelation;
           
           const updateData: any = { 
@@ -181,6 +189,14 @@ export class ProviderCustomerService {
             totalSpent: (existingData.totalSpent || 0) + amount,
             updatedAt: new Date()
           };
+          
+          // Falls zusätzliche Kundendaten vorhanden sind, speichern wir diese
+          if (customerData) {
+            if (customerData.firstName) updateData.customerFirstName = customerData.firstName;
+            if (customerData.lastName) updateData.customerLastName = customerData.lastName;
+            if (customerData.email) updateData.customerEmail = customerData.email;
+            if (customerData.phone) updateData.customerPhone = customerData.phone;
+          }
           
           return updateDoc(docRef, updateData);
         } else {
@@ -198,6 +214,14 @@ export class ProviderCustomerService {
             updatedAt: new Date()
           };
           
+          // Falls zusätzliche Kundendaten vorhanden sind, speichern wir diese
+          if (customerData) {
+            if (customerData.firstName) newRelation.customerFirstName = customerData.firstName;
+            if (customerData.lastName) newRelation.customerLastName = customerData.lastName;
+            if (customerData.email) newRelation.customerEmail = customerData.email;
+            if (customerData.phone) newRelation.customerPhone = customerData.phone;
+          }
+          
           console.log('Creating relation with data:', newRelation);
           
           // Dokument mit addDoc erstellen
@@ -210,22 +234,17 @@ export class ProviderCustomerService {
       }
     });
   }
-}
-
-// Hilfsfunktion für firstValueFrom
-export function firstValueFrom<T>(source: Observable<T>): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const subscription = source.pipe(
-      take(1)
-    ).subscribe({
-      next: value => {
-        resolve(value);
-        subscription.unsubscribe();
-      },
-      error: err => {
-        reject(err);
-        subscription.unsubscribe();
+  
+  // Optional: Lösche eine Beziehung
+  async deleteRelation(relationId: string): Promise<void> {
+    return this.ngZone.run(async () => {
+      try {
+        const docRef = doc(this.firestore, this.collectionName, relationId);
+        return deleteDoc(docRef);
+      } catch (error) {
+        console.error('Error deleting relation:', error);
+        throw error;
       }
     });
-  });
+  }
 }

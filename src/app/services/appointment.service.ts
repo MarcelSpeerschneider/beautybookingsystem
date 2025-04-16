@@ -1,11 +1,10 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Appointment } from '../models/appointment.model';
 import { Observable, from, of, catchError } from 'rxjs';
-import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, DocumentReference, query, where } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, query, where } from '@angular/fire/firestore';
 import { map, switchMap } from 'rxjs/operators';
 import { convertAppointmentDates } from '../utils/date-utils';
 import { ProviderCustomerService } from './provider-customer.service';
-
 
 @Injectable({
     providedIn: 'root'
@@ -25,7 +24,7 @@ export class AppointmentService {
             this.ngZone.run(() => {
                 try {
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-                    collectionData(appointmentsCollection, { idField: 'appointmentId' }).pipe(
+                    collectionData(appointmentsCollection, { idField: 'id' }).pipe(
                         map(data => {
                             // Datumswerte konvertieren
                             return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
@@ -53,7 +52,7 @@ export class AppointmentService {
             this.ngZone.run(() => {
                 try {
                     const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointmentId}`);
-                    docData(appointmentDocument, { idField: 'appointmentId' }).pipe(
+                    docData(appointmentDocument, { idField: 'id' }).pipe(
                         map(data => {
                             // Datumswerte konvertieren
                             return convertAppointmentDates(data) as Appointment;
@@ -76,71 +75,83 @@ export class AppointmentService {
         });
     }
 
-    // Update the createAppointment method in src/app/services/appointment.service.ts
-
-createAppointment(appointment: Appointment): Promise<DocumentReference> {
-    return this.ngZone.run(async () => {
-      try {
-        console.log('Creating new appointment:', appointment);
-        const appointmentsCollection = collection(this.firestore, this.collectionName);
-        
-        // First save the appointment
-        const docRef = await addDoc(appointmentsCollection, appointment);
-        console.log('Appointment created successfully with ID:', docRef.id);
-        
-        // Check if we have at least the customer name
-        const hasCustomerData = appointment.customerName;
-        
-        // Then update provider-customer relationship
-        try {
-          // Price calculation could be done here from the service ID
-          const price = 0; // In a real implementation, get the price from the service
-          
-          // Parse customer name if available
-          let firstName = '';
-          let lastName = '';
-          
-          if (appointment.customerName) {
-            const nameParts = appointment.customerName.split(' ');
-            firstName = nameParts[0] || '';
-            lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-          }
-          
-          await this.providerCustomerService.updateRelationAfterAppointment(
-            appointment.providerId,
-            appointment.customerId,
-            appointment.startTime,
-            price,
-            hasCustomerData ? {
-              firstName: firstName,
-              lastName: lastName,
-              // We don't have email and phone in the Appointment model
-              // so we're only passing the name data
-            } : undefined
-          );
-          console.log('Provider-customer relation updated successfully');
-        } catch (relationError) {
-          console.error('Error updating provider-customer relation:', relationError);
-          // We don't throw the error here since the appointment was already created
-        }
-        
-        return docRef;
-      } catch (error) {
-        console.error('Error creating appointment:', error);
-        throw error;
-      }
-    });
-  }
+    async createAppointment(appointment: Omit<Appointment, 'id'>): Promise<string> {
+        return this.ngZone.run(async () => {
+            try {
+                console.log('Creating new appointment:', appointment);
+                const appointmentsCollection = collection(this.firestore, this.collectionName);
+                
+                // Appointment-Objekt vorbereiten (ohne ID)
+                const appointmentToSave = {
+                    ...appointment,
+                    createdAt: new Date() // Stelle sicher, dass createdAt gesetzt ist
+                };
+                
+                // First save the appointment
+                const docRef = await addDoc(appointmentsCollection, appointmentToSave);
+                console.log('Appointment created successfully with ID:', docRef.id);
+                
+                // Check if we have at least the customer name
+                const hasCustomerData = appointment.customerName;
+                
+                // Then update provider-customer relationship
+                try {
+                    // Price calculation could be done here from the service ID
+                    const price = 0; // In a real implementation, get the price from the service
+                    
+                    // Parse customer name if available
+                    let firstName = '';
+                    let lastName = '';
+                    
+                    if (appointment.customerName) {
+                        const nameParts = appointment.customerName.split(' ');
+                        firstName = nameParts[0] || '';
+                        lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+                    }
+                    
+                    await this.providerCustomerService.updateRelationAfterAppointment(
+                        appointment.providerId,
+                        appointment.customerId,
+                        appointment.startTime,
+                        price,
+                        hasCustomerData ? {
+                            firstName: firstName,
+                            lastName: lastName,
+                            // We don't have email and phone in the Appointment model
+                            // so we're only passing the name data
+                        } : undefined
+                    );
+                    console.log('Provider-customer relation updated successfully');
+                } catch (relationError) {
+                    console.error('Error updating provider-customer relation:', relationError);
+                    // We don't throw the error here since the appointment was already created
+                }
+                
+                return docRef.id;
+            } catch (error) {
+                console.error('Error creating appointment:', error);
+                throw error;
+            }
+        });
+    }
 
     updateAppointment(appointment: Appointment): Observable<Appointment> {
         return new Observable<Appointment>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointment.appointmentId}`);
-                    from(updateDoc(appointmentDocument, { ...appointment })).pipe(
-                        switchMap(() => this.getAppointment(appointment.appointmentId)),
+                    const { id, ...appointmentData } = appointment;
+                    
+                    // Aktualisiere auch den updatedAt-Timestamp
+                    const updatedAppointment = {
+                        ...appointmentData,
+                        updatedAt: new Date()
+                    };
+                    
+                    const appointmentDocument = doc(this.firestore, this.collectionName, id);
+                    from(updateDoc(appointmentDocument, updatedAppointment)).pipe(
+                        switchMap(() => this.getAppointment(id)),
                         catchError(error => {
-                            console.error(`Error updating appointment with ID ${appointment.appointmentId}:`, error);
+                            console.error(`Error updating appointment with ID ${id}:`, error);
                             return of(null as any);
                         })
                     ).subscribe({
@@ -158,23 +169,23 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
     }
 
     // Methode für Kunden, um ihre Termine zu sehen
-    getAppointmentsByUser(userId: string): Observable<Appointment[]> {
+    getAppointmentsByCustomer(customerId: string): Observable<Appointment[]> {
         return new Observable<Appointment[]>(observer => {
             this.ngZone.run(() => {
                 try {
-                    console.log("AppointmentService: Getting appointments for user ID (customer):", userId);
+                    console.log("AppointmentService: Getting appointments for customer ID:", customerId);
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
 
                     // IMPORTANT: Immer innerhalb von ngZone.run() arbeiten
-                    const q = query(appointmentsCollection, where('customerId', '==', userId));
-                    const subscription = collectionData(q, { idField: 'appointmentId' }).pipe(
+                    const q = query(appointmentsCollection, where('customerId', '==', customerId));
+                    const subscription = collectionData(q, { idField: 'id' }).pipe(
                         map(data => {
                             console.log("AppointmentService: Raw results:", data);
                             // Datumswerte konvertieren
                             return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
                         }),
                         catchError(error => {
-                            console.error(`Error fetching appointments for user ${userId}:`, error);
+                            console.error(`Error fetching appointments for customer ${customerId}:`, error);
                             return of([]);
                         })
                     ).subscribe({
@@ -186,7 +197,7 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
                     // Aufräumen beim Abbestellen
                     return () => subscription.unsubscribe();
                 } catch (error) {
-                    console.error('Error in getAppointmentsByUser:', error);
+                    console.error('Error in getAppointmentsByCustomer:', error);
                     observer.next([]);
                     observer.complete();
                 }
@@ -206,7 +217,7 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
                     const fieldName = isProvider ? 'providerId' : 'customerId';
                     const q = query(appointmentsCollection, where(fieldName, '==', userId));
 
-                    collectionData(q, { idField: 'appointmentId' }).pipe(
+                    collectionData(q, { idField: 'id' }).pipe(
                         map(data => {
                             console.log(`AppointmentService: Raw results for ${fieldName}=${userId}:`, data);
 
@@ -245,19 +256,15 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
         });
     }
 
-    getAvailableAppointments(userId: string, date: Date, serviceId: string): Observable<Appointment[]> {
-        return this.ngZone.run(() => {
-            // TODO: Implementieren Sie die Logik für verfügbare Termine
-            return of([]);
-        });
-    }
-
     confirmAppointment(appointmentId: string): Observable<Appointment> {
         return new Observable<Appointment>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointmentId}`);
-                    from(updateDoc(appointmentDocument, { status: 'confirmed' })).pipe(
+                    const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
+                    from(updateDoc(appointmentDocument, { 
+                        status: 'confirmed',
+                        updatedAt: new Date()
+                    })).pipe(
                         switchMap(() => this.getAppointment(appointmentId)),
                         catchError(error => {
                             console.error(`Error confirming appointment with ID ${appointmentId}:`, error);
@@ -281,8 +288,11 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
         return new Observable<Appointment>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointmentId}`);
-                    from(updateDoc(appointmentDocument, { status: 'canceled' })).pipe(
+                    const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
+                    from(updateDoc(appointmentDocument, { 
+                        status: 'canceled',
+                        updatedAt: new Date()
+                    })).pipe(
                         switchMap(() => this.getAppointment(appointmentId)),
                         catchError(error => {
                             console.error(`Error canceling appointment with ID ${appointmentId}:`, error);
@@ -306,8 +316,11 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
         return new Observable<Appointment>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointmentId}`);
-                    from(updateDoc(appointmentDocument, { status: 'completed' })).pipe(
+                    const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
+                    from(updateDoc(appointmentDocument, { 
+                        status: 'completed',
+                        updatedAt: new Date()
+                    })).pipe(
                         switchMap(() => this.getAppointment(appointmentId)),
                         catchError(error => {
                             console.error(`Error completing appointment with ID ${appointmentId}:`, error);
@@ -331,7 +344,7 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
         return new Observable<void>(observer => {
             this.ngZone.run(() => {
                 try {
-                    const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointmentId}`);
+                    const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
                     from(deleteDoc(appointmentDocument)).pipe(
                         catchError(error => {
                             console.error(`Error deleting appointment with ID ${appointmentId}:`, error);
@@ -351,7 +364,7 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
         });
     }
 
-    // Korrigierte Methode für Provider-Appointments
+    // Methode für Provider-Appointments
     getAppointmentsByProvider(providerId: string): Observable<Appointment[]> {
         return new Observable<Appointment[]>(observer => {
             this.ngZone.run(() => {
@@ -360,7 +373,7 @@ createAppointment(appointment: Appointment): Promise<DocumentReference> {
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
                     // Nutze providerId zum Filtern
                     const q = query(appointmentsCollection, where('providerId', '==', providerId));
-                    collectionData(q, { idField: 'appointmentId' }).pipe(
+                    collectionData(q, { idField: 'id' }).pipe(
                         map(data => {
                             console.log("AppointmentService: Raw results for provider:", data);
 

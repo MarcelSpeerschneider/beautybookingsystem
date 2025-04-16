@@ -1,132 +1,132 @@
 <div class="customer-booking-container">
-    <div class="booking-header">
-      <h1>Termin buchen</h1>
-      <p>Buchen Sie Ihren Termin in wenigen Schritten</p>
-    </div>
-  
-    <div class="booking-steps">
-      <div class="step" [ngClass]="{'active': currentStep === 1}">1. Service auswählen</div>
-      <div class="step" [ngClass]="{'active': currentStep === 2}">2. Anbieter auswählen</div>
-      <div class="step" [ngClass]="{'active': currentStep === 3}">3. Datum auswählen</div>
-      <div class="step" [ngClass]="{'active': currentStep === 4}">4. Zeit auswählen</div>
-      <div class="step" [ngClass]="{'active': currentStep === 5}">5. Bestätigen</div>
-    </div>
-  
-    <!-- Formular nur anzeigen wenn es initialisiert ist -->
-    <form *ngIf="bookingForm" [formGroup]="bookingForm" (ngSubmit)="onSubmit()" class="booking-form">
-      <!-- Schritt 1: Service-Auswahl -->
-      <div class="service-selection" *ngIf="currentStep === 1">
-        <h2>Wählen Sie einen Service</h2>
-        <div class="services-grid">
-          <div *ngFor="let service of services" 
-               class="service-card" 
-               [ngClass]="{'selected': bookingForm.get('serviceId')?.value === service.id}" 
-               (click)="selectService(service.id)">
-            <div class="service-name">{{ service.name }}</div>
-            <div class="service-description">{{ service.description }}</div>
-            <div class="service-details">
-              <span class="service-price">{{ service.price }} €</span>
-              <span class="service-duration">{{ service.duration }} Min.</span>
-            </div>
-          </div>
-        </div>
-        <div class="form-navigation">
-          <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('serviceId')?.valid" (click)="nextStep()">Weiter</button>
-        </div>
-      </div>
-
-      <!-- Schritt 2: Anbieter-Auswahl -->
-      <div class="provider-selection" *ngIf="currentStep === 2">
-        <h2>Wählen Sie einen Anbieter</h2>
-        <div class="providers-grid">
-          <div *ngFor="let provider of providers" 
-               class="provider-card" 
-               [ngClass]="{'selected': bookingForm.get('userId')?.value === provider.userId}" 
-               (click)="selectProvider(provider.userId)">
-               <div class="provider-name">{{ provider.businessName }}</div>
-            <div class="provider-description">{{ provider.description }}</div>
-            <div *ngIf="provider.address" class="provider-address">{{ provider.address }}</div>
-          </div>
-        </div>
-        <div class="form-navigation">
-          <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
-          <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('providerId')?.valid" (click)="nextStep()">Weiter</button>
-        </div>        
-      </div>
-  
-      <!-- Schritt 3: Datum-Auswahl -->
-      <div class="date-selection" *ngIf="currentStep === 3">
-        <h2>Wählen Sie einen Tag</h2>
-        <div class="dates-grid">
-          <div *ngFor="let date of availableDates" 
-               class="date-card" 
-               [ngClass]="{'selected': bookingForm.get('date')?.value === date}" 
-               (click)="selectDate(date)">
-            {{ formatDate(date) }}
-          </div>
-        </div>
-        <div class="form-navigation">
-          <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
-          <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('date')?.valid" (click)="nextStep()">Weiter</button>
-        </div>
-      </div>
-  
-      <!-- Schritt 4: Zeit-Auswahl -->
-      <div class="time-selection" *ngIf="currentStep === 4">
-        <h2>Wählen Sie eine Zeit</h2>
-        <div class="times-grid">
-          <div *ngFor="let time of availableTimeSlots" 
-               class="time-card" 
-               [ngClass]="{'selected': bookingForm.get('time')?.value === time}" 
-               (click)="selectTime(time)">
-            {{ time }} Uhr
-          </div>
-        </div>
-        <div class="form-navigation">
-          <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
-          <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('time')?.valid" (click)="currentStep = 5">Weiter</button>
-        </div>
-      </div>
-  
-      <!-- Schritt 5: Bestätigung -->
-      <div class="confirmation" *ngIf="currentStep === 5">
-        <h2>Bestätigen Sie Ihre Buchung</h2>
-        <div class="booking-summary">
-          <h3>Buchungsübersicht</h3>
-          <div class="summary-item">
-            <span class="summary-label">Service:</span>
-            <span class="summary-value">{{ getSelectedService()?.name }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Preis:</span>
-            <span class="summary-value">{{ getSelectedService()?.price }} €</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Dauer:</span>
-            <span class="summary-value">{{ getSelectedService()?.duration }} Minuten</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Anbieter:</span>
-            <span class="summary-value">{{ getSelectedProvider()?.businessName }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Datum:</span>
-            <span class="summary-value">{{ bookingForm.get('date')?.value | date:'dd.MM.yyyy' }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Uhrzeit:</span>
-            <span class="summary-value">{{ bookingForm.get('time')?.value }} Uhr</span>
-          </div>
-        </div>
-          <div class="form-group">
-            <label for="notes" class="form-label">Anmerkungen (optional):</label>
-            <textarea formControlName="notes" placeholder="Deine Notizen" class="form-control"></textarea>
-          </div>
-        
-        <div class="form-navigation">
-          <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
-          <button type="submit" class="btn btn-confirm">Buchung bestätigen</button>
-        </div>
-      </div>
-    </form>
+  <div class="booking-header">
+    <h1>Termin buchen</h1>
+    <p>Buchen Sie Ihren Termin in wenigen Schritten</p>
   </div>
+
+  <div class="booking-steps">
+    <div class="step" [ngClass]="{'active': currentStep === 1}">1. Service auswählen</div>
+    <div class="step" [ngClass]="{'active': currentStep === 2}">2. Anbieter auswählen</div>
+    <div class="step" [ngClass]="{'active': currentStep === 3}">3. Datum auswählen</div>
+    <div class="step" [ngClass]="{'active': currentStep === 4}">4. Zeit auswählen</div>
+    <div class="step" [ngClass]="{'active': currentStep === 5}">5. Bestätigen</div>
+  </div>
+
+  <!-- Formular nur anzeigen wenn es initialisiert ist -->
+  <form *ngIf="bookingForm" [formGroup]="bookingForm" (ngSubmit)="onSubmit()" class="booking-form">
+    <!-- Schritt 1: Service-Auswahl -->
+    <div class="service-selection" *ngIf="currentStep === 1">
+      <h2>Wählen Sie einen Service</h2>
+      <div class="services-grid">
+        <div *ngFor="let service of services" 
+             class="service-card" 
+             [ngClass]="{'selected': bookingForm.get('serviceId')?.value === service.id}" 
+             (click)="selectService(service.id)">
+          <div class="service-name">{{ service.name }}</div>
+          <div class="service-description">{{ service.description }}</div>
+          <div class="service-details">
+            <span class="service-price">{{ service.price }} €</span>
+            <span class="service-duration">{{ service.duration }} Min.</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-navigation">
+        <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('serviceId')?.valid" (click)="nextStep()">Weiter</button>
+      </div>
+    </div>
+
+    <!-- Schritt 2: Anbieter-Auswahl -->
+    <div class="provider-selection" *ngIf="currentStep === 2">
+      <h2>Wählen Sie einen Anbieter</h2>
+      <div class="providers-grid">
+        <div *ngFor="let provider of providers" 
+             class="provider-card" 
+             [ngClass]="{'selected': bookingForm.get('providerId')?.value === provider.id}" 
+             (click)="selectProvider(provider.id)">
+             <div class="provider-name">{{ provider.businessName }}</div>
+          <div class="provider-description">{{ provider.description }}</div>
+          <div *ngIf="provider.address" class="provider-address">{{ provider.address }}</div>
+        </div>
+      </div>
+      <div class="form-navigation">
+        <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
+        <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('providerId')?.valid" (click)="nextStep()">Weiter</button>
+      </div>        
+    </div>
+
+    <!-- Schritt 3: Datum-Auswahl -->
+    <div class="date-selection" *ngIf="currentStep === 3">
+      <h2>Wählen Sie einen Tag</h2>
+      <div class="dates-grid">
+        <div *ngFor="let date of availableDates" 
+             class="date-card" 
+             [ngClass]="{'selected': bookingForm.get('date')?.value === date}" 
+             (click)="selectDate(date)">
+          {{ formatDate(date) }}
+        </div>
+      </div>
+      <div class="form-navigation">
+        <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
+        <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('date')?.valid" (click)="nextStep()">Weiter</button>
+      </div>
+    </div>
+
+    <!-- Schritt 4: Zeit-Auswahl -->
+    <div class="time-selection" *ngIf="currentStep === 4">
+      <h2>Wählen Sie eine Zeit</h2>
+      <div class="times-grid">
+        <div *ngFor="let time of availableTimeSlots" 
+             class="time-card" 
+             [ngClass]="{'selected': bookingForm.get('time')?.value === time}" 
+             (click)="selectTime(time)">
+          {{ time }} Uhr
+        </div>
+      </div>
+      <div class="form-navigation">
+        <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
+        <button type="button" class="btn btn-next" [disabled]="!bookingForm.get('time')?.valid" (click)="currentStep = 5">Weiter</button>
+      </div>
+    </div>
+
+    <!-- Schritt 5: Bestätigung -->
+    <div class="confirmation" *ngIf="currentStep === 5">
+      <h2>Bestätigen Sie Ihre Buchung</h2>
+      <div class="booking-summary">
+        <h3>Buchungsübersicht</h3>
+        <div class="summary-item">
+          <span class="summary-label">Service:</span>
+          <span class="summary-value">{{ getSelectedService()?.name }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Preis:</span>
+          <span class="summary-value">{{ getSelectedService()?.price }} €</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Dauer:</span>
+          <span class="summary-value">{{ getSelectedService()?.duration }} Minuten</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Anbieter:</span>
+          <span class="summary-value">{{ getSelectedProvider()?.businessName }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Datum:</span>
+          <span class="summary-value">{{ bookingForm.get('date')?.value | date:'dd.MM.yyyy' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Uhrzeit:</span>
+          <span class="summary-value">{{ bookingForm.get('time')?.value }} Uhr</span>
+        </div>
+      </div>
+        <div class="form-group">
+          <label for="notes" class="form-label">Anmerkungen (optional):</label>
+          <textarea formControlName="notes" placeholder="Deine Notizen" class="form-control"></textarea>
+        </div>
+      
+      <div class="form-navigation">
+        <button type="button" class="btn btn-prev" (click)="previousStep()">Zurück</button>
+        <button type="submit" class="btn btn-confirm">Buchung bestätigen</button>
+      </div>
+    </div>
+  </form>
+</div>

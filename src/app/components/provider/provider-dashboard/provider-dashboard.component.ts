@@ -39,7 +39,7 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
       }
 
       // Get provider info
-      const providerSub = this.providerService.getProviderByUserId(userWithCustomer.user.uid)
+      const providerSub = this.providerService.getProvider(userWithCustomer.user.uid)
         .subscribe(provider => {
           if (provider) {
             this.provider = provider;

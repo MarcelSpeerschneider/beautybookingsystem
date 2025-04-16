@@ -51,7 +51,7 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
         this.userId = userId;
         
         // Load provider details by userId
-        this.providerService.getProviderByUserId(userId).subscribe(provider => {
+        this.providerService.getProvider(userId).subscribe(provider => {
           this.provider = provider;
         });
       

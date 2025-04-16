@@ -71,7 +71,8 @@
           <td>{{ customer.phone || '-' }}</td>
           <td>{{ customer.lastVisit ? formatDate(customer.lastVisit) : 'Noch kein Besuch' }}</td>
           <td>{{ customer.visitCount || 0 }}</td>
-          <td class="notes-preview">{{ customer.notes?.substring(0, 50) }}{{ (customer.notes && customer.notes.length > 50) ? '...' : '' }}</td>          <td>
+          <td class="notes-preview">{{ customer.notes?.substring(0, 50) }}{{ (customer.notes && customer.notes.length > 50) ? '...' : '' }}</td>
+          <td>
             <span class="status-badge" [ngClass]="getStatusText(customer).toLowerCase()">
               {{ getStatusText(customer) }}
             </span>
@@ -112,12 +113,12 @@
   
   <!-- Customer Notes Editor -->
   <app-customer-notes
-    *ngIf="selectedCustomer && isEditingNotes"
-    [customer]="selectedCustomer"
-    (save)="saveCustomerNotes(selectedCustomer.customerId, $event)"
-    (cancel)="cancelNotes()">
-  </app-customer-notes>
-  <app-customer-add
+  *ngIf="selectedCustomer && isEditingNotes"
+  [customer]="selectedCustomer"
+  (save)="saveCustomerNotes(selectedCustomer.id, $event)"
+  (cancel)="cancelNotes()">
+</app-customer-notes>
+<app-customer-add
   *ngIf="showAddCustomerForm && provider"
   [provider]="provider"
   (close)="hideAddCustomer()"

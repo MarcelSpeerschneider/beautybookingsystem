@@ -5,6 +5,17 @@ import { AppointmentService } from '../../../../../services/appointment.service'
 import { LoadingService } from '../../../../../services/loading.service';
 import { Appointment } from '../../../../../models/appointment.model';
 
+interface CustomerViewModel {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  notes?: string;
+  lastVisit?: Date | null;
+  visitCount?: number;
+}
+
 @Component({
   selector: 'app-customer-detail',
   standalone: true,
@@ -13,7 +24,7 @@ import { Appointment } from '../../../../../models/appointment.model';
   styleUrls: ['./customer-detail.component.css']
 })
 export class CustomerDetailComponent implements OnInit {
-  @Input() customer!: any;
+  @Input() customer!: CustomerViewModel;
   @Output() close = new EventEmitter<void>();
   @Output() editNotes = new EventEmitter<void>();
   
@@ -29,7 +40,8 @@ export class CustomerDetailComponent implements OnInit {
   loadCustomerAppointments(): void {
     this.loadingService.setLoading(true, 'Lade Kundentermine...');
     
-    this.appointmentService.getAppointmentsByUser(this.customer.customerId)
+    // Verwende die neue id-Eigenschaft, um Termine für diesen Kunden zu laden
+    this.appointmentService.getAppointmentsByCustomer(this.customer.id)
       .subscribe({
         next: (appointments) => {
           // Sortieren nach Datum absteigend (neueste zuerst)

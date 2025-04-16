@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthenticationService } from '../../../services/authentication.service';
 import { User } from '@angular/fire/auth';
-import { Subscription, firstValueFrom, forkJoin, of } from 'rxjs';
+import { Subscription, firstValueFrom, of } from 'rxjs';
 import { Customer } from '../../../models/customer.model';
 import { Router } from '@angular/router';
 import { CustomerService } from '../../../services/customer.service';
@@ -12,7 +12,7 @@ import { Appointment } from '../../../models/appointment.model';
 import { ServiceService } from '../../../services/service.service';
 import { ProviderService } from '../../../services/provider.service';
 import { LoadingService } from '../../../services/loading.service';
-import { collection, collectionData, query, where } from '@angular/fire/firestore';
+import { collection, collectionData } from '@angular/fire/firestore';
 import { catchError, map } from 'rxjs/operators';
 
 interface AppointmentWithDetails extends Appointment {
@@ -92,18 +92,18 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
   }
   
   loadAppointments(): void {
-    if (!this.customer?.userId) {
+    if (!this.customer?.id) {
       this.isLoading = false;
       this.loadingService.setLoading(false);
       return;
     }
 
-    const userId = this.customer.userId;
+    const customerId = this.customer.id;
     
-    const appointmentSub = this.appointmentService.getAppointmentsByUser(userId)
+    const appointmentSub = this.appointmentService.getAppointmentsByCustomer(customerId)
       .pipe(
         catchError(error => {
-          console.error(`Error fetching appointments for user ${userId}:`, error);
+          console.error(`Error fetching appointments for customer ${customerId}:`, error);
           return of([]);
         })
       )
@@ -127,25 +127,25 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
   }
 
   tryAlternativeAppointmentFetch(): void {
-    if (!this.customer?.userId) {
+    if (!this.customer?.id) {
       this.isLoading = false;
       this.loadingService.setLoading(false);
       return;
     }
 
-    const userId = this.customer.userId;
+    const customerId = this.customer.id;
     const firestore = this.appointmentService['firestore'];
     const appointmentsCollection = collection(firestore, 'appointments');
     
     // This is a fallback method to query all appointments and filter manually
-    const appointmentSub = collectionData(appointmentsCollection, { idField: 'appointmentId' })
+    const appointmentSub = collectionData(appointmentsCollection, { idField: 'id' })
       .pipe(
         map(appointments => {
-          // Case-insensitive filtering
+          // Filter by customer ID
           return appointments.filter(appt => 
             (appt as any).customerId && 
             typeof (appt as any).customerId === 'string' &&
-            (appt as any).customerId.toLowerCase() === userId.toLowerCase()
+            (appt as any).customerId.toLowerCase() === customerId.toLowerCase()
           ) as Appointment[];
         }),
         catchError(error => {
@@ -245,7 +245,7 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
         if (appointment.providerId && !providerNames.has(appointment.providerId)) {
           try {
             const provider = await firstValueFrom(
-              this.providerService.getProviderByUserId(appointment.providerId)
+              this.providerService.getProvider(appointment.providerId)
                 .pipe(catchError(() => of(null)))
             );
             

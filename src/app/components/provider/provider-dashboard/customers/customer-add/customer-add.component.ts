@@ -6,7 +6,6 @@ import { LoadingService } from '../../../../../services/loading.service';
 import { Customer } from '../../../../../models/customer.model';
 import { Provider } from '../../../../../models/provider.model';
 import { ProviderCustomerService } from '../../../../../services/provider-customer.service';
-import { Auth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-customer-add',
@@ -27,7 +26,6 @@ export class CustomerAddComponent implements OnInit {
   private customerService = inject(CustomerService);
   private loadingService = inject(LoadingService);
   private providerCustomerService = inject(ProviderCustomerService);
-  private auth = inject(Auth);
   
   constructor() {
     this.customerForm = this.fb.group({
@@ -40,7 +38,7 @@ export class CustomerAddComponent implements OnInit {
   }
   
   ngOnInit(): void {
-    if (!this.provider || !this.provider.userId) {
+    if (!this.provider || !this.provider.id) {
       console.error('Provider-Daten fehlen oder sind ungültig!');
     }
   }
@@ -49,82 +47,52 @@ export class CustomerAddComponent implements OnInit {
     if (this.validateForm()) {
       this.loadingService.setLoading(true, 'Kunde wird erstellt...');
       
-      // Get the current authenticated user ID
-      const authUserId = this.auth.currentUser?.uid;
-      
-      if (!authUserId) {
-        this.loadingService.setLoading(false);
-        this.formErrors['general'] = 'Fehler: Nicht authentifiziert!';
-        return;
-      }
-
-      // IMPORTANT: For creating customer records, we must use the authenticated user's ID
-      // to comply with Firestore security rules
-      const customer: Customer = {
-        customerId: '', // Will be set by Firestore
-        userId: authUserId, // This is crucial for security rules to allow creation
+      const customerData: Omit<Customer, 'id'> = {
         firstName: this.customerForm.value.firstName,
         lastName: this.customerForm.value.lastName,
         email: this.customerForm.value.email || '',
-        phone: this.customerForm.value.phone || ''
-      };
-      
-      console.log('Erstelle Kunden mit Daten:', customer);
-      
-      // Add metadata in a way that doesn't violate security rules
-      const customerToSave = {
-        ...customer,
-        isManuallyCreated: true,
+        phone: this.customerForm.value.phone || '',
         createdAt: new Date(),
-        // Store a reference to indicate this is a provider-created customer
-        providerCreated: true,
-        providerRef: this.provider.userId
+        updatedAt: new Date()
       };
       
-      this.customerService.createCustomer(customerToSave as any)
-        .then(docRef => {
+      console.log('Erstelle Kunden mit Daten:', customerData);
+      
+      // Schritt 1: Erstelle den Kunden und erhalte seine ID
+      this.customerService.createCustomer(customerData)
+        .then(customerId => {
+          console.log('Kunde erstellt mit ID:', customerId);
+          
+          // Schritt 2: Erstelle die Relation mit Notizen (falls vorhanden)
+          const notes = this.customerForm.value.notes || '';
+          
+          return this.providerCustomerService.updateCustomerNotes(
+            this.provider.id,
+            customerId,
+            notes
+          ).then(() => {
+            // Vollständiges Kundenobjekt erstellen und zurückgeben
+            const createdCustomer: Customer = {
+              id: customerId,
+              ...customerData
+            };
+            
+            return createdCustomer;
+          });
+        })
+        .then(createdCustomer => {
           this.loadingService.setLoading(false);
-          
-          // Add the customerId to the customer object
-          const createdCustomer = {
-            ...customer,
-            customerId: docRef.id,
-            isManuallyCreated: true,
-            notes: this.customerForm.value.notes || ''
-          };
-          
           console.log('Kunde erfolgreich erstellt:', createdCustomer);
           
-          // If notes provided, create a provider-customer relation with notes
-          if (this.customerForm.value.notes) {
-            this.providerCustomerService.updateCustomerNotes(
-              this.provider.userId, // Use provider ID for the relation
-              docRef.id, // Use the customer document ID
-              this.customerForm.value.notes
-            ).catch(error => {
-              console.error('Error saving customer notes:', error);
-            });
-          }
+          // Event nach oben an die Parent-Komponente emittieren
+          this.customerCreated.emit(createdCustomer);
           
-          // Create provider-customer relation
-          this.providerCustomerService.updateRelationAfterAppointment(
-            this.provider.userId,
-            docRef.id,
-            new Date(),
-            0
-          ).catch(error => {
-            console.error('Error creating provider-customer relation:', error);
-          });
-          
-          // Emit event to parent component
-          this.customerCreated.emit(createdCustomer as any);
-          
-          // Close the form
+          // Formular schließen
           this.close.emit();
         })
         .catch(error => {
           this.loadingService.setLoading(false);
-          console.error('Error creating customer:', error);
+          console.error('Fehler beim Erstellen des Kunden:', error);
           this.formErrors['general'] = 'Fehler beim Erstellen des Kunden: ' + error.message;
         });
     }

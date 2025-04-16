@@ -10,7 +10,7 @@ import { Router } from '@angular/router';
 import { LoadingService } from './loading.service';
 import { Auth } from '@angular/fire/auth';
 import { Firestore, collection, addDoc } from '@angular/fire/firestore';
-
+import { FirebaseError } from 'firebase/app';
 
 export interface UserWithCustomer {
     user: User | null;
@@ -87,7 +87,7 @@ export class AuthenticationService {
                   });
                   this.loadingService.setLoading(false);
                 },
-                error: (error) => {
+                error: (error: unknown) => {
                   console.error("Error loading provider data:", error);
                   this.loadingService.setLoading(false);
                 }
@@ -109,7 +109,7 @@ export class AuthenticationService {
                     // No provider found, proceed with regular customer flow
                     this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
                     this.customerService.getCustomerByUserId(user.uid).subscribe({
-                      next: (customer) => {
+                      next: (customer: Customer | undefined) => {
                         this.loadingService.setLoading(false);
                         this.userWithCustomerSubject.next({
                           user: user,
@@ -123,7 +123,7 @@ export class AuthenticationService {
                           setTimeout(() => {
                             // Check once more if customer exists before creating
                             this.customerService.getCustomerByUserId(user.uid).subscribe(
-                              latestCustomer => {
+                              (latestCustomer: Customer | undefined) => {
                                 if (!latestCustomer && !this.registrationInProgress) {
                                   this.createEmptyCustomerIfNeeded().subscribe();
                                 }
@@ -132,12 +132,12 @@ export class AuthenticationService {
                           }, 1000);
                         }
                       },
-                      error: (error) => {
+                      error: (error: FirebaseError | unknown) => {
                         this.loadingService.setLoading(false);
                         console.error("Error loading customer data:", error);
                         
                         // Bei Berechtigungsfehlern versuchen, einen leeren Kundendatensatz zu erstellen
-                        if (error.code === 'permission-denied' && !this.registrationInProgress) {
+                        if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
                           console.log("Permission denied, attempting to create fallback");
                           this.createEmptyCustomerIfNeeded().subscribe();
                         }
@@ -145,12 +145,12 @@ export class AuthenticationService {
                     });
                   }
                 },
-                error: (error) => {
+                error: (error: unknown) => {
                   console.error("Error checking for provider:", error);
                   // Continue with regular customer flow
                   this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
                   this.customerService.getCustomerByUserId(user.uid).subscribe({
-                    next: (customer) => {
+                    next: (customer: Customer | undefined) => {
                       this.loadingService.setLoading(false);
                       this.userWithCustomerSubject.next({
                         user: user,
@@ -164,7 +164,7 @@ export class AuthenticationService {
                         setTimeout(() => {
                           // Check once more if customer exists before creating
                           this.customerService.getCustomerByUserId(user.uid).subscribe(
-                            latestCustomer => {
+                            (latestCustomer: Customer | undefined) => {
                               if (!latestCustomer && !this.registrationInProgress) {
                                 this.createEmptyCustomerIfNeeded().subscribe();
                               }
@@ -173,12 +173,12 @@ export class AuthenticationService {
                         }, 1000);
                       }
                     },
-                    error: (error) => {
+                    error: (error: FirebaseError | unknown) => {
                       this.loadingService.setLoading(false);
                       console.error("Error loading customer data:", error);
                       
                       // Bei Berechtigungsfehlern versuchen, einen leeren Kundendatensatz zu erstellen
-                      if (error.code === 'permission-denied' && !this.registrationInProgress) {
+                      if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
                         console.log("Permission denied, attempting to create fallback");
                         this.createEmptyCustomerIfNeeded().subscribe();
                       }
@@ -229,8 +229,7 @@ export class AuthenticationService {
         const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
         const customer: Customer = {
-          customerId: '', // Wird von Firestore generiert
-          userId: currentUser.uid,
+          id: '', // Wird von Firestore generiert
           firstName: firstName,
           lastName: lastName,
           email: email,
@@ -251,7 +250,7 @@ export class AuthenticationService {
             
             return of(customer);
           }),
-          catchError((error) => {
+          catchError((error: unknown) => {
             console.error("Error creating empty customer:", error);
             return of(null);
           })
@@ -376,7 +375,7 @@ export class AuthenticationService {
             userType: 'provider',
             createdAt: new Date()
           });
-        } catch (error) {
+        } catch (error: unknown) {
           console.error("Could not save user metadata", error);
         }
       }
@@ -391,7 +390,7 @@ export class AuthenticationService {
       }, 2000);
       
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       this.loadingService.setLoading(false);
       this.registrationInProgress = false;
       sessionStorage.removeItem('registering_provider');
@@ -409,7 +408,7 @@ export class AuthenticationService {
         console.log("Login successful");
         return result;
       })
-      .catch(error => {
+      .catch((error: unknown) => {
         console.error("Login failed:", error);
         this.loadingService.setLoading(false);
         throw error;

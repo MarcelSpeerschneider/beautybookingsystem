@@ -82,12 +82,12 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
       if (provider) {
         console.log('Provider gefunden:', provider);
         this.provider = provider;
-        this.cartService.setProviderId(provider.userId);
+        this.cartService.setProviderId(provider.id);
         
         // Check if the logged-in user is the provider of this page
         const userSub = this.authService.user$.subscribe(user => {
           if (user && provider) {
-            this.isOwnProviderPage = user.uid === provider.userId;
+            this.isOwnProviderPage = user.uid === provider.id;
             console.log('Is own provider page:', this.isOwnProviderPage);
           }
         });
@@ -107,15 +107,15 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
       alert('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
       
       // Still allow navigation to view services in preview mode
-      if (this.provider && this.provider.userId) {
-        this.router.navigate(['/services', this.provider.userId], { queryParams: { previewMode: 'true' } });
+      if (this.provider && this.provider.id) {
+        this.router.navigate(['/services', this.provider.id], { queryParams: { previewMode: 'true' } });
       }
       return;
     }
     
     // Original navigation for customers
-    if (this.provider && this.provider.userId) {
-      this.router.navigate(['/services', this.provider.userId]);
+    if (this.provider && this.provider.id) {
+      this.router.navigate(['/services', this.provider.id]);
     } else { 
       console.error('Provider not set') 
     }

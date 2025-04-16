@@ -211,7 +211,7 @@ export class ProviderRegistrationComponent implements OnInit {
           
           // Create provider object
           const provider: Provider = {
-            userId: userId,
+            id: userId,
             firstName: providerData.firstName,
             lastName: providerData.lastName,
             email: authData.email,

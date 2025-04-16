@@ -3,5 +3,4 @@ export interface ServiceBreak {
   providerId: string;
   startDate: Date;
   endDate: Date;
-
 }

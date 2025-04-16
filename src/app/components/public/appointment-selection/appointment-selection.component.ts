@@ -122,7 +122,7 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   
   // Provider loading methods
   loadProvider(userId: string): void {
-    const providerSub = this.providerService.getProviderByUserId(userId)
+    const providerSub = this.providerService.getProvider(userId)
       .subscribe(provider => {
         this.provider = provider || null;
         this.loadingService.setLoading(false);

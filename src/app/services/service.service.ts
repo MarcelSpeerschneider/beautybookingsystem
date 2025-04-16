@@ -19,7 +19,7 @@ export class ServiceService {
         this.ngZone.run(() => {
             try {
                 const collectionRef = collection(this.firestore, this.collectionName);
-                const subscription = collectionData(collectionRef, { idField: 'serviceId' })
+                const subscription = collectionData(collectionRef, { idField: 'id' })
                     .pipe(
                         map(data => data as Service[]),
                         catchError(error => {
@@ -42,14 +42,14 @@ export class ServiceService {
             }
         });
     });
-}
+  }
 
   getService(serviceId: string): Observable<Service> {
     return new Observable<Service>(observer => {
       this.ngZone.run(() => {
         try {
           const documentRef = doc(this.firestore, `${this.collectionName}/${serviceId}`);
-          docData(documentRef, { idField: 'serviceId' })
+          docData(documentRef, { idField: 'id' })
             .pipe(
               map(data => data as Service),
               catchError(error => {
@@ -71,37 +71,75 @@ export class ServiceService {
     });
   }
 
-  createService(service: Service): Promise<DocumentReference> {
-    return this.ngZone.run(() => {
-      const servicesCollection = collection(this.firestore, this.collectionName);
-      return addDoc(servicesCollection, service);
+  async createService(service: Omit<Service, 'id'>): Promise<string> {
+    return this.ngZone.run(async () => {
+      try {
+        console.log('Creating service:', service);
+        const servicesCollection = collection(this.firestore, this.collectionName);
+        
+        // Erstelle ein Service-Objekt ohne ID (wird von Firestore generiert)
+        const serviceToSave = {
+          ...service,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        const docRef = await addDoc(servicesCollection, serviceToSave);
+        console.log('Service created with ID:', docRef.id);
+        return docRef.id;
+      } catch (error) {
+        console.error('Error creating service:', error);
+        throw error;
+      }
     });
   }
 
   updateService(service: Service): Promise<void> {
-    return this.ngZone.run(() => {
-      const documentRef = doc(this.firestore, `${this.collectionName}/${service.id}`);
-      return updateDoc(documentRef, { ...service });
+    return this.ngZone.run(async () => {
+      try {
+        // Extrahiere die ID und aktualisiere die Daten ohne die ID
+        const { id, ...serviceData } = service;
+        
+        const documentRef = doc(this.firestore, this.collectionName, id);
+        
+        // Aktualisiere auch das updatedAt-Feld
+        const updatedService = {
+          ...serviceData,
+          updatedAt: new Date()
+        };
+        
+        return updateDoc(documentRef, updatedService);
+      } catch (error) {
+        console.error('Error updating service:', error);
+        throw error;
+      }
     });
   }
 
   deleteService(serviceId: string): Promise<void> {
-    return this.ngZone.run(() => {
-      const documentRef = doc(this.firestore, `${this.collectionName}/${serviceId}`);
-      return deleteDoc(documentRef);
+    return this.ngZone.run(async () => {
+      try {
+        const documentRef = doc(this.firestore, this.collectionName, serviceId);
+        return deleteDoc(documentRef);
+      } catch (error) {
+        console.error('Error deleting service:', error);
+        throw error;
+      }
     });
   }
 
-  getServicesByUser(userId: string): Observable<Service[]> {
+  getServicesByProvider(providerId: string): Observable<Service[]> {
     return new Observable<Service[]>(observer => {
       this.ngZone.run(() => {
         try {
           const servicesCollection = collection(this.firestore, this.collectionName);
-          const q = query(servicesCollection, where('userId', '==', userId));
-          collectionData(q, { idField: 'serviceId' })
+          const q = query(servicesCollection, where('providerId', '==', providerId));
+          
+          collectionData(q, { idField: 'id' })
             .pipe(
               map(data => data as Service[]),
               catchError(error => {
+                console.error(`Error fetching services for provider ${providerId}:`, error);
                 return of([]);
               })
             )
@@ -111,15 +149,11 @@ export class ServiceService {
               complete: () => observer.complete()
             });
         } catch (error) {
-          console.error('Error in getServicesByUser:', error);
+          console.error('Error in getServicesByProvider:', error);
           observer.next([]);
           observer.complete();
         }
       });
     });
-  }
-
-  isServiceAvailable(serviceId: string, date: Date, time: string): Observable<boolean> {
-    return this.ngZone.run(() => of(true));
   }
 }
