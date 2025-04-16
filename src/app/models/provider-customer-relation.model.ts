@@ -1,5 +1,4 @@
 export interface ProviderCustomerRelation {
-  id: string;
   providerId: string;
   customerId: string;
   notes?: string;

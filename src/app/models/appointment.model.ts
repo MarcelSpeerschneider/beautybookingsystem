@@ -1,5 +1,4 @@
 export interface Appointment {
-    id: string;         
     customerId: string;
     providerId: string;
     serviceIds: string[];

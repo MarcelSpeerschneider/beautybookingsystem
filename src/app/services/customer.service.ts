@@ -1,3 +1,5 @@
+// src/app/services/customer.service.ts
+
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Customer } from '../models/customer.model';
 import { Observable, from, of } from 'rxjs';
@@ -15,7 +17,6 @@ import {
   deleteDoc,
   query,
   where,
-  DocumentReference,
   getDocs
 } from '@angular/fire/firestore';
 
@@ -29,13 +30,13 @@ export class CustomerService {
 
   constructor() { }
 
-  getCustomers(): Observable<Customer[]> {
-    return new Observable<Customer[]>(observer => {
+  getCustomers(): Observable<(Customer & { id: string })[]> {
+    return new Observable<(Customer & { id: string })[]>(observer => {
       this.ngZone.run(() => {
         try {
           const customerCollection = collection(this.firestore, this.collectionName);
           collectionData(customerCollection, { idField: 'id' }).pipe(
-            map(data => data as Customer[]),
+            map(data => data as (Customer & { id: string })[]),
             catchError(error => {
               console.error('Error fetching customers:', error);
               return of([]);
@@ -54,8 +55,8 @@ export class CustomerService {
     });
   }
 
-  getCustomer(customerId: string): Observable<Customer | undefined> {
-    return new Observable<Customer | undefined>(observer => {
+  getCustomer(customerId: string): Observable<(Customer & { id: string }) | undefined> {
+    return new Observable<(Customer & { id: string }) | undefined>(observer => {
       this.ngZone.run(() => {
         try {
           console.log('Loading customer data for ID:', customerId);
@@ -67,7 +68,7 @@ export class CustomerService {
             .then(docSnap => {
               if (docSnap.exists()) {
                 console.log("Customer found:", docSnap.data());
-                const customer = { id: docSnap.id, ...docSnap.data() } as Customer;
+                const customer = { id: docSnap.id, ...docSnap.data() } as (Customer & { id: string });
                 observer.next(customer);
               } else {
                 console.log("No customer with ID", customerId, "found");
@@ -89,8 +90,8 @@ export class CustomerService {
     });
   }
 
-  getCustomerByEmail(email: string): Observable<Customer | undefined> {
-    return new Observable<Customer | undefined>(observer => {
+  getCustomerByEmail(email: string): Observable<(Customer & { id: string }) | undefined> {
+    return new Observable<(Customer & { id: string }) | undefined>(observer => {
       this.ngZone.run(() => {
         try {
           console.log('Looking up customer by email:', email);
@@ -102,7 +103,7 @@ export class CustomerService {
               if (!querySnapshot.empty) {
                 const docSnap = querySnapshot.docs[0];
                 console.log('Found customer by email:', docSnap.data());
-                const customer = { id: docSnap.id, ...docSnap.data() } as Customer;
+                const customer = { id: docSnap.id, ...docSnap.data() } as (Customer & { id: string });
                 observer.next(customer);
               } else {
                 console.log('No customer found with email', email);
@@ -130,7 +131,7 @@ export class CustomerService {
    * @param userId Optional user ID to use as document ID
    * @returns The ID of the created customer
    */
-  async createCustomer(customer: Omit<Customer, 'id'>, userId?: string): Promise<string> {
+  async createCustomer(customer: Customer, userId?: string): Promise<string> {
     return this.ngZone.run(async () => {
       try {
         console.log('Creating new customer' + (userId ? ` with Auth ID ${userId}` : ' with auto-generated ID'));
@@ -188,7 +189,7 @@ export class CustomerService {
     });
   }
 
-  updateCustomer(customer: Customer): Promise<void> {
+  updateCustomer(customer: Customer & { id: string }): Promise<void> {
     return this.ngZone.run(async () => {
       try {
         console.log('Updating customer:', customer);

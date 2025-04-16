@@ -1,23 +1,24 @@
 // src/app/services/provider.service.ts
+
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Provider } from '../models/provider.model';
 import { BusinessHours } from '../models/business-hours.model';
 import { ServiceBreak } from '../models/break.model';
-import { Observable, from, of, catchError } from 'rxjs';
+import { Observable, from, of } from 'rxjs';
 import { 
   Firestore, 
   collection, 
   collectionData, 
   doc, 
   docData, 
-  setDoc,  // Verwende setDoc statt addDoc
+  setDoc,
   updateDoc, 
   deleteDoc, 
   query, 
   where, 
   getDocs 
 } from '@angular/fire/firestore';
-import { map } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -32,13 +33,13 @@ export class ProviderService {
 
   constructor() { }
   
-  getProviders(): Observable<Provider[]> {
-    return new Observable<Provider[]>(observer => {
+  getProviders(): Observable<(Provider & { providerId: string })[]> {
+    return new Observable<(Provider & { providerId: string })[]>(observer => {
       this.ngZone.run(() => {
         try {
           const myCollection = collection(this.firestore, this.collectionName);
           from(collectionData(myCollection, { idField: 'providerId' })).pipe(
-            map(data => data.map(d => ({...d} as Provider))),
+            map(data => data.map(d => ({...d} as (Provider & { providerId: string })))),
             catchError(error => {
               console.error('Error fetching providers:', error);
               return of([]); 
@@ -60,14 +61,14 @@ export class ProviderService {
     });
   }
 
-  getProvidersByService(service: string): Observable<Provider[]> {
-    return new Observable<Provider[]>(observer => {
+  getProvidersByService(service: string): Observable<(Provider & { providerId: string })[]> {
+    return new Observable<(Provider & { providerId: string })[]>(observer => {
       this.ngZone.run(() => {
         try {
           const providersCollection = collection(this.firestore, this.collectionName);
           const q = query(providersCollection, where('services', 'array-contains', service));
           from(collectionData(q, { idField: 'providerId' })).pipe(
-            map((data) => data.map((d) => ({ ...d } as Provider))),
+            map((data) => data.map((d) => ({ ...d } as (Provider & { providerId: string })))),
             catchError(error => {
               console.error(`Error fetching providers with service ${service}:`, error);
               return of([]); 
@@ -88,8 +89,8 @@ export class ProviderService {
     });
   }
 
-  getProviderByEmail(email: string): Observable<Provider | null> {
-    return new Observable<Provider | null>(observer => {
+  getProviderByEmail(email: string): Observable<(Provider & { providerId: string }) | null> {
+    return new Observable<(Provider & { providerId: string }) | null>(observer => {
       this.ngZone.run(() => {
         try {
           const myCollection = collection(this.firestore, this.collectionName);                    
@@ -97,7 +98,7 @@ export class ProviderService {
           from(collectionData(q, { idField: 'providerId' })).pipe(
             map((providers) => {
               if(providers.length > 0) {
-                return providers[0] as Provider;
+                return providers[0] as (Provider & { providerId: string });
               }
               return null;
             }),
@@ -121,13 +122,13 @@ export class ProviderService {
     });
   }
   
-  getProvider(providerId: string): Observable<Provider | undefined> {
-    return new Observable<Provider | undefined>(observer => {
+  getProvider(providerId: string): Observable<(Provider & { providerId: string }) | undefined> {
+    return new Observable<(Provider & { providerId: string }) | undefined>(observer => {
       this.ngZone.run(() => {
         try {
           const document = doc(this.firestore, this.collectionName, providerId);
           from(docData(document, { idField: 'providerId' })).pipe(
-            map(d => ({...d} as Provider)),
+            map(d => ({...d} as (Provider & { providerId: string }))),
             catchError(error => {
               console.error(`Error fetching provider with ID ${providerId}:`, error);
               return of(undefined);
@@ -148,7 +149,7 @@ export class ProviderService {
     });
   }
   
-  async addProvider(provider: Omit<Provider, 'providerId'>, userId: string): Promise<string> { 
+  async addProvider(provider: Provider, userId: string): Promise<string> { 
     return this.ngZone.run(async () => {
       try {
         console.log('Creating provider with data:', provider);

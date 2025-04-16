@@ -1,7 +1,7 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Service } from '../models/service.model';
 import { Observable, of, from } from 'rxjs';
-import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, DocumentReference, query, where } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, query, where } from '@angular/fire/firestore';
 import { map, catchError } from 'rxjs/operators';
 
 @Injectable({
@@ -14,14 +14,14 @@ export class ServiceService {
 
   constructor() { }
 
-  getServices(): Observable<Service[]> {
-    return new Observable<Service[]>(observer => {
+  getServices(): Observable<(Service & { id: string })[]> {
+    return new Observable<(Service & { id: string })[]>(observer => {
         this.ngZone.run(() => {
             try {
                 const collectionRef = collection(this.firestore, this.collectionName);
                 const subscription = collectionData(collectionRef, { idField: 'id' })
                     .pipe(
-                        map(data => data as Service[]),
+                        map(data => data as (Service & { id: string })[]),
                         catchError(error => {
                             console.error('Error fetching services:', error);
                             return of([]);
@@ -45,14 +45,14 @@ export class ServiceService {
     });
   }
 
-  getService(serviceId: string): Observable<Service> {
-    return new Observable<Service>(observer => {
+  getService(serviceId: string): Observable<Service & { id: string }> {
+    return new Observable<Service & { id: string }>(observer => {
       this.ngZone.run(() => {
         try {
           const documentRef = doc(this.firestore, `${this.collectionName}/${serviceId}`);
           docData(documentRef, { idField: 'id' })
             .pipe(
-              map(data => data as Service),
+              map(data => data as (Service & { id: string })),
               catchError(error => {
                 console.error(`Error fetching service with ID ${serviceId}:`, error);
                 return of(null as any);
@@ -73,7 +73,7 @@ export class ServiceService {
     });
   }
 
-  async createService(service: Omit<Service, 'id'>): Promise<string> {
+  async createService(service: Service): Promise<string> {
     return this.ngZone.run(async () => {
       try {
         console.log('Creating service:', service);
@@ -96,7 +96,7 @@ export class ServiceService {
     });
   }
 
-  updateService(service: Service): Promise<void> {
+  updateService(service: Service & { id: string }): Promise<void> {
     return this.ngZone.run(async () => {
       try {
         // Extrahiere die ID und aktualisiere die Daten ohne die ID
@@ -130,8 +130,8 @@ export class ServiceService {
     });
   }
 
-  getServicesByProvider(providerId: string): Observable<Service[]> {
-    return new Observable<Service[]>(observer => {
+  getServicesByProvider(providerId: string): Observable<(Service & { id: string })[]> {
+    return new Observable<(Service & { id: string })[]>(observer => {
       this.ngZone.run(() => {
         try {
           const servicesCollection = collection(this.firestore, this.collectionName);
@@ -139,7 +139,7 @@ export class ServiceService {
           
           collectionData(q, { idField: 'id' })
             .pipe(
-              map(data => data as Service[]),
+              map(data => data as (Service & { id: string })[]),
               catchError(error => {
                 console.error(`Error fetching services for provider ${providerId}:`, error);
                 return of([]);

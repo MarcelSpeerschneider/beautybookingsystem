@@ -14,7 +14,7 @@ import { FirebaseError } from 'firebase/app';
 
 export interface UserWithCustomer {
     user: User | null;
-    customer: Customer | null;
+    customer: (Customer & { id: string }) | null;
 }
 
 @Injectable({
@@ -95,21 +95,27 @@ export class AuthenticationService {
                 // Not a provider, look for customer data
                 this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
                 this.customerService.getCustomer(user.uid).subscribe({
-                  next: (customer: Customer | undefined) => {
+                  next: (customer) => {
                     this.loadingService.setLoading(false);
-                    this.userWithCustomerSubject.next({
-                      user: user,
-                      customer: customer || null
-                    });
                     
-                    if (!customer) {
+                    if (customer) {
+                      // Customer gefunden - füge die ID hinzu und aktualisiere den BehaviorSubject
+                      this.userWithCustomerSubject.next({
+                        user: user,
+                        customer: customer // customer enthält bereits die ID
+                      });
+                    } else {
                       console.log("No customer data found, attempting to create fallback");
+                      this.userWithCustomerSubject.next({
+                        user: user,
+                        customer: null
+                      });
                       
                       // Add a slight delay to prevent race conditions with recent registrations
                       setTimeout(() => {
                         // Check once more if customer exists before creating
                         this.customerService.getCustomer(user.uid).subscribe(
-                          (latestCustomer: Customer | undefined) => {
+                          (latestCustomer) => {
                             if (!latestCustomer && !this.registrationInProgress) {
                               this.createEmptyCustomerIfNeeded().subscribe();
                             }
@@ -170,32 +176,33 @@ export class AuthenticationService {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
-        // Using the new Customer model structure with id
-        const customer: Partial<Customer> = {
+        // Customer-Daten ohne ID (das Model hat keine ID mehr)
+        const customer: Customer = {
           firstName: firstName,
           lastName: lastName,
           email: email,
-          phone: ''
+          phone: '',
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
 
-        return from(this.customerService.createCustomer(customer as Omit<Customer, 'id'>, currentUser.uid)).pipe(
+        return from(this.customerService.createCustomer(customer, currentUser.uid)).pipe(
           switchMap((customerId: string) => {
             console.log("Empty customer created with ID:", customerId);
-            // Update customer object with the new ID
-            const customerWithId: Customer = {
-              ...customer as any,
-              id: customerId,
-              createdAt: new Date(),
-              updatedAt: new Date()
-            };
             
-            // Update the combined object
-            this.userWithCustomerSubject.next({
-              user: currentUser,
-              customer: customerWithId
-            });
-            
-            return of(customerWithId);
+            // Holen Sie den erstellten Kunden mit seiner ID
+            return this.customerService.getCustomer(customerId).pipe(
+              map(createdCustomer => {
+                if (createdCustomer) {
+                  // Kunden-Objekt existiert mit ID
+                  this.userWithCustomerSubject.next({
+                    user: currentUser,
+                    customer: createdCustomer
+                  });
+                }
+                return createdCustomer;
+              })
+            );
           }),
           catchError((error: unknown) => {
             console.error("Error creating empty customer:", error);
@@ -237,8 +244,8 @@ export class AuthenticationService {
       
       // Create customer object if user registration successful
       if (response.user) {
-        // Using the new Customer model structure with id field
-        const customerData: Omit<Customer, 'id'> = {
+        // Erstelle ein Customer-Objekt ohne ID-Feld (entsprechend dem neuen Interface)
+        const customerData: Customer = {
           firstName: firstName || "",
           lastName: lastName || "",
           email: email || "",
@@ -251,18 +258,24 @@ export class AuthenticationService {
         
         // Save customer to Firestore using the user's UID as the document ID
         try {
+          // Speichere Kunde mit UID als Dokument-ID
           const customerId = await this.customerService.createCustomer(customerData, response.user.uid);
           console.log("Customer data created in Firestore successfully with ID:", customerId);
           
-          // Create the customer with the ID returned from Firestore
-          const createdCustomer: Customer = {
-            ...customerData,
-            id: customerId
-          };
-          
-          this.userWithCustomerSubject.next({
-            user: response.user,
-            customer: createdCustomer
+          // Kunden mit seiner ID abrufen
+          this.customerService.getCustomer(customerId).subscribe({
+            next: (customer) => {
+              if (customer) {
+                // Customer enthält bereits die ID
+                this.userWithCustomerSubject.next({
+                  user: response.user,
+                  customer: customer
+                });
+              }
+            },
+            error: (error) => {
+              console.error("Error loading created customer:", error);
+            }
           });
         } catch (customerError) {
           console.error("Error creating customer data:", customerError);

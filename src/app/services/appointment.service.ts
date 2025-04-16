@@ -1,3 +1,5 @@
+// src/app/services/appointment.service.ts
+
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Appointment } from '../models/appointment.model';
 import { Observable, from, of } from 'rxjs';
@@ -16,18 +18,17 @@ export class AppointmentService {
 
     constructor(
         private providerCustomerService: ProviderCustomerService
-    ) {
-    }
+    ) {}
 
-    getAppointments(): Observable<Appointment[]> {
-        return new Observable<Appointment[]>(observer => {
+    getAppointments(): Observable<(Appointment & { id: string })[]> {
+        return new Observable<(Appointment & { id: string })[]>(observer => {
             this.ngZone.run(() => {
                 try {
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
                     collectionData(appointmentsCollection, { idField: 'id' }).pipe(
                         map(data => {
                             // Datumswerte konvertieren
-                            return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
+                            return (data as any[]).map(item => convertAppointmentDates(item) as (Appointment & { id: string }));
                         }),
                         catchError(error => {
                             console.error('Error fetching appointments:', error);
@@ -47,15 +48,15 @@ export class AppointmentService {
         });
     }
 
-    getAppointment(appointmentId: string): Observable<Appointment> {
-        return new Observable<Appointment>(observer => {
+    getAppointment(appointmentId: string): Observable<Appointment & { id: string }> {
+        return new Observable<Appointment & { id: string }>(observer => {
             this.ngZone.run(() => {
                 try {
                     const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointmentId}`);
                     docData(appointmentDocument, { idField: 'id' }).pipe(
                         map(data => {
                             // Datumswerte konvertieren
-                            return convertAppointmentDates(data) as Appointment;
+                            return convertAppointmentDates(data) as (Appointment & { id: string });
                         }),
                         catchError(error => {
                             console.error(`Error fetching appointment with ID ${appointmentId}:`, error);
@@ -75,13 +76,13 @@ export class AppointmentService {
         });
     }
 
-    async createAppointment(appointment: Omit<Appointment, 'id'>): Promise<string> {
+    async createAppointment(appointment: Appointment): Promise<string> {
         return this.ngZone.run(async () => {
             try {
                 console.log('Creating new appointment:', appointment);
                 const appointmentsCollection = collection(this.firestore, this.collectionName);
 
-                // Appointment-Objekt vorbereiten (ohne ID)
+                // Appointment ohne Zusatzfelder speichern
                 const appointmentToSave = {
                     ...appointment,
                     createdAt: new Date() // Stelle sicher, dass createdAt gesetzt ist
@@ -135,8 +136,8 @@ export class AppointmentService {
         });
     }
 
-    updateAppointment(appointment: Appointment): Observable<Appointment> {
-        return new Observable<Appointment>(observer => {
+    updateAppointment(appointment: Appointment & { id: string }): Observable<Appointment & { id: string }> {
+        return new Observable<Appointment & { id: string }>(observer => {
             this.ngZone.run(() => {
                 try {
                     const { id, ...appointmentData } = appointment;
@@ -164,13 +165,13 @@ export class AppointmentService {
                     observer.next(null as any);
                     observer.complete();
                 }
+                return;
             });
         });
     }
 
-    // IMPROVED: Optimized method for customers to view their appointments
-    getAppointmentsByCustomer(customerId: string): Observable<Appointment[]> {
-        return new Observable<Appointment[]>(observer => {
+    getAppointmentsByCustomer(customerId: string): Observable<(Appointment & { id: string })[]> {
+        return new Observable<(Appointment & { id: string })[]>(observer => {
             this.ngZone.run(() => {
                 try {
                     console.log("AppointmentService: Getting appointments for customer ID:", customerId);
@@ -191,7 +192,7 @@ export class AppointmentService {
                         map(data => {
                             console.log("AppointmentService: Raw results for customer:", data);
                             // Convert date values
-                            return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
+                            return (data as any[]).map(item => convertAppointmentDates(item) as (Appointment & { id: string }));
                         }),
                         catchError(error => {
                             console.error(`Error fetching appointments for customer ${customerId}:`, error);
@@ -227,8 +228,8 @@ export class AppointmentService {
     }
 
     // Verbesserte Methode für Termine nach Benutzer und Datum
-    getAppointmentsByUserAndDate(userId: string, date: Date, isProvider: boolean = false): Observable<Appointment[]> {
-        return new Observable<Appointment[]>(observer => {
+    getAppointmentsByUserAndDate(userId: string, date: Date, isProvider: boolean = false): Observable<(Appointment & { id: string })[]> {
+        return new Observable<(Appointment & { id: string })[]>(observer => {
             this.ngZone.run(() => {
                 try {
                     console.log(`AppointmentService: Getting appointments for ${isProvider ? 'provider' : 'customer'} ID: ${userId} on date: ${date}`);
@@ -258,11 +259,8 @@ export class AppointmentService {
                         map(data => {
                             console.log(`AppointmentService: Raw results for ${fieldName}=${userId} on date ${date}:`, data);
 
-                            // Konvertiere Datumswerte und erstelle Appointment-Objekte
-                            return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
-
-                            // Die Datums-Filterung erfolgt jetzt in der Firestore-Abfrage,
-                            // nicht mehr im Client-Code
+                            // Konvertiere alle Appointments mit korrekten Datumswerten
+                            return (data as any[]).map(item => convertAppointmentDates(item) as (Appointment & { id: string }));
                         }),
                         catchError(error => {
                             console.error(`Error fetching appointments for ${fieldName} ${userId} on date ${date}:`, error);
@@ -283,8 +281,8 @@ export class AppointmentService {
         });
     }
 
-    confirmAppointment(appointmentId: string): Observable<Appointment> {
-        return new Observable<Appointment>(observer => {
+    confirmAppointment(appointmentId: string): Observable<Appointment & { id: string }> {
+        return new Observable<Appointment & { id: string }>(observer => {
             this.ngZone.run(() => {
                 try {
                     const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
@@ -312,8 +310,8 @@ export class AppointmentService {
         });
     }
 
-    cancelAppointment(appointmentId: string): Observable<Appointment> {
-        return new Observable<Appointment>(observer => {
+    cancelAppointment(appointmentId: string): Observable<Appointment & { id: string }> {
+        return new Observable<Appointment & { id: string }>(observer => {
             this.ngZone.run(() => {
                 try {
                     const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
@@ -341,8 +339,8 @@ export class AppointmentService {
         });
     }
 
-    completeAppointment(appointmentId: string): Observable<Appointment> {
-        return new Observable<Appointment>(observer => {
+    completeAppointment(appointmentId: string): Observable<Appointment & { id: string }> {
+        return new Observable<Appointment & { id: string }>(observer => {
             this.ngZone.run(() => {
                 try {
                     const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
@@ -396,8 +394,8 @@ export class AppointmentService {
     }
 
     // Methode für Provider-Appointments
-    getAppointmentsByProvider(providerId: string): Observable<Appointment[]> {
-        return new Observable<Appointment[]>(observer => {
+    getAppointmentsByProvider(providerId: string): Observable<(Appointment & { id: string })[]> {
+        return new Observable<(Appointment & { id: string })[]>(observer => {
             this.ngZone.run(() => {
                 try {
                     console.log("AppointmentService: Getting appointments for provider ID:", providerId);
@@ -416,7 +414,7 @@ export class AppointmentService {
                             console.log("AppointmentService: Raw results for provider:", data);
                             
                             // Konvertiere alle Appointments mit korrekten Datumswerten
-                            return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
+                            return (data as any[]).map(item => convertAppointmentDates(item) as (Appointment & { id: string }));
                         }),
                         catchError(error => {
                             console.error(`Error fetching appointments for provider ${providerId}:`, error);
