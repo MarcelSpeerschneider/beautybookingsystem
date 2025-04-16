@@ -196,19 +196,18 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
   confirmAppointment(appointmentId: string): void {
     this.loadingService.setLoading(true, 'Bestätige Termin...');
     this.appointmentService.confirmAppointment(appointmentId)
-      .subscribe({
-        next: () => {
+    .then(() => {
           this.loadingService.setLoading(false);
           alert('Termin wurde bestätigt.');
           this.loadTodayAppointments();
-        },
-        error: (error) => {
+        })
+        .catch((error: any) => {
           this.loadingService.setLoading(false);
           console.error('Error confirming appointment:', error);
           alert('Fehler bei der Bestätigung des Termins.');
-        }
-      });
+        });
   }
+
 
   createAppointment(): void {
     alert('Funktion zum Erstellen eines neuen Termins wird implementiert.');

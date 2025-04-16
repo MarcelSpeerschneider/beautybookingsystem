@@ -293,93 +293,77 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
   // Appointment actions
   confirmAppointment(appointmentId: string): void {
     this.loadingService.setLoading(true, 'Bestätige Termin...');
-    this.appointmentService.confirmAppointment(appointmentId)
-      .subscribe({
-        next: () => {
-          this.loadingService.setLoading(false);
-          alert('Termin wurde bestätigt.');
-          this.loadAllAppointments();
-          
-          // Close detail view if open
-          if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
-            this.selectedAppointment = null;
-          }
-        },
-        error: (error) => {
-          this.loadingService.setLoading(false);
-          console.error('Error confirming appointment:', error);
-          alert('Fehler bei der Bestätigung des Termins.');
-        }
-      });
+    this.appointmentService.confirmAppointment(appointmentId).then(() => {
+      this.loadingService.setLoading(false);
+      alert('Termin wurde bestätigt.');
+      this.loadAllAppointments();
+
+      // Close detail view if open
+      if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
+        this.selectedAppointment = null;
+      }
+    }).catch((error: any) => {
+      this.loadingService.setLoading(false);
+      console.error('Error confirming appointment:', error);
+      alert('Fehler bei der Bestätigung des Termins.');
+    });
   }
 
   rejectAppointment(appointmentId: string): void {
     if (confirm('Möchten Sie diesen Termin wirklich ablehnen?')) {
       this.loadingService.setLoading(true, 'Termin wird abgelehnt...');
-      this.appointmentService.cancelAppointment(appointmentId)
-        .subscribe({
-          next: () => {
-            this.loadingService.setLoading(false);
-            alert('Termin wurde abgelehnt.');
-            this.loadAllAppointments();
-            
-            // Close detail view if open
-            if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
-              this.selectedAppointment = null;
-            }
-          },
-          error: (error) => {
-            this.loadingService.setLoading(false);
-            console.error('Fehler beim Ablehnen des Termins:', error);
-            alert('Fehler beim Ablehnen des Termins.');
-          }
-        });
+      this.appointmentService.cancelAppointment(appointmentId).then(() => {
+        this.loadingService.setLoading(false);
+        alert('Termin wurde abgelehnt.');
+        this.loadAllAppointments();
+
+        // Close detail view if open
+        if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
+          this.selectedAppointment = null;
+        }
+      }).catch((error: any) => {
+        this.loadingService.setLoading(false);
+        console.error('Fehler beim Ablehnen des Termins:', error);
+        alert('Fehler beim Ablehnen des Termins.');
+      });
     }
   }
-  
+
   cancelAppointment(appointmentId: string): void {
     if (confirm('Möchten Sie diesen Termin wirklich stornieren?')) {
       this.loadingService.setLoading(true, 'Termin wird storniert...');
-      this.appointmentService.cancelAppointment(appointmentId)
-        .subscribe({
-          next: () => {
-            this.loadingService.setLoading(false);
-            alert('Termin wurde storniert.');
-            this.loadAllAppointments();
-            
-            // Close detail view if open
-            if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
-              this.selectedAppointment = null;
-            }
-          },
-          error: (error) => {
-            this.loadingService.setLoading(false);
-            console.error('Fehler beim Stornieren des Termins:', error);
-            alert('Fehler beim Stornieren des Termins.');
-          }
-        });
+      this.appointmentService.cancelAppointment(appointmentId).then(() => {
+        this.loadingService.setLoading(false);
+        alert('Termin wurde storniert.');
+        this.loadAllAppointments();
+
+        // Close detail view if open
+        if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
+          this.selectedAppointment = null;
+        }
+      }).catch((error: any) => {
+        this.loadingService.setLoading(false);
+        console.error('Fehler beim Stornieren des Termins:', error);
+        alert('Fehler beim Stornieren des Termins.');
+      });
     }
   }
-  
+
   completeAppointment(appointmentId: string): void {
     this.loadingService.setLoading(true, 'Termin wird als erledigt markiert...');
-    this.appointmentService.completeAppointment(appointmentId)
-      .subscribe({
-        next: () => {
-          this.loadingService.setLoading(false);
-          alert('Termin wurde als erledigt markiert.');
-          this.loadAllAppointments();
-          
-          // Close detail view if open
-          if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
-            this.selectedAppointment = null;
-          }
-        },
-        error: (error) => {
-          this.loadingService.setLoading(false);
-          console.error('Fehler beim Markieren des Termins als erledigt:', error);
-          alert('Fehler beim Markieren des Termins als erledigt.');
-        }
-      });
+    this.appointmentService.completeAppointment(appointmentId).then(() => {
+      this.loadingService.setLoading(false);
+      alert('Termin wurde als erledigt markiert.');
+      this.loadAllAppointments();
+
+      // Close detail view if open
+      if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
+        this.selectedAppointment = null;
+      }
+    }).catch((error: any) => {
+      this.loadingService.setLoading(false);
+      console.error('Fehler beim Markieren des Termins als erledigt:', error);
+      alert('Fehler beim Markieren des Termins als erledigt.');
+    });
   }
 }
