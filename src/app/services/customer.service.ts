@@ -1,5 +1,3 @@
-// src/app/services/customer.service.ts
-
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Customer } from '../models/customer.model';
 import { Observable, from, of } from 'rxjs';
@@ -19,6 +17,7 @@ import {
   where,
   getDocs
 } from '@angular/fire/firestore';
+import { ZoneUtils } from '../utils/zone-utils';
 
 @Injectable({
   providedIn: 'root'
@@ -28,101 +27,82 @@ export class CustomerService {
   firestore: Firestore = inject(Firestore);
   private ngZone = inject(NgZone);
 
-  constructor() { }
-
   getCustomers(): Observable<(Customer & { id: string })[]> {
-    return new Observable<(Customer & { id: string })[]>(observer => {
-      this.ngZone.run(() => {
-        try {
-          const customerCollection = collection(this.firestore, this.collectionName);
-          collectionData(customerCollection, { idField: 'id' }).pipe(
-            map(data => data as (Customer & { id: string })[]),
-            catchError(error => {
-              console.error('Error fetching customers:', error);
-              return of([]);
-            })
-          ).subscribe({
-            next: customers => observer.next(customers),
-            error: err => observer.error(err),
-            complete: () => observer.complete()
-          });
-        } catch (error) {
-          console.error('Error in getCustomers:', error);
-          observer.next([]);
-          observer.complete();
-        }
-      });
-    });
+    return ZoneUtils.wrapObservable(() => {
+      try {
+        const customerCollection = collection(this.firestore, this.collectionName);
+        return collectionData(customerCollection, { idField: 'id' }).pipe(
+          map(data => data as (Customer & { id: string })[]),
+          catchError(error => {
+            console.error('Error fetching customers:', error);
+            return of([]);
+          })
+        );
+      } catch (error) {
+        console.error('Error in getCustomers:', error);
+        return of([]);
+      }
+    }, this.ngZone);
   }
 
   getCustomer(customerId: string): Observable<(Customer & { id: string }) | undefined> {
-    return new Observable<(Customer & { id: string }) | undefined>(observer => {
-      this.ngZone.run(() => {
-        try {
-          console.log('Loading customer data for ID:', customerId);
+    return ZoneUtils.wrapObservable(() => {
+      try {
+        console.log('Loading customer data for ID:', customerId);
 
-          const customerDocument = doc(this.firestore, this.collectionName, customerId);
+        const customerDocument = doc(this.firestore, this.collectionName, customerId);
 
-          // Use a more robust method to get the document
-          getDoc(customerDocument)
-            .then(docSnap => {
-              if (docSnap.exists()) {
-                console.log("Customer found:", docSnap.data());
-                const customer = { id: docSnap.id, ...docSnap.data() } as (Customer & { id: string });
-                observer.next(customer);
-              } else {
-                console.log("No customer with ID", customerId, "found");
-                observer.next(undefined);
-              }
-              observer.complete();
-            })
-            .catch((error: any) => {
-              console.error("Error loading customer with ID", customerId, ":", error);
-              observer.next(undefined);
-              observer.complete();
-            });
-        } catch (error) {
-          console.error('Error in getCustomer:', error);
-          observer.next(undefined);
-          observer.complete();
-        }
-      });
-    });
+        // Use a more robust method to get the document
+        return from(getDoc(customerDocument)).pipe(
+          map(docSnap => {
+            if (docSnap.exists()) {
+              console.log("Customer found:", docSnap.data());
+              return { id: docSnap.id, ...docSnap.data() } as (Customer & { id: string });
+            } else {
+              console.log("No customer with ID", customerId, "found");
+              return undefined;
+            }
+          }),
+          catchError(error => {
+            console.error("Error loading customer with ID", customerId, ":", error);
+            return of(undefined);
+          })
+        );
+      } catch (error) {
+        console.error('Error in getCustomer:', error);
+        return of(undefined);
+      }
+    }, this.ngZone);
   }
 
   getCustomerByEmail(email: string): Observable<(Customer & { id: string }) | undefined> {
-    return new Observable<(Customer & { id: string }) | undefined>(observer => {
-      this.ngZone.run(() => {
-        try {
-          console.log('Looking up customer by email:', email);
-          const customerCollection = collection(this.firestore, this.collectionName);
-          const q = query(customerCollection, where('email', '==', email));
+    return ZoneUtils.wrapObservable(() => {
+      try {
+        console.log('Looking up customer by email:', email);
+        const customerCollection = collection(this.firestore, this.collectionName);
+        const q = query(customerCollection, where('email', '==', email));
 
-          getDocs(q)
-            .then(querySnapshot => {
-              if (!querySnapshot.empty) {
-                const docSnap = querySnapshot.docs[0];
-                console.log('Found customer by email:', docSnap.data());
-                const customer = { id: docSnap.id, ...docSnap.data() } as (Customer & { id: string });
-                observer.next(customer);
-              } else {
-                console.log('No customer found with email', email);
-                observer.next(undefined);
-              }
-              observer.complete();
-            })
-            .catch(error => {
-              console.error('Error fetching customer by email:', error);
-              observer.next(undefined);
-              observer.complete();
-            });
-        } catch (error) {
-          console.error('Error in getCustomerByEmail:', error);
-          observer.next(undefined);
-          observer.complete();
-        }
-      });
-    });
+        return from(getDocs(q)).pipe(
+          map(querySnapshot => {
+            if (!querySnapshot.empty) {
+              const docSnap = querySnapshot.docs[0];
+              console.log('Found customer by email:', docSnap.data());
+              return { id: docSnap.id, ...docSnap.data() } as (Customer & { id: string });
+            } else {
+              console.log('No customer found with email', email);
+              return undefined;
+            }
+          }),
+          catchError(error => {
+            console.error('Error fetching customer by email:', error);
+            return of(undefined);
+          })
+        );
+      } catch (error) {
+        console.error('Error in getCustomerByEmail:', error);
+        return of(undefined);
+      }
+    }, this.ngZone);
   }
 
   /**
@@ -131,8 +111,8 @@ export class CustomerService {
    * @param userId Optional user ID to use as document ID
    * @returns The ID of the created customer
    */
-  async createCustomer(customer: Customer, userId?: string): Promise<string> {
-    return this.ngZone.run(async () => {
+  createCustomer(customer: Customer, userId?: string): Promise<string> {
+    return ZoneUtils.wrapPromise(async () => {
       try {
         console.log('Creating new customer' + (userId ? ` with Auth ID ${userId}` : ' with auto-generated ID'));
 
@@ -186,11 +166,11 @@ export class CustomerService {
         console.error('Error creating customer:', error);
         throw error;
       }
-    });
+    }, this.ngZone);
   }
 
   updateCustomer(customer: Customer & { id: string }): Promise<void> {
-    return this.ngZone.run(async () => {
+    return ZoneUtils.wrapPromise(async () => {
       try {
         console.log('Updating customer:', customer);
         const { id, ...customerData } = customer;
@@ -207,11 +187,11 @@ export class CustomerService {
         console.error('Error updating customer:', error);
         throw error;
       }
-    });
+    }, this.ngZone);
   }
 
   deleteCustomer(customerId: string): Promise<void> {
-    return this.ngZone.run(async () => {
+    return ZoneUtils.wrapPromise(async () => {
       try {
         console.log('Deleting customer:', customerId);
         const customerDocument = doc(this.firestore, this.collectionName, customerId);
@@ -220,6 +200,6 @@ export class CustomerService {
         console.error('Error deleting customer:', error);
         throw error;
       }
-    });
+    }, this.ngZone);
   }
 }

@@ -12,7 +12,6 @@ import { Appointment } from '../../../models/appointment.model';
 import { ServiceService } from '../../../services/service.service';
 import { ProviderService } from '../../../services/provider.service';
 import { LoadingService } from '../../../services/loading.service';
-import { collection, collectionData } from '@angular/fire/firestore';
 import { catchError, map } from 'rxjs/operators';
 
 // Define a type that includes the document ID with the Customer model
@@ -104,81 +103,51 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
 
     const customerId = this.customer.id;
     
-    const appointmentSub = this.appointmentService.getAppointmentsByCustomer(customerId)
-      .pipe(
-        catchError(error => {
-          console.error(`Error fetching appointments for customer ${customerId}:`, error);
-          return of([]);
-        })
-      )
-      .subscribe({
-        next: (appointments) => {
-          if (appointments && appointments.length > 0) {
+    try {
+      const appointmentSub = this.appointmentService.getAppointmentsByCustomer(customerId)
+        .pipe(
+          catchError(error => {
+            console.error(`Error fetching appointments for customer ${customerId}:`, error);
+            // WICHTIG: Leeres Array zurückgeben statt weiteren Versuch zu machen
+            this.isLoading = false;
+            this.loadingService.setLoading(false);
+            return of([]);
+          })
+        )
+        .subscribe({
+          next: (appointments) => {
+            // Verarbeite die Termine direkt, selbst wenn keine gefunden wurden
             this.processAppointments(appointments);
-          } else {
-            // Try with alternative method if no appointments found
-            this.tryAlternativeAppointmentFetch();
-          }
-        },
-        error: (error) => {
-          console.error('Error fetching appointments:', error);
-          this.loadingService.setLoading(false);
-          this.isLoading = false;
-        }
-      });
-    
-    this.subscriptions.push(appointmentSub);
-  }
-
-  tryAlternativeAppointmentFetch(): void {
-    if (!this.customer?.id) {
-      this.isLoading = false;
-      this.loadingService.setLoading(false);
-      return;
-    }
-
-    const customerId = this.customer.id;
-    const firestore = this.appointmentService['firestore'];
-    const appointmentsCollection = collection(firestore, 'appointments');
-    
-    // This is a fallback method to query all appointments and filter manually
-    const appointmentSub = collectionData(appointmentsCollection, { idField: 'id' })
-      .pipe(
-        map(appointments => {
-          // Filter by customer ID
-          return appointments.filter(appt => 
-            (appt as any).customerId && 
-            typeof (appt as any).customerId === 'string' &&
-            (appt as any).customerId.toLowerCase() === customerId.toLowerCase()
-          ) as Appointment[];
-        }),
-        catchError(error => {
-          console.error('Error in alternative appointment fetch:', error);
-          return of([]);
-        })
-      )
-      .subscribe({
-        next: (filteredAppointments) => {
-          if (filteredAppointments && filteredAppointments.length > 0) {
-            this.processAppointments(filteredAppointments);
-          } else {
-            // No appointments found with either method
+            this.isLoading = false;
+            this.loadingService.setLoading(false);
+          },
+          error: (error) => {
+            console.error('Error processing appointments:', error);
             this.isLoading = false;
             this.loadingService.setLoading(false);
           }
-        },
-        error: (error) => {
-          console.error('Error in alternative appointment fetch:', error);
-          this.isLoading = false;
-          this.loadingService.setLoading(false);
-        }
-      });
-    
-    this.subscriptions.push(appointmentSub);
+        });
+      
+      this.subscriptions.push(appointmentSub);
+    } catch (error) {
+      console.error('Unexpected error in loadAppointments:', error);
+      this.isLoading = false;
+      this.loadingService.setLoading(false);
+    }
   }
+
+  // Die problematische tryAlternativeAppointmentFetch-Methode wurde entfernt
   
   processAppointments(appointments: Appointment[]): void {
     try {
+      if (!appointments || appointments.length === 0) {
+        // Keine Termine gefunden
+        this.totalAppointments = 0;
+        this.totalSpent = 0;
+        this.favoriteService = "";
+        return;
+      }
+      
       const now = new Date();
       const upcomingAppts: AppointmentWithDetails[] = [];
       const pastAppts: AppointmentWithDetails[] = [];
@@ -216,16 +185,12 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
       this.favoriteService = appointments.length > 0 ? 
         (appointments[0].serviceName || 'Unbekannt') : "";
       
-      // Load is complete for the main UI
-      this.isLoading = false;
-      this.loadingService.setLoading(false);
-      
-      // Load additional details in the background
-      this.loadAdditionalAppointmentDetails(appointments);
+      // Load additional details in the background - with error handling
+      this.loadAdditionalAppointmentDetails(appointments).catch(error => {
+        console.error("Error in background load of appointment details:", error);
+      });
     } catch (error) {
       console.error("Error processing appointments:", error);
-      this.isLoading = false;
-      this.loadingService.setLoading(false);
     }
   }
   
@@ -333,7 +298,7 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
     });
   }
   
-  // UI Helper Methods
+  // UI Helper Methods - bleiben unverändert
   getInitials(): string {
     if (!this.customer || !this.customer.firstName || !this.customer.lastName) return '';
     return (this.customer.firstName[0] + this.customer.lastName[0]).toUpperCase();
@@ -429,7 +394,7 @@ export class CustomerProfileComponent implements OnInit, OnDestroy {
     }
   }
   
-  // Action Methods
+  // Action Methods - bleiben unverändert
   editProfile(): void {
     this.isEditing = true;
   }
