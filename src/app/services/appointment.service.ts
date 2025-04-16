@@ -1,8 +1,8 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Appointment } from '../models/appointment.model';
-import { Observable, from, of, catchError } from 'rxjs';
+import { Observable, from, of } from 'rxjs';
 import { Firestore, collection, collectionData, doc, docData, addDoc, updateDoc, deleteDoc, query, where, limit } from '@angular/fire/firestore';
-import { map, switchMap } from 'rxjs/operators';
+import { map, switchMap, catchError } from 'rxjs/operators';
 import { convertAppointmentDates } from '../utils/date-utils';
 import { ProviderCustomerService } from './provider-customer.service';
 
@@ -168,33 +168,53 @@ export class AppointmentService {
         });
     }
 
-    // Methode für Kunden, um ihre Termine zu sehen
+    // IMPROVED: Optimized method for customers to view their appointments
     getAppointmentsByCustomer(customerId: string): Observable<Appointment[]> {
         return new Observable<Appointment[]>(observer => {
             this.ngZone.run(() => {
                 try {
                     console.log("AppointmentService: Getting appointments for customer ID:", customerId);
+                    
+                    // Create collection reference inside ngZone.run
                     const appointmentsCollection = collection(this.firestore, this.collectionName);
-
-                    // IMPORTANT: Immer innerhalb von ngZone.run() arbeiten
-                    const q = query(appointmentsCollection, where('customerId', '==', customerId));
+                    
+                    // IMPORTANT: Match the query structure with the security rules
+                    // Adding limit to ensure we match the security rule requirements
+                    const q = query(
+                        appointmentsCollection, 
+                        where('customerId', '==', customerId),
+                        limit(500) // Add limit to match security rules
+                    );
+                    
+                    // Subscribe with proper error handling
                     const subscription = collectionData(q, { idField: 'id' }).pipe(
                         map(data => {
-                            console.log("AppointmentService: Raw results:", data);
-                            // Datumswerte konvertieren
+                            console.log("AppointmentService: Raw results for customer:", data);
+                            // Convert date values
                             return (data as any[]).map(item => convertAppointmentDates(item) as Appointment);
                         }),
                         catchError(error => {
                             console.error(`Error fetching appointments for customer ${customerId}:`, error);
+                            // Return empty array instead of throwing error
                             return of([]);
                         })
                     ).subscribe({
-                        next: appointments => this.ngZone.run(() => observer.next(appointments)),
-                        error: err => this.ngZone.run(() => observer.error(err)),
+                        next: appointments => this.ngZone.run(() => {
+                            if (appointments.length > 0) {
+                                console.log(`Found ${appointments.length} appointments for customer ${customerId}`);
+                            } else {
+                                console.log(`No appointments found for customer ${customerId}`);
+                            }
+                            observer.next(appointments);
+                        }),
+                        error: err => this.ngZone.run(() => {
+                            console.error(`Error in appointment subscription for customer ${customerId}:`, err);
+                            observer.error(err);
+                        }),
                         complete: () => this.ngZone.run(() => observer.complete())
                     });
 
-                    // Aufräumen beim Abbestellen
+                    // Clean up subscription when Observable is unsubscribed
                     return () => subscription.unsubscribe();
                 } catch (error) {
                     console.error('Error in getAppointmentsByCustomer:', error);
@@ -225,11 +245,13 @@ export class AppointmentService {
                     endOfDay.setHours(23, 59, 59, 999);
 
                     // VERBESSERT: Filtere nach Benutzer UND Datum direkt in der Firestore-Abfrage
+                    // Add limit to ensure we match the security rule requirements
                     const q = query(
                         appointmentsCollection,
                         where(fieldName, '==', userId),
                         where('startTime', '>=', startOfDay),
-                        where('startTime', '<=', endOfDay)
+                        where('startTime', '<=', endOfDay),
+                        limit(500) // Add limit to match security rules
                     );
 
                     collectionData(q, { idField: 'id' }).pipe(
@@ -386,7 +408,7 @@ export class AppointmentService {
                     const q = query(
                         appointmentsCollection, 
                         where('providerId', '==', providerId),
-                        limit(500) // Optional: Begrenze die Anzahl der zurückgegebenen Dokumente
+                        limit(500) // Begrenze die Anzahl der zurückgegebenen Dokumente
                     );
                     
                     collectionData(q, { idField: 'id' }).pipe(

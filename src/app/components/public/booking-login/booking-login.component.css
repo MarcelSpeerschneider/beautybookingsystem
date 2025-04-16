@@ -1,343 +1,436 @@
 .container {
-    max-width: 1000px;
-    margin: 0 auto;
-    background-color: var(--main-background-color);
-    padding: 20px;
-  }
-  
-  .provider-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-  }
-  
-  .logo-container {
-    display: flex;
-    align-items: center;
-  }
-  
-  .logo {
-    width: 80px;
-    height: 80px;
-    background-color: var(--decorative-element-color);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary-color);
-    font-weight: bold;
-    margin-right: 20px;
-    font-size: 2rem;
-  }
-  
-  .brand {
-    display: flex;
+  max-width: 1000px;
+  margin: 0 auto;
+  background-color: var(--main-background-color);
+  padding: 20px;
+}
+
+.provider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  background-color: var(--decorative-element-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  font-weight: bold;
+  margin-right: 20px;
+  font-size: 2rem;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand h1 {
+  color: var(--heading-text-color);
+  margin-bottom: 5px;
+}
+
+.brand p {
+  color: var(--body-text-color);
+}
+
+.booking-container {
+  background-color: var(--card-header-color);
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  margin-bottom: 30px;
+}
+
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.stepper::after {
+  content: '';
+  position: absolute;
+  height: 2px;
+  background-color: var(--placeholder-text-color);
+  width: 100%;
+  top: 15px;
+  z-index: 1;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  background-color: white;
+  padding: 0 10px;
+}
+
+.step-number {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  background-color: var(--placeholder-text-color);
+  color: var(--body-text-color);
+}
+
+.step.active .step-number {
+  background-color: var(--primary-color);
+  color: var(--card-header-color);
+}
+
+.step.completed .step-number {
+  background-color: #8e44ad;
+  color: white;
+}
+
+.step-label {
+  font-size: 0.9rem;
+  color: var(--body-text-color);
+}
+
+.step.active .step-label {
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.step.completed .step-label {
+  color: #8e44ad;
+}
+
+.section-title {
+  margin-bottom: 20px;
+  color: var(--heading-text-color);
+}
+
+.booking-summary {
+  background-color: var(--section-background-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 25px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.summary-title {
+  color: var(--primary-color);
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0e6ff;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.summary-label {
+  font-weight: 500;
+  color: var(--heading-text-color);
+}
+
+.summary-value {
+  color: var(--primary-color);
+}
+
+/* Form Toggle Styles */
+.form-toggle {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--section-background-color);
+  margin-bottom: 25px;
+  width: 500px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 12px 0;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+.toggle-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.toggle-btn:not(.active):hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Login Form Styles */
+.login-form, .register-form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.form-field {
+  margin-bottom: 25px;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--heading-text-color);
+}
+
+.form-field input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid var(--placeholder-text-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  color: #333;
+  transition: border-color 0.3s;
+}
+
+.form-field input:focus {
+  border-color: #4a148c;
+  outline: none;
+}
+
+.required-field::after {
+  content: '*';
+  color: var(--primary-color);
+  margin-left: 4px;
+}
+
+.error-message {
+  color: var(--primary-color);
+  font-size: 0.85rem;
+  margin-top: 5px;
+}
+
+.error-display {
+  color: var(--primary-color);
+  font-size: 0.95rem;
+  margin-top: 15px;
+  text-align: center;
+  padding: 10px;
+  background-color: var(--section-background-color);
+  border-radius: 4px;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-top: -15px;
+  margin-bottom: 20px;
+}
+
+.forgot-password a {
+  color: var(--primary-color);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.forgot-password a:hover {
+  text-decoration: underline;
+}
+
+.login-button, .register-button {
+  width: 100%;
+  background-color: var(--primary-color);
+  color: var(--card-header-color);
+  border: none;
+  padding: 14px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-button:hover:not(:disabled),
+.register-button:hover:not(:disabled) {
+  background-color: #6a1b9a;
+}
+
+.login-button:disabled,
+.register-button:disabled {
+  background-color: var(--placeholder-text-color);
+  cursor: not-allowed;
+}
+
+.register-prompt, .login-prompt {
+  text-align: center;
+  margin-top: 25px;
+  color: var(--body-text-color);
+  font-size: 0.9rem;
+}
+
+.register-prompt a, .login-prompt a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.register-prompt a:hover, .login-prompt a:hover {
+  text-decoration: underline;
+}
+
+.account-benefits {
+  background-color: var(--section-background-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 30px;
+}
+
+.benefits-title {
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: var(--heading-text-color);
+}
+
+.benefits-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.benefits-list li {
+  margin-bottom: 10px;
+  position: relative;
+  padding-left: 25px;
+  color: var(--body-text-color);
+}
+
+.benefits-list li:before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+/* Form-Row für zwei Spalten */
+.form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.form-row .form-field {
+  flex: 1;
+}
+
+/* Privacy-Policy Checkbox */
+.privacy-policy {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.privacy-policy input[type="checkbox"] {
+  margin-right: 10px;
+  margin-top: 3px;
+  width: auto;
+}
+
+.privacy-policy label {
+  font-size: 0.9rem;
+  color: var(--body-text-color);
+}
+
+.privacy-policy a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.privacy-policy a:hover {
+  text-decoration: underline;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.back-btn {
+  background-color: white;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  padding: 12px 25px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  background-color: var(--section-background-color);
+}
+
+.arrow-left {
+  margin-right: 10px;
+}
+
+/* Animation für den Übergang */
+.register-section, .login-section {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .form-row {
     flex-direction: column;
+    gap: 0;
   }
   
-  .brand h1 {
-    color: var(--heading-text-color);
-    margin-bottom: 5px;
+  .form-toggle {
+    width: 100%;
   }
   
-  .brand p {
-    color: var(--body-text-color);
-  }
-  
-  .booking-container {
-    background-color: var(--card-header-color);
-    border-radius: 10px;
-    padding: 30px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    margin-bottom: 30px;
+  .login-form, .register-form {
+    max-width: 100%;
   }
   
   .stepper {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 30px;
-    position: relative;
-  }
-  
-  .stepper::after {
-    content: '';
-    position: absolute;
-    height: 2px;
-    background-color: var(--placeholder-text-color);
-    width: 100%;
-    top: 15px;
-    z-index: 1;
+    flex-wrap: wrap;
   }
   
   .step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    position: relative;
-    z-index: 2;
-    background-color: white;
-    padding: 0 10px;
-  }
-  
-  .step-number {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
-    background-color: var(--placeholder-text-color);
-    color: var(--body-text-color);
-  }
-  
-  .step.active .step-number {
-    background-color: var(--primary-color);
-    color: var(--card-header-color);
-  }
-  
-  .step.completed .step-number {
-    background-color: #8e44ad;
-    color: white;
-  }
-  
-  .step-label {
-    font-size: 0.9rem;
-    color: var(--body-text-color);
-  }
-  
-  .step.active .step-label {
-    color: var(--primary-color);
-    font-weight: bold;
-  }
-  
-  .step.completed .step-label {
-    color: #8e44ad;
-  }
-  
-  .section-title {
-    margin-bottom: 20px;
-    color: var(--heading-text-color);
-  }
-  
-  .booking-summary {
-    background-color: var(--section-background-color);
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 25px;
-    border-left: 4px solid var(--primary-color);
-  }
-  
-  .summary-title {
-    color: var(--primary-color);
-    font-weight: 600;
+    width: 50%;
     margin-bottom: 15px;
   }
-  
-  .summary-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #f0e6ff;
-  }
-  
-  .summary-item:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
-  }
-  
-  .summary-label {
-    font-weight: 500;
-    color: var(--heading-text-color);
-  }
-  
-  .summary-value {
-    color: var(--primary-color);
-  }
-  
-  /* Login Form Specific Styles */
-  .login-form {
-    max-width: 500px;
-    margin: 0 auto;
-  }
-  
-  .login-form .form-field {
-    margin-bottom: 25px;
-  }
-  
-  .form-field label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: var(--heading-text-color);
-  }
-  
-  .form-field input {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid var(--placeholder-text-color);
-    border-radius: 6px;
-    font-size: 1rem;
-    color: #333;
-    transition: border-color 0.3s;
-  }
-  
-  .form-field input:focus {
-    border-color: #4a148c;
-    outline: none;
-  }
-  
-  .required-field::after {
-    content: '*';
-    color: var(--primary-color);
-    margin-left: 4px;
-  }
-  
-  .error-message {
-    color: var(--primary-color);
-    font-size: 0.85rem;
-    margin-top: 5px;
-  }
-  
-  .error-display {
-    color: var(--primary-color);
-    font-size: 0.95rem;
-    margin-top: 15px;
-    text-align: center;
-    padding: 10px;
-    background-color: var(--section-background-color);
-    border-radius: 4px;
-  }
-  
-  .forgot-password {
-    text-align: right;
-    margin-top: -15px;
-    margin-bottom: 20px;
-  }
-  
-  .forgot-password a {
-    color: var(--primary-color);
-    font-size: 0.85rem;
-    text-decoration: none;
-  }
-  
-  .forgot-password a:hover {
-    text-decoration: underline;
-  }
-  
-  .login-button {
-    width: 100%;
-    background-color: var(--primary-color);
-    color: var(--card-header-color);
-    border: none;
-    padding: 14px;
-    border-radius: 6px;
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.3s;
-  }
-  
-  .login-button:hover:not(:disabled) {
-    background-color: #6a1b9a;
-  }
-  
-  .login-button:disabled {
-    background-color: var(--placeholder-text-color);
-    cursor: not-allowed;
-  }
-  
-  .register-prompt {
-    text-align: center;
-    margin-top: 25px;
-    color: var(--body-text-color);
-    font-size: 0.9rem;
-  }
-  
-  .register-prompt a {
-    color: var(--primary-color);
-    text-decoration: none;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  
-  .register-prompt a:hover {
-    text-decoration: underline;
-  }
-  
-  .account-benefits {
-    background-color: var(--section-background-color);
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 30px;
-  }
-  
-  .benefits-title {
-    font-weight: 600;
-    margin-bottom: 15px;
-    color: var(--heading-text-color);
-  }
-  
-  .benefits-list {
-    list-style-type: none;
-  }
-  
-  .benefits-list li {
-    margin-bottom: 10px;
-    position: relative;
-    padding-left: 25px;
-    color: var(--body-text-color);
-  }
-  
-  .benefits-list li:before {
-    content: '✓';
-    position: absolute;
-    left: 0;
-    color: var(--primary-color);
-    font-weight: bold;
-  }
-  
-  .action-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 30px;
-  }
-  
-  .back-btn {
-    background-color: white;
-    color: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    padding: 12px 25px;
-    border-radius: 30px;
-    cursor: pointer;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    transition: all 0.3s;
-  }
-  
-  .back-btn:hover {
-    background-color: var(--section-background-color);
-  }
-  
-  .arrow-left {
-    margin-right: 10px;
-  }
-  
-  @media (max-width: 768px) {
-    .login-form {
-      max-width: 100%;
-    }
-    
-    .stepper {
-      flex-wrap: wrap;
-    }
-    
-    .step {
-      width: 50%;
-      margin-bottom: 15px;
-    }
-  }
+}

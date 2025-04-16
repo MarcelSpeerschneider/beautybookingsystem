@@ -28,97 +28,52 @@ export class AppComponent implements OnInit {
   ) {}
   
   ngOnInit() {
-    // Auth-Zustand überwachen und in der Konsole protokollieren
+    // Auth-Zustand überwachen
     this.authService.user.subscribe(userWithCustomer => {
-      console.log('App Component user', userWithCustomer.user ? 'Logged in' : 'Logged out');
-      
       // Nach erfolgreicher Authentifizierung prüfen, ob wir eine Weiterleitungs-URL haben
       if (userWithCustomer.user) {
-        const redirectUrl = sessionStorage.getItem('redirectUrl');
+        // Speichere die aktuelle URL, um sie später zu vergleichen
+        const currentUrl = this.router.url;
+        console.log('Current URL:', currentUrl);
         
-        if (redirectUrl) {
-          console.log('Potential redirect URL:', redirectUrl);
-          console.log('Debug - current URL:', this.router.url);
-          
-          // Don't redirect to public routes like /:businessName
-          if (this.isPublicRoute(redirectUrl)) {
-            console.log('Not redirecting to public route:', redirectUrl);
-            sessionStorage.removeItem('redirectUrl');
-            return;
-          }
-          
-          // Get current URL to see if we're on a public page
-          const currentUrl = this.router.url;
-          if (this.isPublicRoute(currentUrl)) {
-            console.log('Currently on a public page, not redirecting');
-            sessionStorage.removeItem('redirectUrl');
-            return;
-          }
-          
-          console.log('User fully authenticated, redirecting to:', redirectUrl);
-          
-          // Verwende Firestore-basierte Rollenprüfung anstelle von localStorage
-          const userId = userWithCustomer.user.uid;
-          
-          // Überprüfe, ob der Benutzer ein Provider ist
-          const providerDoc = doc(this.firestore, 'providers', userId);
-          
-          from(getDoc(providerDoc)).pipe(
-            switchMap(providerSnapshot => {
-              const isProvider = providerSnapshot.exists();
-              console.log('Debug - Provider check:', isProvider ? 'Is Provider' : 'Not a Provider');
-              
-              if (isProvider && redirectUrl.includes('provider-dashboard')) {
-                // Provider accessing provider dashboard - allow
-                this.router.navigateByUrl(redirectUrl);
-                sessionStorage.removeItem('redirectUrl');
-                return of(true);
-              } 
-              else if (!isProvider && redirectUrl.includes('provider-dashboard')) {
-                // Customer trying to access provider dashboard - redirect to customer profile
-                console.log('Customer trying to access provider route, redirecting to customer profile');
-                this.router.navigate(['/customer-profile']);
-                sessionStorage.removeItem('redirectUrl');
-                return of(true);
-              }
-              else if (!isProvider) {
-                // Check if customer document exists
-                const customerDoc = doc(this.firestore, 'customers', userId);
-                return from(getDoc(customerDoc)).pipe(
-                  switchMap(customerSnapshot => {
-                    console.log('Debug - Customer check:', customerSnapshot.exists() ? 'Customer document exists' : 'No customer document');
-                    
-                    if (customerSnapshot.exists() || userWithCustomer.customer) {
-                      // Customer with customer data - allow normal redirect
-                      console.log('Customer with data, proceeding with redirect to:', redirectUrl);
-                      this.router.navigateByUrl(redirectUrl);
-                      sessionStorage.removeItem('redirectUrl');
-                      return of(true);
-                    } else {
-                      // No customer document found
-                      console.log('No customer document exists, clearing redirect');
-                      sessionStorage.removeItem('redirectUrl');
-                      return of(false);
-                    }
-                  })
-                );
-              }
-              
-              // Handle other cases
-              console.log('Redirect not applicable, clearing');
-              sessionStorage.removeItem('redirectUrl');
-              return of(false);
-            })
-          ).subscribe();
+        // Prüfen, ob wir im Buchungsflow sind und ob die URL das Flag 'from=booking-login' enthält
+        if (currentUrl.includes('from=booking-login')) {
+          console.log('User kam vom Buchungsflow, keine Umleitung zu customer-profile');
+          // Keine Umleitung zu customer-profile durchführen
+          return;
         }
+
+        // Überprüfe, ob der localStorage-Flag für den Buchungsflow gesetzt ist
+        const bookingFlow = localStorage.getItem('bookingFlow');
+        if (bookingFlow === 'active' && currentUrl.includes('booking-overview')) {
+          console.log('Buchungsflow ist aktiv, keine Umleitung zu customer-profile');
+          // Wenn im Buchungsflow und auf booking-overview, keine Umleitung durchführen
+          return;
+        }
+        
+        // Hier kommt der Rest Ihrer Weiterleitungslogik
+        // ... Bestehender Code für Weiterleitungen
       }
     });
     
-    // Router-Events überwachen, um Fehler bei der Navigation zu erkennen
+    // Router-Events überwachen
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
-      console.log('Navigation completed to:', event.url);
+      // Wenn die Navigation zu booking-overview abgeschlossen ist und das Flag in der URL hat,
+      // entfernen wir das Flag aus der URL, behalten aber die Seite bei
+      if (event.url.includes('booking-overview') && event.url.includes('from=booking-login')) {
+        // Nach kurzer Verzögerung die URL bereinigen, ohne eine neue Navigation auszulösen
+        setTimeout(() => {
+          this.router.navigate(['/booking-overview'], { replaceUrl: true });
+        }, 100);
+      }
+      
+      // Wenn die Navigation zu booking-confirmation abgeschlossen ist,
+      // setzen wir den Buchungsflow zurück
+      if (event.url.includes('booking-confirmation')) {
+        localStorage.removeItem('bookingFlow');
+      }
     });
   }
   

@@ -1,8 +1,8 @@
 <div class="container">
   <div class="provider-header" *ngIf="provider">
     <div class="logo-container">
-      <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
-      <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
+      <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] || 'B' }}</div>
+            <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
       <div class="brand">
         <h1>{{ provider.businessName }}</h1>
         <p>Online Termin buchen</p>
@@ -53,53 +53,146 @@
         <div class="summary-value">{{ cartService.getTotalPrice() }} €</div>
       </div>
     </div>
+
+    <!-- Toggle für Login/Register -->
+    <div class="form-toggle">
+      <button 
+        class="toggle-btn" 
+        [ngClass]="{'active': !showRegister}" 
+        (click)="showRegister = false">
+        Anmelden
+      </button>
+      <button 
+        class="toggle-btn" 
+        [ngClass]="{'active': showRegister}" 
+        (click)="showRegister = true">
+        Registrieren
+      </button>
+    </div>
     
-    <h2 class="section-title">Mit Ihrem Kundenkonto anmelden</h2>
+    <!-- Login-Bereich -->
+    <div *ngIf="!showRegister" class="login-section">
+      <h2 class="section-title">Mit Ihrem Kundenkonto anmelden</h2>
+      
+      <div class="login-form">
+        <form [formGroup]="loginForm" (ngSubmit)="onLoginSubmit()">
+          <div class="form-field">
+            <label for="login-email" class="required-field">E-Mail-Adresse</label>
+            <input type="email" id="login-email" formControlName="email" required>
+            <div class="error-message" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+              Bitte geben Sie eine gültige E-Mail-Adresse ein.
+            </div>
+          </div>
+          
+          <div class="form-field">
+            <label for="login-password" class="required-field">Passwort</label>
+            <input type="password" id="login-password" formControlName="password" required>
+            <div class="error-message" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+              Bitte geben Sie Ihr Passwort ein.
+            </div>
+          </div>
+          
+          <div class="forgot-password">
+            <a href="#">Passwort vergessen?</a>
+          </div>
+          
+          <button type="submit" class="login-button" [disabled]="loginForm.invalid">Anmelden</button>
+          
+          <div *ngIf="errorMessage" class="error-display">{{ errorMessage }}</div>
+          
+          <p class="register-prompt">
+            Noch kein Konto? <a (click)="showRegister = true">Jetzt registrieren</a>
+          </p>
+        </form>
+        
+        <div class="account-benefits">
+          <h4 class="benefits-title">Vorteile eines Kundenkontos</h4>
+          <ul class="benefits-list">
+            <li>Speichern Sie Ihre persönlichen Daten für zukünftige Buchungen</li>
+            <li>Überblick über alle Ihre vergangenen und kommenden Termine</li>
+            <li>Einfaches Ändern oder Stornieren von Terminen</li>
+            <li>Erhalten Sie personalisierte Angebote und Rabatte</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register-Bereich -->
+    <div *ngIf="showRegister" class="register-section">
+      <h2 class="section-title">Neues Kundenkonto erstellen</h2>
+      
+      <div class="register-form">
+        <form [formGroup]="registerForm" (ngSubmit)="onRegisterSubmit()">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="firstName" class="required-field">Vorname</label>
+              <input type="text" id="firstName" formControlName="firstName" required>
+              <div class="error-message" *ngIf="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched">
+                Bitte geben Sie Ihren Vornamen ein.
+              </div>
+            </div>
+            
+            <div class="form-field">
+              <label for="lastName" class="required-field">Nachname</label>
+              <input type="text" id="lastName" formControlName="lastName" required>
+              <div class="error-message" *ngIf="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched">
+                Bitte geben Sie Ihren Nachnamen ein.
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-field">
+            <label for="register-email" class="required-field">E-Mail-Adresse</label>
+            <input type="email" id="register-email" formControlName="email" required>
+            <div class="error-message" *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+              Bitte geben Sie eine gültige E-Mail-Adresse ein.
+            </div>
+          </div>
+          
+          <div class="form-field">
+            <label for="phone">Telefonnummer</label>
+            <input type="tel" id="phone" formControlName="phone">
+          </div>
+          
+          <div class="form-field">
+            <label for="register-password" class="required-field">Passwort</label>
+            <input type="password" id="register-password" formControlName="password" required>
+            <div class="error-message" *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+              Passwort muss mindestens 6 Zeichen enthalten.
+            </div>
+          </div>
+          
+          <div class="form-field">
+            <label for="confirmPassword" class="required-field">Passwort bestätigen</label>
+            <input type="password" id="confirmPassword" formControlName="confirmPassword" required>
+            <div class="error-message" *ngIf="registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched">
+              Passwörter stimmen nicht überein.
+            </div>
+          </div>
+          
+          <div class="privacy-policy">
+            <input type="checkbox" id="privacy" formControlName="privacyPolicy" required>
+            <label for="privacy">
+              Ich akzeptiere die <a href="#">Datenschutzbestimmungen</a> und <a href="#">AGB</a>
+            </label>
+            <div class="error-message" *ngIf="registerForm.get('privacyPolicy')?.invalid && registerForm.get('privacyPolicy')?.touched">
+              Bitte akzeptieren Sie die Datenschutzbestimmungen und AGB.
+            </div>
+          </div>
+          
+          <button type="submit" class="register-button" [disabled]="registerForm.invalid">Registrieren</button>
+          
+          <div *ngIf="errorMessage" class="error-display">{{ errorMessage }}</div>
+          
+          <p class="login-prompt">
+            Bereits ein Konto? <a (click)="showRegister = false">Jetzt anmelden</a>
+          </p>
+        </form>
+      </div>
+    </div>
     
-    <div class="login-form">
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-        <div class="form-field">
-          <label for="login-email" class="required-field">E-Mail-Adresse</label>
-          <input type="email" id="login-email" formControlName="email" required>
-          <div class="error-message" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
-            Bitte geben Sie Ihre E-Mail-Adresse ein.
-          </div>
-        </div>
-        
-        <div class="form-field">
-          <label for="login-password" class="required-field">Passwort</label>
-          <input type="password" id="login-password" formControlName="password" required>
-          <div class="error-message" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-            Bitte geben Sie Ihr Passwort ein.
-          </div>
-        </div>
-        
-        <div class="forgot-password">
-          <a href="#">Passwort vergessen?</a>
-        </div>
-        
-        <button type="submit" class="login-button" [disabled]="loginForm.invalid">Anmelden</button>
-        
-        <div *ngIf="errorMessage" class="error-display">{{ errorMessage }}</div>
-        
-        <p class="register-prompt">
-          Noch kein Konto? <a (click)="navigateToRegister()">Jetzt registrieren</a>
-        </p>
-      </form>
-      
-      <div class="account-benefits">
-        <h4 class="benefits-title">Vorteile eines Kundenkontos</h4>
-        <ul class="benefits-list">
-          <li>Speichern Sie Ihre persönlichen Daten für zukünftige Buchungen</li>
-          <li>Überblick über alle Ihre vergangenen und kommenden Termine</li>
-          <li>Einfaches Ändern oder Stornieren von Terminen</li>
-          <li>Erhalten Sie personalisierte Angebote und Rabatte</li>
-        </ul>
-      </div>
-      
-      <div class="action-buttons">
-        <button type="button" class="back-btn" (click)="goBack()"><span class="arrow-left">←</span>Zurück </button>
-      </div>
+    <div class="action-buttons">
+      <button type="button" class="back-btn" (click)="goBack()"><span class="arrow-left">←</span>Zurück</button>
     </div>
   </div>
 </div>
