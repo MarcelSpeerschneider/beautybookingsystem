@@ -173,9 +173,9 @@
           <ng-container *ngIf="selectedDate">
             <strong>Datum:</strong> {{ formatDate(selectedDate) }}<br/>
           </ng-container>
-          <strong>Uhrzeit:</strong> 
+          
           <ng-container *ngIf="savedAppointment?.startTime">
-            {{ savedAppointment.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }} Uhr
+            <strong>Uhrzeit:</strong> {{ savedAppointment?.startTime?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }} Uhr
           </ng-container>
         </p>
         <p>
