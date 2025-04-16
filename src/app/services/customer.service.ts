@@ -1,7 +1,7 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Customer } from '../models/customer.model';
-import { Observable, from, of, catchError } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { Observable, from, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import {
   Firestore,
   collection,
@@ -58,28 +58,28 @@ export class CustomerService {
     return new Observable<Customer | undefined>(observer => {
       this.ngZone.run(() => {
         try {
-          console.log('Lade Kundendaten für ID:', customerId);
+          console.log('Loading customer data for ID:', customerId);
 
           const customerDocument = doc(this.firestore, this.collectionName, customerId);
 
+          // Use a more robust method to get the document
           getDoc(customerDocument)
             .then(docSnap => {
               if (docSnap.exists()) {
-                console.log("Kunde gefunden:", docSnap.data());
+                console.log("Customer found:", docSnap.data());
                 const customer = { id: docSnap.id, ...docSnap.data() } as Customer;
                 observer.next(customer);
               } else {
-                console.log("Kein Kunde mit ID", customerId, "gefunden");
+                console.log("No customer with ID", customerId, "found");
                 observer.next(undefined);
               }
               observer.complete();
             })
             .catch((error: any) => {
-              console.error("Fehler beim Laden des Kunden mit ID", customerId, ":", error);
+              console.error("Error loading customer with ID", customerId, ":", error);
               observer.next(undefined);
               observer.complete();
             });
-
         } catch (error) {
           console.error('Error in getCustomer:', error);
           observer.next(undefined);
@@ -93,6 +93,7 @@ export class CustomerService {
     return new Observable<Customer | undefined>(observer => {
       this.ngZone.run(() => {
         try {
+          console.log('Looking up customer by email:', email);
           const customerCollection = collection(this.firestore, this.collectionName);
           const q = query(customerCollection, where('email', '==', email));
 
@@ -100,9 +101,11 @@ export class CustomerService {
             .then(querySnapshot => {
               if (!querySnapshot.empty) {
                 const docSnap = querySnapshot.docs[0];
+                console.log('Found customer by email:', docSnap.data());
                 const customer = { id: docSnap.id, ...docSnap.data() } as Customer;
                 observer.next(customer);
               } else {
+                console.log('No customer found with email', email);
                 observer.next(undefined);
               }
               observer.complete();
@@ -139,7 +142,7 @@ export class CustomerService {
           updatedAt: new Date()
         };
 
-        // BEVORZUGTE METHODE: Wenn userId (Auth-ID) vorhanden ist
+        // PREFERRED METHOD: When userId (Auth ID) is provided
         if (userId) {
           // Check if customer with this ID already exists
           const customerDoc = doc(this.firestore, this.collectionName, userId);
@@ -155,7 +158,7 @@ export class CustomerService {
           console.log(`Customer created with Auth ID: ${userId}`);
           return userId;
         }
-        // FALLBACK: Email-Check und auto-generierte ID
+        // FALLBACK: Email check and auto-generated ID
         else {
           // Check if a customer with this email already exists
           if (customer.email) {
@@ -171,7 +174,7 @@ export class CustomerService {
             }
           }
 
-          // Create document with auto-generated ID (FALLBACK, NICHT EMPFOHLEN)
+          // Create document with auto-generated ID (FALLBACK, NOT RECOMMENDED)
           console.warn('Creating customer with auto-generated ID is not recommended');
           const customersCollection = collection(this.firestore, this.collectionName);
           const docRef = await addDoc(customersCollection, customerToSave);
@@ -188,6 +191,7 @@ export class CustomerService {
   updateCustomer(customer: Customer): Promise<void> {
     return this.ngZone.run(async () => {
       try {
+        console.log('Updating customer:', customer);
         const { id, ...customerData } = customer;
         const customerDocument = doc(this.firestore, this.collectionName, id);
 
@@ -208,6 +212,7 @@ export class CustomerService {
   deleteCustomer(customerId: string): Promise<void> {
     return this.ngZone.run(async () => {
       try {
+        console.log('Deleting customer:', customerId);
         const customerDocument = doc(this.firestore, this.collectionName, customerId);
         return deleteDoc(customerDocument);
       } catch (error) {
