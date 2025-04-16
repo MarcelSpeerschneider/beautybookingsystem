@@ -19,7 +19,7 @@ import { LoadingService } from '../../../services/loading.service';
 })
 export class PublicServiceListComponent implements OnInit, OnDestroy {
   
-  provider: Provider | null = null;
+  provider: Provider | null | undefined = null;
   userId: string = '';
   services: Service[] = [];
   isOwnProviderPage: boolean = false;
@@ -39,9 +39,10 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
     this.loadingService.setLoading(true, 'Lade...');
     
     // Check for preview mode in query params
-    this.route.queryParams.subscribe(params => {
+    const paramsSub = this.route.queryParams.subscribe(params => {
       this.previewMode = params['previewMode'] === 'true';
     });
+    this.subscriptions.push(paramsSub);
     
     // Get user ID from route parameter
     const routeSub = this.route.paramMap.subscribe(params => {      
@@ -51,15 +52,31 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
         this.userId = userId;
         
         // Load provider details by userId
-        this.providerService.getProvider(userId).subscribe(provider => {
-          this.provider = provider;
+        const providerSub = this.providerService.getProvider(userId).subscribe({
+          next: provider => {
+            this.provider = provider || null; // Convert undefined to null if needed
+            console.log('Provider loaded:', provider);
+          },
+          error: error => {
+            console.error('Error loading provider:', error);
+            this.loadingService.setLoading(false);
+          }
         });
+        this.subscriptions.push(providerSub);
       
-        // Load services for this provider
-        this.serviceService.getServicesByUser(userId).subscribe(services => {
-          this.services = services;
-          this.loadingService.setLoading(false); // Set loading to false after fetching services
+        // Load services for this provider using getServicesByProvider method
+        const serviceSub = this.serviceService.getServicesByProvider(userId).subscribe({
+          next: services => {
+            this.services = services;
+            console.log('Services loaded:', services.length);
+            this.loadingService.setLoading(false);
+          },
+          error: error => {
+            console.error('Error loading services:', error);
+            this.loadingService.setLoading(false);
+          }
         });
+        this.subscriptions.push(serviceSub);
         
         // Check if logged-in user is the provider
         const authSub = this.authService.user$.subscribe(user => {
@@ -73,6 +90,8 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
         });
         this.subscriptions.push(authSub);
       } else {
+        console.error('No userId provided in route');
+        this.loadingService.setLoading(false);
         this.router.navigate(['/']); // Redirect to home if no provider ID
       }
     });
@@ -116,7 +135,7 @@ export class PublicServiceListComponent implements OnInit, OnDestroy {
   
   goBack(): void {
     // Go back to provider page
-    if (this.provider) {
+    if (this.provider && this.provider.businessName) {
       this.router.navigate(['/', this.provider.businessName]);
     } else {
       this.router.navigate(['/']); 

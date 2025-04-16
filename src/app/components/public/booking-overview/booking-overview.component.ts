@@ -81,7 +81,7 @@ export class BookingOverviewComponent implements OnInit, OnDestroy {
     }
     
     // Load provider details
-    const providerSub = this.providerService.getProviderByUserId(providerId).subscribe(provider => {
+    const providerSub = this.providerService.getProvider(providerId).subscribe(provider => {
       this.provider = provider || null;
     });
     

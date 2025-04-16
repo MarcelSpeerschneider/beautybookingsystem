@@ -58,11 +58,11 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
     }
   
     this.loadingService.setLoading(true, 'Lade Termine...');
-    console.log('Provider-ID für loadAllAppointments:', this.provider.userId);
+    console.log('Provider-ID für loadAllAppointments:', this.provider.id);
   
     // Verwende die korrekte Methode für Provider-Termine
     const appointmentsSub = this.appointmentService
-      .getAppointmentsByProvider(this.provider.userId)
+      .getAppointmentsByProvider(this.provider.id)
       .subscribe({
         next: (appointments) => {
           console.log('Alle geladenen Termine:', appointments);
@@ -72,7 +72,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
           
           // Debug-Ausgabe, falls keine Termine gefunden wurden
           if (this.allAppointments.length === 0) {
-            console.warn('Keine Termine für providerId', this.provider?.userId, 'gefunden. Bitte prüfe, ob Termine in der Datenbank vorhanden sind.');
+            console.warn('Keine Termine für providerId', this.provider?.id, 'gefunden. Bitte prüfe, ob Termine in der Datenbank vorhanden sind.');
           }
         },
         error: (error) => {
@@ -297,7 +297,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
           this.loadAllAppointments();
           
           // Schließe Detailansicht, falls geöffnet
-          if (this.selectedAppointment && this.selectedAppointment.appointmentId === appointmentId) {
+          if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
             this.selectedAppointment = null;
           }
         },
@@ -320,7 +320,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
             this.loadAllAppointments();
             
             // Schließe Detailansicht, falls geöffnet
-            if (this.selectedAppointment && this.selectedAppointment.appointmentId === appointmentId) {
+            if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
               this.selectedAppointment = null;
             }
           },
@@ -344,7 +344,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
             this.loadAllAppointments();
             
             // Schließe Detailansicht, falls geöffnet
-            if (this.selectedAppointment && this.selectedAppointment.appointmentId === appointmentId) {
+            if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
               this.selectedAppointment = null;
             }
           },
@@ -367,7 +367,7 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
           this.loadAllAppointments();
           
           // Schließe Detailansicht, falls geöffnet
-          if (this.selectedAppointment && this.selectedAppointment.appointmentId === appointmentId) {
+          if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
             this.selectedAppointment = null;
           }
         },

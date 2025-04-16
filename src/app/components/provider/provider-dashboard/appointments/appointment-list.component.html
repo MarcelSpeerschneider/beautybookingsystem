@@ -74,19 +74,19 @@
             </td>
             <td class="action-cell">
               <div *ngIf="appointment.status === 'pending'" class="appointment-actions">
-                <button class="btn-action accept" (click)="confirmAppointment(appointment.appointmentId)" title="Termin bestätigen">
+                <button class="btn-action accept" (click)="confirmAppointment(appointment.id)" title="Termin bestätigen">
                   <span class="action-icon">✓</span>
                 </button>
-                <button class="btn-action reject" (click)="rejectAppointment(appointment.appointmentId)" title="Termin ablehnen">
+                <button class="btn-action reject" (click)="rejectAppointment(appointment.id)" title="Termin ablehnen">
                   <span class="action-icon">✗</span>
                 </button>
               </div>
               
               <div *ngIf="appointment.status === 'confirmed'" class="appointment-actions">
-                <button class="btn-action complete" (click)="completeAppointment(appointment.appointmentId)" title="Als erledigt markieren">
+                <button class="btn-action complete" (click)="completeAppointment(appointment.id)" title="Als erledigt markieren">
                   <span class="action-icon">✓</span>
                 </button>
-                <button class="btn-action cancel" (click)="cancelAppointment(appointment.appointmentId)" title="Termin stornieren">
+                <button class="btn-action cancel" (click)="cancelAppointment(appointment.id)" title="Termin stornieren">
                   <span class="action-icon">✗</span>
                 </button>
               </div>

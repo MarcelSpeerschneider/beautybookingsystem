@@ -26,7 +26,7 @@ import { Appointment } from '../../../models/appointment.model';
 })
 export class BookingConfirmationComponent implements OnInit, OnDestroy {
   // Properties
-  provider: Provider | null = null;
+  provider: Provider | null | undefined = null;
   customer: Customer | null = null;
   cartItems: Service[] = [];
   selectedDate: Date | null = null;
@@ -51,20 +51,20 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   private loadingService = inject(LoadingService);
   
   constructor() {
-    // Initialize savedAppointment with default values
+    // Initialize savedAppointment with default values using the updated model structure
     this.savedAppointment = {
-      notes: '',
-      appointmentId: '',
+      id: '',
       customerId: '',
       providerId: '',
       serviceIds: [],
+      serviceName: '',
+      customerName: '',
       startTime: new Date(),
       endTime: new Date(),
       status: 'pending',
       cleaningTime: 0,
-      createdAt: new Date(),
-      serviceName: '',
-      customerName: ''
+      notes: '',
+      createdAt: new Date()
     };
   }
   
@@ -89,9 +89,9 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     }
     
     // Load provider details
-    const providerSub = this.providerService.getProviderByUserId(providerId).subscribe({
+    const providerSub = this.providerService.getProvider(providerId).subscribe({
       next: (provider) => {
-        this.provider = provider;
+        this.provider = provider || null;
         this.loadingService.setLoading(false);
       },
       error: (error) => {
@@ -174,10 +174,10 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     const serviceIds = this.cartItems.map(service => service.id);
     
     const appointment: Appointment = {
-      notes: localStorage.getItem('notes') ?? '',
-      appointmentId: uuidv4(),
-      customerId: this.customer.userId,
-      providerId: this.provider.userId,
+      id: uuidv4(),
+      // Use the id field instead of userId for both customer and provider
+      customerId: this.customer.id,
+      providerId: this.provider.id,
       serviceIds: serviceIds,
       startTime: appointmentDate,
       endTime: endTime,
@@ -186,14 +186,18 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
       createdAt: new Date(),
       // Additional fields for UI display
       serviceName: this.cartItems[0].name,
-      customerName: `${this.customer.firstName} ${this.customer.lastName}`
+      customerName: `${this.customer.firstName} ${this.customer.lastName}`,
+      notes: localStorage.getItem('notes') ?? ''
     };
       
     this.savedAppointment = appointment;
     
-    // Save appointment to Firestore
+    // Save appointment to Firestore using the new API
     this.appointmentService.createAppointment(appointment)
-      .then(() => {
+      .then((appointmentId) => {
+        // Update the saved appointment with the returned ID if needed
+        this.savedAppointment.id = appointmentId;
+        
         // Show success message
         this.showSuccessMessage = true;
 
@@ -265,7 +269,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
   
   public navigateHome(): void {
     // If provider is available, navigate to provider page
-    if (this.provider) {
+    if (this.provider && this.provider.businessName) {
       this.router.navigate(['/', this.provider.businessName]);
     } else {
       this.router.navigate(['/']);

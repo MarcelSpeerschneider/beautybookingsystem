@@ -23,19 +23,19 @@ export class AppointmentDetailComponent {
   }
 
   confirmAppointment(): void {
-    this.confirm.emit(this.appointment.appointmentId);
+    this.confirm.emit(this.appointment.id);
   }
 
   rejectAppointment(): void {
-    this.reject.emit(this.appointment.appointmentId);
+    this.reject.emit(this.appointment.id);
   }
 
   completeAppointment(): void {
-    this.complete.emit(this.appointment.appointmentId);
+    this.complete.emit(this.appointment.id);
   }
 
   cancelAppointment(): void {
-    this.cancel.emit(this.appointment.appointmentId);
+    this.cancel.emit(this.appointment.id);
   }
   
   formatTime(date: any): string {

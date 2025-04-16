@@ -20,7 +20,7 @@ export class BookingLoginComponent implements OnInit, OnDestroy {
   loginForm: FormGroup;
   errorMessage: string | null = null;
   userId: string | null = null;
-  provider: Provider | null = null;
+  provider: Provider | null | undefined = null;
   selectedDate: Date | null = null;
   selectedTime: string | null = null;
   private subscriptions: Subscription[] = [];
@@ -43,7 +43,11 @@ export class BookingLoginComponent implements OnInit, OnDestroy {
     // Get selected date and time from session storage
     const dateString = sessionStorage.getItem('selectedDate');
     if (dateString) {
-      this.selectedDate = new Date(JSON.parse(dateString));
+      try {
+        this.selectedDate = new Date(JSON.parse(dateString));
+      } catch (e) {
+        console.error('Error parsing date:', e);
+      }
     }
     this.selectedTime = sessionStorage.getItem('selectedTime');
   }
@@ -68,9 +72,9 @@ export class BookingLoginComponent implements OnInit, OnDestroy {
     // Load provider details if available
     const providerId = this.cartService.getProviderId();
     if (providerId) {
-      const providerSub = this.providerService.getProviderByUserId(providerId).subscribe({
+      const providerSub = this.providerService.getProvider(providerId).subscribe({
         next: (provider) => {
-          this.provider = provider;
+          this.provider = provider || null; // Convert undefined to null if needed
           this.loadingService.setLoading(false);
         },
         error: (error) => {
@@ -122,7 +126,11 @@ export class BookingLoginComponent implements OnInit, OnDestroy {
   goBack(): void {
     // Go back to appointment selection
     const providerId = this.cartService.getProviderId();
-    this.router.navigate(['/appointment-selection', providerId]);
+    if (providerId) {
+      this.router.navigate(['/appointment-selection', providerId]);
+    } else {
+      this.router.navigate(['/']);
+    }
   }
 
   navigateToRegister(): void {

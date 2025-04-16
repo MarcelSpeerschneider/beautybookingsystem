@@ -32,24 +32,24 @@ export class AuthenticationService {
   // Track if we're in the registration process to prevent duplicate customer creation
   private registrationInProgress = false;
   
-  // BehaviorSubject für den Firebase Auth-Zustand
+  // BehaviorSubject for the Firebase Auth state
   private firebaseUserSubject = new BehaviorSubject<User | null>(null);
 
-  // BehaviorSubject für das kombinierte User+Customer-Objekt
+  // BehaviorSubject for the combined User+Customer object
   private userWithCustomerSubject = new BehaviorSubject<UserWithCustomer>({
     user: null,
     customer: null
   });
 
-  // Öffentliches Observable für den einfachen Firebase-Benutzer
+  // Public Observable for the simple Firebase user
   user$ = this.firebaseUserSubject.asObservable();
 
-  // Öffentliches Observable für das kombinierte User+Customer-Objekt
+  // Public Observable for the combined User+Customer object
   user = this.userWithCustomerSubject.asObservable();
 
   constructor() {
     console.log('AuthenticationService initialized');
-    // Auth-Zustand innerhalb der NgZone überwachen
+    // Monitor Auth state inside the NgZone
     this.ngZone.run(() => {
       onAuthStateChanged(this.auth, (user) => {
         this.ngZone.run(() => {
@@ -78,7 +78,7 @@ export class AuthenticationService {
               console.log("User is a provider, loading provider data");
               // Load provider data instead of customer
               this.loadingService.setLoading(true, 'Lade Anbieter-Daten...');
-              this.providerService.getProviderByUserId(user.uid).subscribe({
+              this.providerService.getProvider(user.uid).subscribe({
                 next: (provider) => {
                   console.log("Provider data loaded:", provider ? "Found" : "Not found");
                   this.userWithCustomerSubject.next({
@@ -94,7 +94,7 @@ export class AuthenticationService {
               });
             } else {
               // Before proceeding with customer flow, check if a provider exists
-              this.providerService.getProviderByUserId(user.uid).subscribe({
+              this.providerService.getProvider(user.uid).subscribe({
                 next: (provider) => {
                   if (provider) {
                     console.log("Provider found for user, skipping customer creation");
@@ -108,7 +108,7 @@ export class AuthenticationService {
                   } else {
                     // No provider found, proceed with regular customer flow
                     this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
-                    this.customerService.getCustomerByUserId(user.uid).subscribe({
+                    this.customerService.getCustomer(user.uid).subscribe({
                       next: (customer: Customer | undefined) => {
                         this.loadingService.setLoading(false);
                         this.userWithCustomerSubject.next({
@@ -122,7 +122,7 @@ export class AuthenticationService {
                           // Add a slight delay to prevent race conditions with recent registrations
                           setTimeout(() => {
                             // Check once more if customer exists before creating
-                            this.customerService.getCustomerByUserId(user.uid).subscribe(
+                            this.customerService.getCustomer(user.uid).subscribe(
                               (latestCustomer: Customer | undefined) => {
                                 if (!latestCustomer && !this.registrationInProgress) {
                                   this.createEmptyCustomerIfNeeded().subscribe();
@@ -136,7 +136,7 @@ export class AuthenticationService {
                         this.loadingService.setLoading(false);
                         console.error("Error loading customer data:", error);
                         
-                        // Bei Berechtigungsfehlern versuchen, einen leeren Kundendatensatz zu erstellen
+                        // Try to create an empty customer record for permission errors
                         if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
                           console.log("Permission denied, attempting to create fallback");
                           this.createEmptyCustomerIfNeeded().subscribe();
@@ -149,7 +149,7 @@ export class AuthenticationService {
                   console.error("Error checking for provider:", error);
                   // Continue with regular customer flow
                   this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
-                  this.customerService.getCustomerByUserId(user.uid).subscribe({
+                  this.customerService.getCustomer(user.uid).subscribe({
                     next: (customer: Customer | undefined) => {
                       this.loadingService.setLoading(false);
                       this.userWithCustomerSubject.next({
@@ -163,7 +163,7 @@ export class AuthenticationService {
                         // Add a slight delay to prevent race conditions with recent registrations
                         setTimeout(() => {
                           // Check once more if customer exists before creating
-                          this.customerService.getCustomerByUserId(user.uid).subscribe(
+                          this.customerService.getCustomer(user.uid).subscribe(
                             (latestCustomer: Customer | undefined) => {
                               if (!latestCustomer && !this.registrationInProgress) {
                                 this.createEmptyCustomerIfNeeded().subscribe();
@@ -177,7 +177,7 @@ export class AuthenticationService {
                       this.loadingService.setLoading(false);
                       console.error("Error loading customer data:", error);
                       
-                      // Bei Berechtigungsfehlern versuchen, einen leeren Kundendatensatz zu erstellen
+                      // Try to create an empty customer record for permission errors
                       if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
                         console.log("Permission denied, attempting to create fallback");
                         this.createEmptyCustomerIfNeeded().subscribe();
@@ -188,7 +188,7 @@ export class AuthenticationService {
               });
             }
           } else {
-            // Wenn kein Benutzer vorhanden ist, setzen wir beide auf null
+            // If no user, set both to null
             this.userWithCustomerSubject.next({
               user: null,
               customer: null
@@ -199,7 +199,7 @@ export class AuthenticationService {
     });
   }
 
-  // Diese Methode versucht einen leeren Customer zu erstellen, wenn noch keiner existiert
+  // This method tries to create an empty customer if none exists
   private createEmptyCustomerIfNeeded(): Observable<any> {
     const currentUser = this.getUser();
     if (!currentUser) {
@@ -214,41 +214,46 @@ export class AuthenticationService {
     }
 
     // Make one final check to see if a provider record exists
-    return from(this.providerService.getProviderByUserId(currentUser.uid)).pipe(
+    return from(this.providerService.getProvider(currentUser.uid)).pipe(
       switchMap(provider => {
         if (provider) {
           console.log("Provider record exists, skipping customer creation");
           return of(null);
         }
 
-        // Erstellen eines minimalen Kundendatensatzes basierend auf Auth-Daten
+        // Create a minimal customer record based on Auth data
         const email = currentUser.email || '';
         const displayName = currentUser.displayName || '';
         const nameParts = displayName.split(' ');
         const firstName = nameParts[0] || '';
         const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
-        const customer: Customer = {
-          id: '', // Wird von Firestore generiert
+        // Using the new Customer model structure with id
+        const customer: Partial<Customer> = {
           firstName: firstName,
           lastName: lastName,
           email: email,
           phone: ''
         };
 
-        return from(this.customerService.createCustomer(customer)).pipe(
-          switchMap((docRef) => {
-            console.log("Empty customer created with ID:", docRef.id);
-            // Customer-Objekt mit der neuen ID aktualisieren
-            customer.customerId = docRef.id;
+        return from(this.customerService.createCustomer(customer as Omit<Customer, 'id'>)).pipe(
+          switchMap((customerId: string) => {
+            console.log("Empty customer created with ID:", customerId);
+            // Update customer object with the new ID
+            const customerWithId: Customer = {
+              ...customer as any,
+              id: customerId,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            };
             
-            // Aktualisiere das kombinierte Objekt
+            // Update the combined object
             this.userWithCustomerSubject.next({
               user: currentUser,
-              customer: customer
+              customer: customerWithId
             });
             
-            return of(customer);
+            return of(customerWithId);
           }),
           catchError((error: unknown) => {
             console.error("Error creating empty customer:", error);
@@ -290,25 +295,29 @@ export class AuthenticationService {
       
       // Create customer object if user registration successful
       if (response.user) {
-        // Explicitly define all fields and convert undefined to empty string if needed
-        const customer: Customer = {
-          customerId: '', // Will be generated by Firestore
-          userId: response.user.uid,
+        // Using the new Customer model structure with id field
+        const customerData: Omit<Customer, 'id'> = {
           firstName: firstName || "",
           lastName: lastName || "",
           email: email || "",
-          phone: phone || ""
+          phone: phone || "",
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
         
-        console.log("Creating customer data with explicit fields:", customer);
+        console.log("Creating customer data:", customerData);
         
         // Save customer to Firestore
         try {
-          const customerRef = await this.customerService.createCustomer(customer);
-          console.log("Customer data created in Firestore successfully with ID:", customerRef.id);
+          const customerId = await this.customerService.createCustomer(customerData);
+          console.log("Customer data created in Firestore successfully with ID:", customerId);
           
-          // Get the customer with ID and update the state
-          const createdCustomer = {...customer, customerId: customerRef.id};
+          // Create the customer with the ID returned from Firestore
+          const createdCustomer: Customer = {
+            ...customerData,
+            id: customerId
+          };
+          
           this.userWithCustomerSubject.next({
             user: response.user,
             customer: createdCustomer
@@ -418,7 +427,7 @@ export class AuthenticationService {
   logout(): Promise<void> {
     this.loadingService.setLoading(true, 'Abmeldung...');
     console.log("Logging out");
-    // Nach dem Logout setzen wir das kombinierte Objekt zurück
+    // Reset the combined object after logout
     this.userWithCustomerSubject.next({
       user: null,
       customer: null
@@ -437,7 +446,7 @@ export class AuthenticationService {
     return this.userWithCustomerSubject.getValue();
   }
 
-  // Hilfsmethode zur Überprüfung, ob ein Benutzer angemeldet ist
+  // Helper method to check if a user is logged in
   isLoggedIn(): Observable<boolean> {
     return this.user$.pipe(
       map(user => !!user),
@@ -445,7 +454,7 @@ export class AuthenticationService {
     );
   }
 
-  // Prüft, ob ein Benutzer mit Customer-Daten vollständig geladen ist
+  // Checks if a user with customer data is fully loaded
   isUserWithCustomerReady(): Observable<boolean> {
     return this.user.pipe(
       map(userWithCustomer => {
