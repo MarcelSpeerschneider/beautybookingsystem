@@ -27,11 +27,20 @@ export class CustomerService {
   firestore: Firestore = inject(Firestore);
   private ngZone = inject(NgZone);
 
+  // Helper methods to ensure Firebase operations run in NgZone
+  private getDocInZone(docRef: any): Promise<any> {
+    return this.ngZone.run(() => getDoc(docRef));
+  }
+  
+  private getDocsInZone(queryRef: any): Promise<any> {
+    return this.ngZone.run(() => getDocs(queryRef));
+  }
+
   getCustomers(): Observable<(Customer & { id: string })[]> {
     return ZoneUtils.wrapObservable(() => {
       try {
-        const customerCollection = collection(this.firestore, this.collectionName);
-        return collectionData(customerCollection, { idField: 'id' }).pipe(
+        const customerCollection = this.ngZone.run(() => collection(this.firestore, this.collectionName));
+        return this.ngZone.run(() => collectionData(customerCollection, { idField: 'id' })).pipe(
           map(data => data as (Customer & { id: string })[]),
           catchError(error => {
             console.error('Error fetching customers:', error);
@@ -50,10 +59,10 @@ export class CustomerService {
       try {
         console.log('Loading customer data for ID:', customerId);
 
-        const customerDocument = doc(this.firestore, this.collectionName, customerId);
+        const customerDocument = this.ngZone.run(() => doc(this.firestore, this.collectionName, customerId));
 
-        // Use a more robust method to get the document
-        return from(getDoc(customerDocument)).pipe(
+        // Use our wrapped method to get the document
+        return from(this.getDocInZone(customerDocument)).pipe(
           map(docSnap => {
             if (docSnap.exists()) {
               console.log("Customer found:", docSnap.data());
@@ -79,10 +88,10 @@ export class CustomerService {
     return ZoneUtils.wrapObservable(() => {
       try {
         console.log('Looking up customer by email:', email);
-        const customerCollection = collection(this.firestore, this.collectionName);
-        const q = query(customerCollection, where('email', '==', email));
+        const customerCollection = this.ngZone.run(() => collection(this.firestore, this.collectionName));
+        const q = this.ngZone.run(() => query(customerCollection, where('email', '==', email)));
 
-        return from(getDocs(q)).pipe(
+        return from(this.getDocsInZone(q)).pipe(
           map(querySnapshot => {
             if (!querySnapshot.empty) {
               const docSnap = querySnapshot.docs[0];
@@ -105,12 +114,6 @@ export class CustomerService {
     }, this.ngZone);
   }
 
-  /**
-   * Creates a new customer
-   * @param customer Customer data without ID
-   * @param userId Optional user ID to use as document ID
-   * @returns The ID of the created customer
-   */
   createCustomer(customer: Customer, userId?: string): Promise<string> {
     return ZoneUtils.wrapPromise(async () => {
       try {
@@ -126,8 +129,8 @@ export class CustomerService {
         // PREFERRED METHOD: When userId (Auth ID) is provided
         if (userId) {
           // Check if customer with this ID already exists
-          const customerDoc = doc(this.firestore, this.collectionName, userId);
-          const customerSnapshot = await getDoc(customerDoc);
+          const customerDoc = this.ngZone.run(() => doc(this.firestore, this.collectionName, userId));
+          const customerSnapshot = await this.getDocInZone(customerDoc);
 
           if (customerSnapshot.exists()) {
             console.log(`Customer with ID ${userId} already exists`);
@@ -135,7 +138,7 @@ export class CustomerService {
           }
 
           // Use explicit document ID (user's Auth UID)
-          await setDoc(customerDoc, customerToSave);
+          await this.ngZone.run(() => setDoc(customerDoc, customerToSave));
           console.log(`Customer created with Auth ID: ${userId}`);
           return userId;
         }
@@ -143,12 +146,12 @@ export class CustomerService {
         else {
           // Check if a customer with this email already exists
           if (customer.email) {
-            const existingCustomerQuery = query(
-              collection(this.firestore, this.collectionName),
-              where('email', '==', customer.email)
+            const customersCollection = this.ngZone.run(() => collection(this.firestore, this.collectionName));
+            const existingCustomerQuery = this.ngZone.run(() => 
+              query(customersCollection, where('email', '==', customer.email))
             );
 
-            const querySnapshot = await getDocs(existingCustomerQuery);
+            const querySnapshot = await this.getDocsInZone(existingCustomerQuery);
             if (!querySnapshot.empty) {
               console.warn(`Customer with email ${customer.email} already exists`);
               return querySnapshot.docs[0].id;
@@ -157,8 +160,8 @@ export class CustomerService {
 
           // Create document with auto-generated ID (FALLBACK, NOT RECOMMENDED)
           console.warn('Creating customer with auto-generated ID is not recommended');
-          const customersCollection = collection(this.firestore, this.collectionName);
-          const docRef = await addDoc(customersCollection, customerToSave);
+          const customersCollection = this.ngZone.run(() => collection(this.firestore, this.collectionName));
+          const docRef = await this.ngZone.run(() => addDoc(customersCollection, customerToSave));
           console.log('Customer created with auto-generated ID:', docRef.id);
           return docRef.id;
         }
@@ -174,7 +177,7 @@ export class CustomerService {
       try {
         console.log('Updating customer:', customer);
         const { id, ...customerData } = customer;
-        const customerDocument = doc(this.firestore, this.collectionName, id);
+        const customerDocument = this.ngZone.run(() => doc(this.firestore, this.collectionName, id));
 
         // Update the updatedAt field
         const updatedCustomer = {
@@ -182,7 +185,7 @@ export class CustomerService {
           updatedAt: new Date()
         };
 
-        return updateDoc(customerDocument, updatedCustomer);
+        return this.ngZone.run(() => updateDoc(customerDocument, updatedCustomer));
       } catch (error) {
         console.error('Error updating customer:', error);
         throw error;
@@ -194,8 +197,8 @@ export class CustomerService {
     return ZoneUtils.wrapPromise(async () => {
       try {
         console.log('Deleting customer:', customerId);
-        const customerDocument = doc(this.firestore, this.collectionName, customerId);
-        return deleteDoc(customerDocument);
+        const customerDocument = this.ngZone.run(() => doc(this.firestore, this.collectionName, customerId));
+        return this.ngZone.run(() => deleteDoc(customerDocument));
       } catch (error) {
         console.error('Error deleting customer:', error);
         throw error;

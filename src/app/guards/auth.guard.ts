@@ -37,7 +37,6 @@ export class AuthGuard implements CanActivate {
     return ZoneUtils.wrapObservable(() => {
       console.log('AuthGuard: Checking access to', state.url);
       
-      // Der Rest bleibt unverändert...
       if (route.data['isPublic']) {
         console.log('AuthGuard: Public route, allowing access');
         this.loadingService.setLoading(false);
@@ -84,7 +83,7 @@ export class AuthGuard implements CanActivate {
           
           console.log('AuthGuard: Checking provider access for user:', user.uid);
           
-          // Verwende getDocInZone statt direkt getDoc
+          // Use getDocInZone instead of direct getDoc
           return from(this.getDocInZone(doc(this.firestore, 'providers', user.uid))).pipe(
             map(docSnapshot => {
               this.loadingService.setLoading(false);
@@ -129,7 +128,7 @@ export class AuthGuard implements CanActivate {
           
           console.log('AuthGuard: User found with UID:', user.uid);
           
-          // Verwende getDocInZone statt direkt getDoc
+          // Use getDocInZone instead of direct getDoc
           return from(this.getDocInZone(doc(this.firestore, 'providers', user.uid))).pipe(
             switchMap(providerDocSnapshot => {
               console.log('AuthGuard: Provider check - document exists?', providerDocSnapshot.exists());
@@ -144,7 +143,7 @@ export class AuthGuard implements CanActivate {
               const customerDoc = doc(this.firestore, 'customers', user.uid);
               console.log('AuthGuard: Checking customer document path:', customerDoc.path);
               
-              // Auch hier getDocInZone verwenden
+              // Use getDocInZone here too
               return from(this.getDocInZone(customerDoc)).pipe(
                 tap(snapshot => console.log('AuthGuard: Customer document fetch result:', snapshot.exists())),
                 map(customerDocSnapshot => {

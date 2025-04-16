@@ -30,11 +30,32 @@ export class ProviderService {
   private ngZone = inject(NgZone);
   private firestore: Firestore = inject(Firestore);
 
+  // Helper methods for Firebase operations
+  private docInZone(path: string, ...pathSegments: string[]): any {
+    return this.ngZone.run(() => doc(this.firestore, path, ...pathSegments));
+  }
+  
+  private docDataInZone(docRef: any, options?: any): Observable<any> {
+    return this.ngZone.run(() => docData(docRef, options));
+  }
+  
+  private collectionInZone(path: string): any {
+    return this.ngZone.run(() => collection(this.firestore, path));
+  }
+  
+  private queryInZone(collectionRef: any, ...queryConstraints: any[]): any {
+    return this.ngZone.run(() => query(collectionRef, ...queryConstraints));
+  }
+  
+  private getDocsInZone(queryRef: any): Promise<any> {
+    return this.ngZone.run(() => getDocs(queryRef));
+  }
+
   getProviders(): Observable<(Provider & { providerId: string })[]> {
     return ZoneUtils.wrapObservable(() => {
       try {
-        const myCollection = collection(this.firestore, this.collectionName);
-        return from(collectionData(myCollection, { idField: 'providerId' })).pipe(
+        const myCollection = this.collectionInZone(this.collectionName);
+        return from(this.ngZone.run(() => collectionData(myCollection, { idField: 'providerId' }))).pipe(
           map(data => data.map(d => ({...d} as (Provider & { providerId: string })))),
           catchError(error => {
             console.error('Error fetching providers:', error);
@@ -51,9 +72,9 @@ export class ProviderService {
   getProvidersByService(service: string): Observable<(Provider & { providerId: string })[]> {
     return ZoneUtils.wrapObservable(() => {
       try {
-        const providersCollection = collection(this.firestore, this.collectionName);
-        const q = query(providersCollection, where('services', 'array-contains', service));
-        return from(collectionData(q, { idField: 'providerId' })).pipe(
+        const providersCollection = this.collectionInZone(this.collectionName);
+        const q = this.queryInZone(providersCollection, where('services', 'array-contains', service));
+        return from(this.ngZone.run(() => collectionData(q, { idField: 'providerId' }))).pipe(
           map((data) => data.map((d) => ({ ...d } as (Provider & { providerId: string })))),
           catchError(error => {
             console.error(`Error fetching providers with service ${service}:`, error);
@@ -70,9 +91,9 @@ export class ProviderService {
   getProviderByEmail(email: string): Observable<(Provider & { providerId: string }) | null> {
     return ZoneUtils.wrapObservable(() => {
       try {
-        const myCollection = collection(this.firestore, this.collectionName);                    
-        const q = query(myCollection, where('email', '==', email));
-        return from(collectionData(q, { idField: 'providerId' })).pipe(
+        const myCollection = this.collectionInZone(this.collectionName);                    
+        const q = this.queryInZone(myCollection, where('email', '==', email));
+        return from(this.ngZone.run(() => collectionData(q, { idField: 'providerId' }))).pipe(
           map((providers) => {
             if(providers.length > 0) {
               return providers[0] as (Provider & { providerId: string });
@@ -94,8 +115,9 @@ export class ProviderService {
   getProvider(providerId: string): Observable<(Provider & { providerId: string }) | undefined> {
     return ZoneUtils.wrapObservable(() => {
       try {
-        const document = doc(this.firestore, this.collectionName, providerId);
-        return from(docData(document, { idField: 'providerId' })).pipe(
+        const document = this.docInZone(this.collectionName, providerId);
+        // Hier docData mit NgZone umwickeln
+        return from(this.docDataInZone(document, { idField: 'providerId' })).pipe(
           map(d => ({...d} as (Provider & { providerId: string }))),
           catchError(error => {
             console.error(`Error fetching provider with ID ${providerId}:`, error);
@@ -122,8 +144,8 @@ export class ProviderService {
         };
         
         // GEÄNDERT: Verwende setDoc mit expliziter Dokument-ID (Auth-UID)
-        const providerDoc = doc(this.firestore, this.collectionName, userId);             
-        await setDoc(providerDoc, providerWithDefaults);                
+        const providerDoc = this.docInZone(this.collectionName, userId);             
+        await this.ngZone.run(() => setDoc(providerDoc, providerWithDefaults));                
         console.log('Provider created successfully with ID:', userId);                
         return userId;       
       } catch (error) {
@@ -136,7 +158,7 @@ export class ProviderService {
   updateProvider(providerId: string, providerData: Partial<Provider>): Promise<void> {        
     return ZoneUtils.wrapPromise(async () => {
       try {
-        const document = doc(this.firestore, this.collectionName, providerId);                    
+        const document = this.docInZone(this.collectionName, providerId);                    
         
         // Update updatedAt field
         const updatedProvider = {
@@ -144,7 +166,7 @@ export class ProviderService {
           updatedAt: new Date()
         };
         
-        return updateDoc(document, updatedProvider);
+        return this.ngZone.run(() => updateDoc(document, updatedProvider));
       } catch (error) {
         console.error('Error in updateProvider:', error);
         throw error;
@@ -155,8 +177,8 @@ export class ProviderService {
   deleteProvider(providerId: string): Promise<void> {
     return ZoneUtils.wrapPromise(async () => {
       try {
-        const document = doc(this.firestore, this.collectionName, providerId);
-        return deleteDoc(document);
+        const document = this.docInZone(this.collectionName, providerId);
+        return this.ngZone.run(() => deleteDoc(document));
       } catch (error) {
         console.error('Error in deleteProvider:', error);
         throw error;

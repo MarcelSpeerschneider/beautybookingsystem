@@ -36,6 +36,27 @@ export class AppointmentService {
   private ngZone = inject(NgZone);
   private loadingService = inject(LoadingService);
 
+  // Firebase operation helpers that run in NgZone
+  private getDocInZone(docRef: any): Promise<any> {
+    return this.ngZone.run(() => getDoc(docRef));
+  }
+  
+  private docInZone(path: string, ...pathSegments: string[]): any {
+    return this.ngZone.run(() => doc(this.firestore, path, ...pathSegments));
+  }
+  
+  private collectionInZone(path: string): any {
+    return this.ngZone.run(() => collection(this.firestore, path));
+  }
+  
+  private queryInZone(collectionRef: any, ...queryConstraints: any[]): any {
+    return this.ngZone.run(() => query(collectionRef, ...queryConstraints));
+  }
+  
+  private collectionDataInZone(collectionRef: any, options: any): Observable<any> {
+    return this.ngZone.run(() => collectionData(collectionRef, options));
+  }
+
   /**
    * Holt alle Termine aus der Datenbank
    */
@@ -44,10 +65,10 @@ export class AppointmentService {
       console.log('AppointmentService: Fetching all appointments');
       this.loadingService.setLoading(true, 'Lade Termine...');
       
-      const appointmentsCollection = collection(this.firestore, this.collectionName);
-      const limitedQuery = query(appointmentsCollection, limit(500));
+      const appointmentsCollection = this.collectionInZone(this.collectionName);
+      const limitedQuery = this.queryInZone(appointmentsCollection, limit(500));
       
-      return collectionData(limitedQuery, { idField: 'id' }).pipe(
+      return this.collectionDataInZone(limitedQuery, { idField: 'id' }).pipe(
         map(data => {
           console.log(`Received ${data.length} total appointments`);
           this.loadingService.setLoading(false);
@@ -70,9 +91,9 @@ export class AppointmentService {
       console.log(`AppointmentService: Fetching appointment with ID: ${appointmentId}`);
       this.loadingService.setLoading(true, 'Lade Termin...');
       
-      const appointmentDocument = doc(this.firestore, `${this.collectionName}/${appointmentId}`);
+      const appointmentDocument = this.docInZone(`${this.collectionName}/${appointmentId}`);
       
-      return docData(appointmentDocument, { idField: 'id' }).pipe(
+      return this.ngZone.run(() => docData(appointmentDocument, { idField: 'id' })).pipe(
         map(data => {
           if (!data) {
             console.log(`No appointment found with ID: ${appointmentId}`);
@@ -120,9 +141,9 @@ export class AppointmentService {
                    new Date(appointment.endTime)
         };
         
-        const appointmentsCollection = collection(this.firestore, this.collectionName);
+        const appointmentsCollection = this.collectionInZone(this.collectionName);
         
-        const docRef = await addDoc(appointmentsCollection, appointmentToSave);
+        const docRef = await this.ngZone.run(() => addDoc(appointmentsCollection, appointmentToSave));
         console.log('Appointment created successfully with ID:', docRef.id);
         this.loadingService.setLoading(false);
         return docRef.id;
@@ -157,9 +178,9 @@ export class AppointmentService {
                    new Date(appointmentData.endTime)
         };
         
-        const appointmentDocument = doc(this.firestore, this.collectionName, id);
+        const appointmentDocument = this.docInZone(this.collectionName, id);
         
-        await updateDoc(appointmentDocument, updatedAppointment);
+        await this.ngZone.run(() => updateDoc(appointmentDocument, updatedAppointment));
         console.log(`Appointment ${id} updated successfully`);
         this.loadingService.setLoading(false);
         return true;
@@ -181,9 +202,9 @@ export class AppointmentService {
         this.loadingService.setLoading(true, 'Lösche Termin...');
         console.log(`Deleting appointment with ID: ${appointmentId}`);
         
-        const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
+        const appointmentDocument = this.docInZone(this.collectionName, appointmentId);
         
-        await deleteDoc(appointmentDocument);
+        await this.ngZone.run(() => deleteDoc(appointmentDocument));
         console.log(`Appointment ${appointmentId} deleted successfully`);
         this.loadingService.setLoading(false);
         return true;
@@ -210,14 +231,14 @@ export class AppointmentService {
       }
       
       // Erstelle die Abfrage
-      const appointmentsCollection = collection(this.firestore, this.collectionName);
-      const q = query(
+      const appointmentsCollection = this.collectionInZone(this.collectionName);
+      const q = this.queryInZone(
         appointmentsCollection, 
         where('customerId', '==', customerId),
         limit(500)
       );
       
-      return collectionData(q, { idField: 'id' }).pipe(
+      return this.collectionDataInZone(q, { idField: 'id' }).pipe(
         tap(data => console.log(`Found ${data.length} appointments for customer ${customerId}`)),
         map(data => {
           console.log(`Processing ${data.length} appointments`);
@@ -247,15 +268,15 @@ export class AppointmentService {
         console.warn(`Request providerId (${providerId}) doesn't match current user (${currentUser.uid})`);
       }
       
-      // Erstelle die Abfrage
-      const appointmentsCollection = collection(this.firestore, this.collectionName);
-      const q = query(
+      // Erstelle die Abfrage - alle in NgZone
+      const appointmentsCollection = this.collectionInZone(this.collectionName);
+      const q = this.queryInZone(
         appointmentsCollection, 
         where('providerId', '==', providerId),
         limit(500)
       );
       
-      return collectionData(q, { idField: 'id' }).pipe(
+      return this.collectionDataInZone(q, { idField: 'id' }).pipe(
         tap(data => console.log(`Raw data received: ${data.length} appointments`)),
         map(data => {
           console.log(`Found ${data.length} appointments for provider ${providerId}`);
@@ -297,14 +318,14 @@ export class AppointmentService {
       const fieldName = isProvider ? 'providerId' : 'customerId';
       
       // Erstelle Firestore-Abfrage OHNE Datumsfilter - nur mit einem einzigen Filter
-      const appointmentsCollection = collection(this.firestore, this.collectionName);
-      const q = query(
+      const appointmentsCollection = this.collectionInZone(this.collectionName);
+      const q = this.queryInZone(
         appointmentsCollection,
         where(fieldName, '==', userId),
         limit(500)
       );
       
-      return collectionData(q, { idField: 'id' }).pipe(
+      return this.collectionDataInZone(q, { idField: 'id' }).pipe(
         map(data => {
           const appointments = (data as any[])
             .map(item => convertAppointmentDates(item) as AppointmentWithId)
@@ -360,12 +381,12 @@ export class AppointmentService {
         this.loadingService.setLoading(true, `Setze Terminstatus auf ${status}...`);
         console.log(`Updating appointment ${appointmentId} status to ${status}`);
         
-        const appointmentDocument = doc(this.firestore, this.collectionName, appointmentId);
+        const appointmentDocument = this.docInZone(this.collectionName, appointmentId);
         
-        await updateDoc(appointmentDocument, {
+        await this.ngZone.run(() => updateDoc(appointmentDocument, {
           status: status,
           updatedAt: new Date()
-        });
+        }));
         
         console.log(`Successfully updated appointment ${appointmentId} status to ${status}`);
         this.loadingService.setLoading(false);

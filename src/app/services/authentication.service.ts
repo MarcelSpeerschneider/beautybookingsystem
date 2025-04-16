@@ -49,6 +49,19 @@ export class AuthenticationService {
   // Public Observable for the combined User+Customer object
   user = this.userWithCustomerSubject.asObservable();
 
+  // Helper methods for Firebase operations
+  private getDocInZone(docRef: any): Promise<any> {
+    return this.ngZone.run(() => getDoc(docRef));
+  }
+  
+  private docInZone(path: string, ...pathSegments: string[]): any {
+    return this.ngZone.run(() => doc(this.firestore, path, ...pathSegments));
+  }
+  
+  private collectionInZone(path: string): any {
+    return this.ngZone.run(() => collection(this.firestore, path));
+  }
+
   constructor() {
     console.log('AuthenticationService initialized');
     
@@ -88,10 +101,11 @@ export class AuthenticationService {
   private loadUserData(user: User): void {
     ZoneUtils.wrapPromise(async () => {
       // First check if user is a provider by looking for a provider document
-      const providerDoc = doc(this.firestore, 'providers', user.uid);
+      const providerDoc = this.docInZone('providers', user.uid);
       
       try {
-        const providerSnapshot = await getDoc(providerDoc);
+        // Important: Use the wrapped getDoc to ensure it runs in NgZone
+        const providerSnapshot = await this.getDocInZone(providerDoc);
         
         if (providerSnapshot.exists()) {
           console.log("User is a provider, loading provider data");
@@ -174,9 +188,9 @@ export class AuthenticationService {
       }
 
       // First check if a provider record exists
-      const providerDoc = doc(this.firestore, 'providers', currentUser.uid);
+      const providerDoc = this.docInZone('providers', currentUser.uid);
       
-      return from(getDoc(providerDoc)).pipe(
+      return from(this.getDocInZone(providerDoc)).pipe(
         switchMap(providerSnapshot => {
           if (providerSnapshot.exists()) {
             console.log("Provider record exists, skipping customer creation");
@@ -247,14 +261,18 @@ export class AuthenticationService {
         });
         
         // Firebase user registration
-        const response = await createUserWithEmailAndPassword(this.auth, email, password);
+        const response = await this.ngZone.run(() => 
+          createUserWithEmailAndPassword(this.auth, email, password)
+        );
         console.log("User created in Firebase Auth:", response.user.uid);
         
         // Update display name
         if (this.auth.currentUser) {
-          await updateProfile(this.auth.currentUser, {
-            displayName: `${firstName || ""} ${lastName || ""}`,
-          });
+          await this.ngZone.run(() => 
+            updateProfile(this.auth.currentUser!, {
+              displayName: `${firstName || ""} ${lastName || ""}`,
+            })
+          );
           console.log("User profile updated with display name:", `${firstName || ""} ${lastName || ""}`);
         }
         
@@ -328,23 +346,29 @@ export class AuthenticationService {
         this.loadingService.setLoading(true, 'Registriere Provider-Konto...');
         
         // Create Firebase user
-        const response = await createUserWithEmailAndPassword(this.auth, email, password);
+        const response = await this.ngZone.run(() => 
+          createUserWithEmailAndPassword(this.auth, email, password)
+        );
         
         // Update display name
         if (this.auth.currentUser) {
-          await updateProfile(this.auth.currentUser, {
-            displayName: `${firstName} ${lastName}`,
-          });
+          await this.ngZone.run(() => 
+            updateProfile(this.auth.currentUser!, {
+              displayName: `${firstName} ${lastName}`,
+            })
+          );
         }
         
         // Store user metadata in Firestore
         try {
-          const metadataCollection = collection(this.firestore, 'user_metadata');
-          await addDoc(metadataCollection, {
-            userId: response.user.uid,
-            userType: 'provider',
-            createdAt: new Date()
-          });
+          const metadataCollection = this.collectionInZone('user_metadata');
+          await this.ngZone.run(() => 
+            addDoc(metadataCollection, {
+              userId: response.user.uid,
+              userType: 'provider',
+              createdAt: new Date()
+            })
+          );
         } catch (error: unknown) {
           console.error("Could not save user metadata", error);
         }
@@ -375,7 +399,9 @@ export class AuthenticationService {
       console.log("Attempting login for:", email);
       
       try {
-        const result = await signInWithEmailAndPassword(this.auth, email, password);
+        const result = await this.ngZone.run(() => 
+          signInWithEmailAndPassword(this.auth, email, password)
+        );
         console.log("Login successful");
         return result;
       } catch (error) {
@@ -398,7 +424,7 @@ export class AuthenticationService {
       });
       
       try {
-        await signOut(this.auth);
+        await this.ngZone.run(() => signOut(this.auth));
         this.loadingService.setLoading(false);
         return;
       } catch (error) {
@@ -429,8 +455,8 @@ export class AuthenticationService {
   // Check if a user is a provider
   isProvider(userId: string): Observable<boolean> {
     return ZoneUtils.wrapObservable(() => {
-      const providerDoc = doc(this.firestore, 'providers', userId);
-      return from(getDoc(providerDoc)).pipe(
+      const providerDoc = this.docInZone('providers', userId);
+      return from(this.getDocInZone(providerDoc)).pipe(
         map(docSnapshot => docSnapshot.exists()),
         take(1)
       );
@@ -440,8 +466,8 @@ export class AuthenticationService {
   // Check if a user is a customer
   isCustomer(userId: string): Observable<boolean> {
     return ZoneUtils.wrapObservable(() => {
-      const customerDoc = doc(this.firestore, 'customers', userId);
-      return from(getDoc(customerDoc)).pipe(
+      const customerDoc = this.docInZone('customers', userId);
+      return from(this.getDocInZone(customerDoc)).pipe(
         map(docSnapshot => docSnapshot.exists()),
         take(1)
       );
