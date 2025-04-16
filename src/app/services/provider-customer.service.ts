@@ -56,6 +56,7 @@ export class ProviderCustomerService {
           observer.next([]);
           observer.complete();
         }
+        return;
       });
     });
   }
@@ -99,6 +100,7 @@ export class ProviderCustomerService {
           observer.next(undefined);
           observer.complete();
         }
+        return;
       });
     });
   }

@@ -1,7 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { v4 as uuidv4 } from 'uuid';
 import { Subscription } from 'rxjs';
 import { Appointment } from '../../../../../models/appointment.model';
 import { Service } from '../../../../../models/service.model';
@@ -98,7 +97,7 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
     }
     
     const servicesSub = this.serviceService
-      .getServicesByUser(this.provider.userId)
+      .getServicesByProvider(this.provider.id)
       .subscribe({
         next: (services) => {
           this.availableServices = services;
@@ -237,10 +236,10 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
   
   createEmptyAppointment(): Appointment {
     return {
-      appointmentId: uuidv4(),
+      id: '',
       customerId: '',
       customerName: '',
-      providerId: this.provider ? this.provider.userId : '',
+      providerId: this.provider ? this.provider.id : '',
       serviceIds: [],
       serviceName: '',
       startTime: new Date(),

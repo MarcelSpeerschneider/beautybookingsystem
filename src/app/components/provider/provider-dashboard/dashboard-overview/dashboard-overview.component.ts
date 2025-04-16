@@ -48,13 +48,13 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     }
 
     this.loadingService.setLoading(true, 'Lade heutige Termine...');
-    console.log('Provider-ID für loadTodayAppointments:', this.provider.userId);
+    console.log('Provider-ID für loadTodayAppointments:', this.provider.id);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // WICHTIG: Parameter 'true' hinzugefügt, um als Provider zu filtern
     const appointmentsSub = this.appointmentService
-      .getAppointmentsByUserAndDate(this.provider.userId, today, true)
+      .getAppointmentsByUserAndDate(this.provider.id, today, true)
       .subscribe({
         next: (appointments) => {
           console.log('Geladene Termine für heute:', appointments);
@@ -80,13 +80,12 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     if (!this.provider) return;
 
     const servicesSub = this.serviceService
-      .getServicesByUser(this.provider.userId)
+      .getServicesByProvider(this.provider.id)
       .subscribe({
-        next: (services) => {
+        next: (services: Service[]) => {
           this.services = services;
-          this.calculateTodayRevenue(); // Recalculate revenue once services are loaded
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error loading services:', error);
         }
       });
@@ -115,13 +114,13 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     try {
       // Prüfe, ob ein gültiges Datum oder ein String/Timestamp vorliegt
       const validDate = date instanceof Date ? date : new Date(date);
-      
+
       // Prüfe, ob das Datum gültig ist
       if (isNaN(validDate.getTime())) {
         console.warn('Ungültiges Datum für formatTime:', date);
         return '--:--';
       }
-      
+
       return validDate.toLocaleTimeString('de-DE', {
         hour: '2-digit',
         minute: '2-digit'
@@ -136,13 +135,13 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     try {
       // Prüfe, ob ein gültiges Datum oder ein String/Timestamp vorliegt
       const validDate = date instanceof Date ? date : new Date(date);
-      
+
       // Prüfe, ob das Datum gültig ist
       if (isNaN(validDate.getTime())) {
         console.warn('Ungültiges Datum für formatDate:', date);
         return 'Ungültiges Datum';
       }
-      
+
       return validDate.toLocaleDateString('de-DE', {
         weekday: 'long',
         day: '2-digit',
@@ -161,23 +160,23 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
         console.warn('Start- oder Endzeit fehlt für die Dauerberechnung:', appointment);
         return 0;
       }
-      
+
       // Sicherstellen, dass start- und endTime Date-Objekte sind
-      const startTime = appointment.startTime instanceof Date ? 
-                      appointment.startTime : 
-                      new Date(appointment.startTime);
-      
-      const endTime = appointment.endTime instanceof Date ? 
-                    appointment.endTime : 
-                    new Date(appointment.endTime);
-      
+      const startTime = appointment.startTime instanceof Date ?
+        appointment.startTime :
+        new Date(appointment.startTime);
+
+      const endTime = appointment.endTime instanceof Date ?
+        appointment.endTime :
+        new Date(appointment.endTime);
+
       // Überprüfen, ob die Daten gültig sind
       if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-        console.warn('Ungültige Datumswerte für Dauerberechnung:', 
-                    { start: appointment.startTime, end: appointment.endTime });
+        console.warn('Ungültige Datumswerte für Dauerberechnung:',
+          { start: appointment.startTime, end: appointment.endTime });
         return 0;
       }
-      
+
       // Berechne die Dauer in Minuten
       const durationMs = endTime.getTime() - startTime.getTime();
       return Math.round(durationMs / (1000 * 60));

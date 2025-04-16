@@ -201,6 +201,7 @@ export class AppointmentService {
                     observer.next([]);
                     observer.complete();
                 }
+                return;
             });
         });
     }
@@ -252,6 +253,7 @@ export class AppointmentService {
                     observer.next([]);
                     observer.complete();
                 }
+                return;
             });
         });
     }
@@ -280,6 +282,7 @@ export class AppointmentService {
                     observer.next(null as any);
                     observer.complete();
                 }
+                return;
             });
         });
     }
@@ -308,6 +311,7 @@ export class AppointmentService {
                     observer.next(null as any);
                     observer.complete();
                 }
+                return;
             });
         });
     }
@@ -336,6 +340,7 @@ export class AppointmentService {
                     observer.next(null as any);
                     observer.complete();
                 }
+                return;
             });
         });
     }
@@ -360,6 +365,7 @@ export class AppointmentService {
                     observer.next();
                     observer.complete();
                 }
+                return;
             });
         });
     }
@@ -405,6 +411,7 @@ export class AppointmentService {
                     observer.next([]);
                     observer.complete();
                 }
+                return;
             });
         });
     }

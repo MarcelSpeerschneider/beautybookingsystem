@@ -122,15 +122,21 @@ export class CustomerService {
     });
   }
 
-  async createCustomer(customer: Omit<Customer, 'id'>): Promise<string> {
+   /**
+   * Erstellt einen neuen Kunden mit der angegebenen userId als document ID
+   * @param customer Kundendaten ohne ID
+   * @param userId Die Auth UID, die als document ID verwendet werden soll
+   * @returns Die ID des erstellten Kunden (identisch mit userId)
+   */
+   async createCustomer(customer: Omit<Customer, 'id'>, userId: string): Promise<string> {
     return this.ngZone.run(async () => {
       try {
-        console.log('Creating new customer:', customer);
+        console.log('Creating new customer with specific ID:', userId);
         
-        // Überprüfen, ob ein Kunde mit dieser E-Mail bereits existiert
+        // Prüfe, ob ein Kunde mit dieser E-Mail bereits existiert
         if (customer.email) {
           const existingCustomerQuery = query(
-            collection(this.firestore, this.customersCollection), 
+            collection(this.firestore, this.collectionName), 
             where('email', '==', customer.email)
           );
           
@@ -141,23 +147,27 @@ export class CustomerService {
           }
         }
         
-        const customerCollection = collection(this.firestore, this.customersCollection);
+        // Prüfe, ob der Customer mit dieser ID bereits existiert
+        const existingCustomerDoc = doc(this.firestore, this.collectionName, userId);
+        const existingCustomerSnapshot = await getDoc(existingCustomerDoc);
         
-        // Bereite ein Kunden-Objekt ohne ID vor (wird von Firestore generiert)
+        if (existingCustomerSnapshot.exists()) {
+          console.warn(`Customer with ID ${userId} already exists`);
+          return userId;
+        }
+        
+        // Bereite die Kundendaten vor
         const customerToSave = {
-          firstName: customer.firstName || '',
-          lastName: customer.lastName || '',
-          email: customer.email || '',
-          phone: customer.phone || '',
+          ...customer,
           createdAt: new Date(),
           updatedAt: new Date()
         };
         
-        // Speichere den Kunden und erhalte die Document-Referenz
-        const docRef = await addDoc(customerCollection, customerToSave);
-        console.log('Customer created successfully with ID:', docRef.id);
+        // Document mit spezifischer ID erstellen (userId = document ID)
+        await setDoc(existingCustomerDoc, customerToSave);
+        console.log('Customer created successfully with ID:', userId);
         
-        return docRef.id;
+        return userId;
       } catch (error) {
         console.error('Error creating customer:', error);
         throw error;

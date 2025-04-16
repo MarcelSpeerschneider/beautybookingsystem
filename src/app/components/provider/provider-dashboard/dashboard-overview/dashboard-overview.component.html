@@ -32,7 +32,7 @@
             <div class="appointment-header">
               <div class="client-name">{{ appointment.customerName || 'Kunde' }}</div> 
               <div class="appointment-status" *ngIf="appointment.status === 'pending'">
-                <button class="btn-confirm" (click)="confirmAppointment(appointment.appointmentId)">Bestätigen</button>
+                <button class="btn-confirm" (click)="confirmAppointment(appointment.id)">Bestätigen</button>
               </div>
             </div>
             <div class="service-details">

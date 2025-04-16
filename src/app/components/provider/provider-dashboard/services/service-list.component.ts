@@ -2,7 +2,7 @@ import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
+// uuid-Import entfernt
 import { Provider } from '../../../../models/provider.model';
 import { Service } from '../../../../models/service.model';
 import { ServiceService } from '../../../../services/service.service';
@@ -49,9 +49,9 @@ export class ServiceListComponent implements OnInit, OnDestroy {
     this.loadingService.setLoading(true, 'Lade Dienstleistungen...');
     
     const servicesSub = this.serviceService
-      .getServicesByUser(this.provider.userId)
+      .getServicesByProvider(this.provider.id)
       .subscribe({
-        next: (services) => {
+        next: (services: Service[]) => {
           this.services = services;
           this.loadingService.setLoading(false);
           
@@ -59,7 +59,7 @@ export class ServiceListComponent implements OnInit, OnDestroy {
             console.log('Keine Dienstleistungen für diesen Provider gefunden.');
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           this.loadingService.setLoading(false);
           console.error('Fehler beim Laden der Dienstleistungen:', error);
           alert('Fehler beim Laden der Dienstleistungen. Bitte versuchen Sie es später erneut.');
@@ -130,8 +130,8 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   // Create an empty service with default values
   private createEmptyService(): Service {
     return {
-      id: uuidv4(),
-      userId: this.provider?.userId || '',
+      id: '', // Leere ID, wird von Firestore beim Speichern generiert
+      providerId: this.provider?.id || '',
       name: '',
       description: '',
       price: 0,

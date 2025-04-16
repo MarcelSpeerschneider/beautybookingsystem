@@ -40,6 +40,7 @@ export class ServiceService {
                 observer.next([]);
                 observer.complete();
             }
+            return;
         });
     });
   }
@@ -67,6 +68,7 @@ export class ServiceService {
           observer.next(null as any);
           observer.complete();
         }
+        return;
       });
     });
   }
@@ -153,6 +155,7 @@ export class ServiceService {
           observer.next([]);
           observer.complete();
         }
+        return;
       });
     });
   }

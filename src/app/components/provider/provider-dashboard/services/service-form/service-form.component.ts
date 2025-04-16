@@ -19,7 +19,7 @@ export class ServiceFormComponent implements OnInit {
   
   formModel: Service = {
     id: '',
-    userId: '',
+    providerId: '',
     name: '',
     description: '',
     price: 0,
