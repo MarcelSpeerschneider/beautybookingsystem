@@ -168,26 +168,22 @@ export class ProviderCustomerService {
       try {
         console.log(`Updating relation for provider: ${providerId}, customer: ${customerId}`);
         
-        // ÄNDERUNG: Nur nach providerId filtern (entspricht den Sicherheitsregeln)
+        // Check if relation already exists
         const relationsCollection = collection(this.firestore, this.collectionName);
         const q = query(
           relationsCollection,
-          where('providerId', '==', providerId)
+          where('providerId', '==', providerId),
+          where('customerId', '==', customerId)
         );
         
         const querySnapshot = await getDocs(q);
         
-        // ÄNDERUNG: Clientseitig nach customerId filtern MIT BRACKET-NOTATION
-        const relationDoc = querySnapshot.docs.find(doc => 
-          doc.data()['customerId'] === customerId
-        );
-        
-        if (relationDoc) {
+        if (!querySnapshot.empty) {
+          console.log('Existing relation found, updating...');
           // Update existing relation
+          const relationDoc = querySnapshot.docs[0];
           const docRef = doc(this.firestore, this.collectionName, relationDoc.id);
           const existingData = relationDoc.data() as ProviderCustomerRelation;
-          
-          console.log(`Updating existing relation with ID: ${relationDoc.id}`);
           
           const updateData: any = { 
             lastVisit: appointmentDate,
@@ -206,8 +202,9 @@ export class ProviderCustomerService {
           
           return updateDoc(docRef, updateData);
         } else {
+          console.log('No existing relation, creating new one');
+          
           // Create new relation
-          console.log(`Creating new relation between provider ${providerId} and customer ${customerId}`);
           const newRelation: ProviderCustomerRelation = {
             providerId,
             customerId,

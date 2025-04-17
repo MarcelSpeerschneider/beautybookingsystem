@@ -90,4 +90,16 @@ export class CartService {
   getProviderId(): string | null {
     return localStorage.getItem('providerId');
   }
+  
+  clearProviderId(): void {
+    localStorage.removeItem('providerId');
+    console.log('Provider ID has been removed from localStorage');
+  }
+  
+  cleanupBookingData(): void {
+    this.clearCart();
+    this.clearProviderId();
+    localStorage.removeItem('bookingFlow');
+    console.log('All booking-related data has been cleaned up');
+  }
 }

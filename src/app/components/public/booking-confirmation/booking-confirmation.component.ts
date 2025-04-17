@@ -190,11 +190,18 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
         // Show success message
         this.showSuccessMessage = true;
 
-        // Clear cart and session storage
-        this.cartService.clearCart();
+        // WICHTIG: Bereinige alle buchungsbezogenen Daten
+        // Dies löscht den Warenkorb UND die Provider-ID aus dem Local Storage
+        this.cartService.cleanupBookingData();
+        
+        // Zusätzliche spezifische Bereinigungen
         sessionStorage.removeItem('selectedDate');
         sessionStorage.removeItem('selectedTime');
         localStorage.removeItem('notes');
+        
+        // Protokolliere den Zustand nach der Bereinigung (für Debugging-Zwecke)
+        console.log('Nach Bereinigung - Provider ID im localStorage:', 
+                    localStorage.getItem('providerId'));
         
         this.loadingService.setLoading(false);
       })
