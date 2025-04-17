@@ -20,6 +20,7 @@ import { LoadingService } from './loading.service';
 import { ZoneUtils } from '../utils/zone-utils';
 import { convertAppointmentDates } from '../utils/date-utils';
 import { Appointment } from '../models/appointment.model';
+import { ProviderCustomerService } from './provider-customer.service'; // Importieren des Services
 
 // Typ mit ID für die Anzeige
 export type AppointmentWithId = Appointment & { id: string };
@@ -35,6 +36,7 @@ export class AppointmentService {
   private auth = inject(Auth);
   private ngZone = inject(NgZone);
   private loadingService = inject(LoadingService);
+  private providerCustomerService = inject(ProviderCustomerService); // Service injizieren
 
   // Firebase operation helpers that run in NgZone
   private getDocInZone(docRef: any): Promise<any> {
@@ -145,6 +147,27 @@ export class AppointmentService {
         
         const docRef = await this.ngZone.run(() => addDoc(appointmentsCollection, appointmentToSave));
         console.log('Appointment created successfully with ID:', docRef.id);
+        
+        // Nach dem Erstellen des Termins, aktualisiere die Provider-Customer-Beziehung
+        try {
+          await this.providerCustomerService.updateRelationAfterAppointment(
+            appointment.providerId,
+            appointment.customerId,
+            appointmentToSave.startTime,
+            0, // Betrag könnte aus dem Service-Preis ermittelt werden bei Bedarf
+            {
+              firstName: appointment.customerName?.split(' ')[0] || '',
+              lastName: appointment.customerName?.split(' ').slice(1).join(' ') || '',
+              email: '', // Wenn vorhanden, könnte hier die E-Mail-Adresse übergeben werden
+              phone: '' // Wenn vorhanden, könnte hier die Telefonnummer übergeben werden
+            }
+          );
+          console.log('Provider-customer relation updated successfully');
+        } catch (relationError) {
+          console.error('Error updating provider-customer relation:', relationError);
+          // Wir werfen diesen Fehler nicht, da der Termin trotzdem erfolgreich erstellt wurde
+        }
+        
         this.loadingService.setLoading(false);
         return docRef.id;
       } catch (error) {
@@ -366,7 +389,57 @@ export class AppointmentService {
    * Termin als erledigt markieren
    */
   completeAppointment(appointmentId: string): Promise<boolean> {
-    return this.updateAppointmentStatus(appointmentId, 'completed');
+    return ZoneUtils.wrapPromise(async () => {
+      try {
+        this.loadingService.setLoading(true, 'Termin wird als erledigt markiert...');
+        
+        // Zuerst den Termin laden, um die Provider- und Customer-IDs zu bekommen
+        const appointmentDoc = this.docInZone(this.collectionName, appointmentId);
+        const appointmentSnap = await this.getDocInZone(appointmentDoc);
+        
+        if (appointmentSnap.exists()) {
+          const appointmentData = appointmentSnap.data();
+          
+          // Terminstatuts aktualisieren
+          await this.ngZone.run(() => updateDoc(appointmentDoc, {
+            status: 'completed',
+            updatedAt: new Date()
+          }));
+          
+          // Auch die Provider-Customer-Beziehung aktualisieren
+          try {
+            await this.providerCustomerService.updateRelationAfterAppointment(
+              appointmentData.providerId,
+              appointmentData.customerId,
+              appointmentData.startTime,
+              0, // Betrag könnte aus dem Service-Preis ermittelt werden
+              {
+                firstName: appointmentData.customerName?.split(' ')[0] || '',
+                lastName: appointmentData.customerName?.split(' ').slice(1).join(' ') || '',
+                email: '', // Wenn vorhanden
+                phone: '' // Wenn vorhanden
+              }
+            );
+            console.log('Provider-customer relation updated after completion');
+          } catch (relationError) {
+            console.error('Error updating provider-customer relation after completion:', relationError);
+            // Wir werfen diesen Fehler nicht, da der Termin trotzdem als erledigt markiert wurde
+          }
+          
+          console.log(`Successfully updated appointment ${appointmentId} status to completed`);
+          this.loadingService.setLoading(false);
+          return true;
+        } else {
+          console.error(`Appointment ${appointmentId} not found`);
+          this.loadingService.setLoading(false);
+          return false;
+        }
+      } catch (error) {
+        console.error(`Error completing appointment:`, error);
+        this.loadingService.setLoading(false);
+        throw error;
+      }
+    }, this.ngZone);
   }
   
   /**
@@ -376,6 +449,11 @@ export class AppointmentService {
     appointmentId: string, 
     status: 'pending' | 'confirmed' | 'canceled' | 'completed'
   ): Promise<boolean> {
+    // Für 'completed' Status verwenden wir unsere spezielle Methode
+    if (status === 'completed') {
+      return this.completeAppointment(appointmentId);
+    }
+    
     return ZoneUtils.wrapPromise(async () => {
       try {
         this.loadingService.setLoading(true, `Setze Terminstatus auf ${status}...`);
