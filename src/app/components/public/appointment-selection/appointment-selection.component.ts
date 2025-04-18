@@ -17,7 +17,7 @@ import { TimeSlotService, TimeSlot } from '../../../services/time-slot.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './appointment-selection.component.html',
-  styleUrls: ['./appointment-selection.component.css']
+  styleUrls: ['./appointment-selection.component.css'],
 })
 export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   providerId: string | null = null;
