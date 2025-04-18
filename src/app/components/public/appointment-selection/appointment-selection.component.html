@@ -15,13 +15,13 @@
     <div class="date-selection">
       <h3>Datum auswählen</h3>
       <div class="calendar-nav">
-        <button class="nav-button prev" (click)="generateCalendarDays(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))">
+        <button class="nav-button prev" (click)="navigateMonth(-1)">
           &lt;
         </button>
         <span class="current-month">
           {{ currentMonth | date:'MMMM yyyy' }}
         </span>
-        <button class="nav-button next" (click)="generateCalendarDays(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))">
+        <button class="nav-button next" (click)="navigateMonth(1)">
           &gt;
         </button>
       </div>
@@ -64,7 +64,7 @@
 
   <!-- Aktionsleiste -->
   <div class="booking-actions">
-    <button class="btn-back" (click)="router.navigate(['/services', providerId])">Zurück</button>
+    <button class="btn-back" (click)="goBack()">Zurück</button>
     <button 
       class="btn-next" 
       [disabled]="!selectedTimeSlot" 

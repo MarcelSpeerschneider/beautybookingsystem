@@ -1,15 +1,13 @@
-// src/app/components/public/appointment-selection/appointment-selection.component.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, combineLatest } from 'rxjs';
-import { switchMap, map, tap } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
+import { switchMap, tap } from 'rxjs/operators';
 
 import { Service } from '../../../models/service.model';
 import { Provider } from '../../../models/provider.model';
 import { ProviderService } from '../../../services/provider.service';
-import { ServiceService } from '../../../services/service.service';
 import { CartService } from '../../../services/cart.service';
 import { LoadingService } from '../../../services/loading.service';
 import { TimeSlotService, TimeSlot } from '../../../services/time-slot.service';
@@ -37,10 +35,10 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   
   private subscriptions: Subscription[] = [];
   
+  // Services via dependency injection
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private providerService = inject(ProviderService);
-  private serviceService = inject(ServiceService);
   private cartService = inject(CartService);
   private loadingService = inject(LoadingService);
   private timeSlotService = inject(TimeSlotService);
@@ -78,7 +76,7 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
           this.provider = provider;
           
           // Kalender für aktuelle Monatsansicht generieren
-          this.generateCalendarDays(this.currentMonth);
+          this.generateCalendarDays();
           
           // Wenn bereits ein Service ausgewählt ist, Zeitslots laden
           if (this.selectedService) {
@@ -103,6 +101,16 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     // Alle Subscriptions bereinigen
     this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+  
+  /**
+   * Navigation durch Monate
+   */
+  navigateMonth(delta: number): void {
+    const newMonth = new Date(this.currentMonth);
+    newMonth.setMonth(newMonth.getMonth() + delta);
+    this.currentMonth = newMonth;
+    this.generateCalendarDays();
   }
   
   /**
@@ -190,9 +198,9 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   /**
    * Generiert ein Array von Tagen für die Kalenderansicht
    */
-  generateCalendarDays(month: Date): void {
-    const today = new Date();
+  generateCalendarDays(): void {
     const days: Date[] = [];
+    const today = new Date();
     
     // Nur die nächsten 30 Tage anzeigen, beginnend mit heute
     for (let i = 0; i < 30; i++) {
@@ -224,17 +232,6 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
   }
   
   /**
-   * Formatiert ein Datum als lesbaren String
-   */
-  formatDate(date: Date): string {
-    return date.toLocaleDateString('de-DE', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long'
-    });
-  }
-  
-  /**
    * Prüft ob ein Datum heute ist
    */
   isToday(date: Date): boolean {
@@ -251,5 +248,16 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
     return date.getDate() === this.selectedDate.getDate() &&
            date.getMonth() === this.selectedDate.getMonth() &&
            date.getFullYear() === this.selectedDate.getFullYear();
+  }
+  
+  /**
+   * Navigiert zurück zur Dienstleistungsübersicht
+   */
+  goBack(): void {
+    if (this.providerId) {
+      this.router.navigate(['/services', this.providerId]);
+    } else {
+      this.router.navigate(['/']);
+    }
   }
 }
