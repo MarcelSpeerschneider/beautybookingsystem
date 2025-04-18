@@ -1,17 +1,20 @@
+/* src/app/components/provider/provider-dashboard/provider-dashboard.component.css */
+
 .dashboard-container {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 15px;
   background-color: var(--main-background-color);
-  min-height: calc(100vh - 60px); /* Adjust based on header/footer height */
+  min-height: calc(100vh - 60px); /* Anpassung basierend auf Header/Footer-Höhe */
+  position: relative;
 }
 
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--decorative-element-color);
 }
 
@@ -19,6 +22,7 @@
   color: var(--heading-text-color);
   margin: 0;
   font-weight: 600;
+  font-size: 1.25rem;
   display: flex;
   align-items: center;
 }
@@ -33,6 +37,15 @@
   border-radius: 2px;
 }
 
+.dashboard-title {
+  display: block;
+}
+
+/* Business Name auf kleinen Bildschirmen ausblenden */
+.business-name {
+  display: none;
+}
+
 .user-info {
   color: var(--body-text-color);
   font-weight: 500;
@@ -42,8 +55,79 @@
   border-left: 3px solid var(--primary-color);
 }
 
-.nav-tabs {
+/* Desktop Navigation (auf Mobilgeräten ausgeblendet) */
+.desktop-nav {
+  display: none;
+}
+
+/* Mobile Bottom Navigation */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: white;
   display: flex;
+  justify-content: space-around;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  padding: 5px 0;
+  padding-bottom: env(safe-area-inset-bottom, 0); /* Für iOS safe area */
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 5px;
+  background: none;
+  border: none;
+  color: var(--body-text-color);
+  font-family: var(--font-family-base);
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  flex: 1;
+  max-width: 70px;
+}
+
+.nav-item.active {
+  color: var(--primary-color);
+  background-color: rgba(229, 136, 125, 0.08);
+}
+
+.nav-icon {
+  margin-bottom: 4px;
+  height: 24px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-label {
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+/* Standard Navigation Tabs */
+.nav-tabs {
+  display: none; /* Auf Mobilgeräten ausblenden, auf Desktop anzeigen */
   background-color: var(--section-background-color);
   border-radius: 10px;
   overflow: hidden;
@@ -96,8 +180,9 @@
 .tab-content {
   background-color: white;
   border-radius: 10px;
-  padding: 25px;
+  padding: 20px 15px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 80px; /* Platz für die untere Navigation */
   animation: fadeIn 0.3s ease-in-out;
 }
 
@@ -131,7 +216,7 @@
   color: white;
 }
 
-/* Card styling for sections */
+/* Card styling für Abschnitte */
 .stat-card {
   background-color: white;
   border-radius: 10px;
@@ -158,14 +243,14 @@
   color: var(--primary-color);
 }
 
-/* Stats container in dashboard overview */
+/* Stats Container im Dashboard-Überblick */
 .stats-container {
   display: flex;
   gap: 20px;
   margin-bottom: 30px;
 }
 
-/* Schedule container in dashboard overview */
+/* Schedule Container im Dashboard-Überblick */
 .schedule-container {
   background-color: white;
   border-radius: 10px;
@@ -180,7 +265,7 @@
   font-weight: 600;
 }
 
-/* Button styling */
+/* Button Styling */
 .btn {
   padding: 10px 20px;
   border-radius: 5px;
@@ -220,7 +305,7 @@
   background-color: #d32f2f;
 }
 
-/* Status badges */
+/* Status Badges */
 .status-badge {
   display: inline-block;
   padding: 5px 10px;
@@ -250,7 +335,7 @@
   color: #F44336;
 }
 
-/* Table styling */
+/* Tabellen-Styling */
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -273,7 +358,7 @@
   background-color: var(--section-background-color);
 }
 
-/* Action buttons within tables */
+/* Action Buttons innerhalb von Tabellen */
 .action-btn {
   width: 30px;
   height: 30px;
@@ -305,7 +390,7 @@
   transform: scale(1.1);
 }
 
-/* Empty states */
+/* Empty States */
 .empty-state {
   padding: 40px;
   text-align: center;
@@ -320,7 +405,7 @@
   color: var(--placeholder-text-color);
 }
 
-/* Form elements */
+/* Formular-Elemente */
 .form-group {
   margin-bottom: 20px;
 }
@@ -346,7 +431,7 @@
   box-shadow: 0 0 0 2px rgba(229, 136, 125, 0.2);
 }
 
-/* Appointment timeline in dashboard overview */
+/* Termin-Timeline im Dashboard-Überblick */
 .timeline {
   position: relative;
 }
@@ -464,7 +549,7 @@
   margin-top: 20px;
 }
 
-/* Action buttons fix for "New Appointment" button */
+/* Action Buttons Fix für "New Appointment" Button */
 .action-buttons .btn-primary,
 button.btn-add-appointment,
 .btn-new-appointment,
@@ -482,14 +567,10 @@ button[data-action="create-appointment"]:hover {
   border-color: #d67d74 !important;
 }
 
-/* Responsive styling */
+/* Responsive Styling */
 @media (max-width: 768px) {
-  .nav-tabs {
-    flex-wrap: wrap;
-  }
-  
-  .nav-tab {
-    flex: 1 0 33.333%;
+  .dashboard-container {
+    padding: 15px;
   }
   
   .dashboard-header {
@@ -506,6 +587,7 @@ button[data-action="create-appointment"]:hover {
   
   .tab-content {
     padding: 15px;
+    margin-bottom: 80px; /* Platz für Mobile Navigation */
   }
   
   .stats-container {
@@ -524,5 +606,45 @@ button[data-action="create-appointment"]:hover {
 @media (max-width: 576px) {
   .nav-tab {
     flex: 1 0 50%;
+  }
+}
+
+/* Desktop Styles */
+@media (min-width: 769px) {
+  .dashboard-container {
+    padding: 20px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .business-name {
+    display: inline;
+  }
+  
+  .mobile-nav {
+    display: none;
+  }
+  
+  .desktop-nav,
+  .nav-tabs {
+    display: flex;
+  }
+  
+  .tab-content {
+    padding: 25px;
+    margin-bottom: 30px;
+  }
+}
+
+/* Large Desktop Styles */
+@media (min-width: 1024px) {
+  .dashboard-container {
+    padding: 25px;
+  }
+  
+  .tab-content {
+    padding: 30px;
   }
 }
