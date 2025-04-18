@@ -1,28 +1,14 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-import { Subscription, forkJoin, of } from 'rxjs';
-import { switchMap, catchError, tap } from 'rxjs/operators';
-
-// Models
-import { Provider } from '../../../models/provider.model';
-import { Service } from '../../../models/service.model';
-
-// Services
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { AuthenticationService } from '../../../services/authentication.service';
 import { ProviderService } from '../../../services/provider.service';
 import { ServiceService } from '../../../services/service.service';
 import { CartService } from '../../../services/cart.service';
-import { AuthenticationService } from '../../../services/authentication.service';
+import { Provider } from '../../../models/provider.model';
 import { LoadingService } from '../../../services/loading.service';
-
-// Mock Review Interface
-interface MockReview {
-  id: string;
-  customerName: string;
-  rating: number;
-  comment: string;
-  createdAt: Date;
-}
+import { Service } from '../../../models/service.model';
 
 @Component({
   selector: 'app-public-provider',
@@ -32,236 +18,241 @@ interface MockReview {
   styleUrls: ['./public-provider.component.css']
 })
 export class PublicProviderComponent implements OnInit, OnDestroy {
-  // Provider Data
-  provider: (Provider & { providerId: string }) | null = null;
-  services: (Service & { id: string })[] = [];
-  reviews: MockReview[] = [];
-  
-  // UI State
-  isLoggedIn = false;
-  isOwnProviderPage = false;
-  showSuccess = false;
-  successMessage = '';
-  cartItemCount = 0;
-  
-  // Services
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private authService = inject(AuthenticationService);
   private providerService = inject(ProviderService);
   private serviceService = inject(ServiceService);
   private cartService = inject(CartService);
-  private authService = inject(AuthenticationService);
   private loadingService = inject(LoadingService);
+
+  // Provider data
+  provider: Provider & { providerId: string } | null = null;
+  services: (Service & { id: string })[] = [];
   
-  // Mock reviews data
-  private mockReviews: MockReview[] = [
+  // Reviews data (placeholders for now)
+  reviews: any[] = [
     {
-      id: "1",
-      customerName: "Maria Schmidt",
+      id: '1',
+      customerName: 'Maria Schmidt',
       rating: 5,
-      comment: "Ich war mit der Maniküre sehr zufrieden. Die Atmosphäre war entspannt und das Ergebnis perfekt!",
-      createdAt: new Date("2024-01-15")
+      comment: 'Ich war mit der Maniküre sehr zufrieden. Die Atmosphäre war entspannt und das Ergebnis perfekt!',
+      createdAt: new Date('2024-01-15')
     },
     {
-      id: "2",
-      customerName: "Thomas Müller",
+      id: '2',
+      customerName: 'Thomas Müller',
       rating: 4,
-      comment: "Der Haarschnitt war super, die Beratung vorab sehr hilfreich. Ein Stern Abzug wegen der Wartezeit.",
-      createdAt: new Date("2024-02-03")
+      comment: 'Der Haarschnitt war super, die Beratung vorab sehr hilfreich. Ein Stern Abzug wegen der Wartezeit.',
+      createdAt: new Date('2024-02-03')
     },
     {
-      id: "3",
-      customerName: "Julia Weber",
+      id: '3',
+      customerName: 'Julia Weber',
       rating: 5,
-      comment: "Die Gesichtsbehandlung war ein Traum! Meine Haut fühlt sich wunderbar an und das Personal war sehr freundlich.",
-      createdAt: new Date("2024-03-10")
-    },
-    {
-      id: "4",
-      customerName: "Markus Neumann",
-      rating: 3,
-      comment: "Die Dienstleistung war okay, aber ich hätte mir etwas mehr Sorgfalt gewünscht. Das Ergebnis ist gut, aber nicht herausragend.",
-      createdAt: new Date("2024-02-20")
-    },
-    {
-      id: "5",
-      customerName: "Sarah Klein",
-      rating: 5,
-      comment: "Absolut begeistert! Professionell, freundlich und das Ergebnis übertrifft meine Erwartungen. Werde definitiv wiederkommen!",
-      createdAt: new Date("2024-03-25")
+      comment: 'Die Gesichtsbehandlung war ein Traum! Meine Haut fühlt sich wunderbar an und das Personal war sehr freundlich.',
+      createdAt: new Date('2024-03-10')
     }
   ];
   
-  // Subscriptions
-  private subscriptions: Subscription[] = [];
+  // UI state
+  isLoggedIn = false;
+  isOwnProviderPage = false;
+  successMessage = '';
+  showSuccessMessage = false;
   
+  private subscriptions: Subscription[] = [];
+
   ngOnInit(): void {
-    // Start loading
-    this.loadingService.setLoading(true, 'Lade Anbieter Informationen...');
+    this.loadingService.setLoading(true, 'Lade Anbieterinfo...');
     
-    // Check authentication state
+    // 1. Get businessName from the route
+    const businessNameSub = this.route.paramMap.subscribe(params => {
+      const businessName = params.get('businessName');
+      if (businessName) {
+        this.loadProviderByBusinessName(businessName);
+      } else {
+        this.loadingService.setLoading(false);
+        this.router.navigate(['/']); // Navigate home if no business name provided
+      }
+    });
+    
+    this.subscriptions.push(businessNameSub);
+    
+    // 2. Check authentication state
     const authSub = this.authService.user$.subscribe(user => {
       this.isLoggedIn = !!user;
+      this.checkIfOwnProvider();
     });
+    
     this.subscriptions.push(authSub);
-    
-    // Get cart count
-    const cartSub = this.cartService.cartItems$.subscribe(items => {
-      this.cartItemCount = items.length;
-    });
-    this.subscriptions.push(cartSub);
-    
-    // Set mock reviews
-    this.reviews = this.mockReviews;
-    
-    // Get provider from URL parameter
-    const routeSub = this.route.paramMap.pipe(
-      switchMap(params => {
-        const businessName = params.get('businessName');
-        if (!businessName) {
-          return of(null);
-        }
-        
-        // Load provider by business name (using a workaround since we don't have a direct method)
-        return this.providerService.getProviders().pipe(
-          tap(providers => console.log('All providers:', providers)),
-          switchMap(providers => {
-            // Find provider by business name (case insensitive)
-            const foundProvider = providers.find(p => 
-              p.businessName.toLowerCase() === businessName.toLowerCase()
-            );
-            
-            if (!foundProvider) {
-              console.error('Provider not found:', businessName);
-              return of(null);
-            }
-            
-            // Check if this is the current user's provider page
-            const currentUser = this.authService.getUser();
-            if (currentUser && currentUser.uid === foundProvider.providerId) {
-              this.isOwnProviderPage = true;
-            }
-            
-            // Get services for this provider
-            return this.serviceService.getServicesByProvider(foundProvider.providerId).pipe(
-              tap(services => {
-                this.services = services;
-                this.provider = foundProvider;
-                this.loadingService.setLoading(false);
-              }),
-              catchError(error => {
-                console.error('Error fetching services:', error);
-                this.loadingService.setLoading(false);
-                return of([]);
-              })
-            );
-          }),
-          catchError(error => {
-            console.error('Error fetching providers:', error);
-            this.loadingService.setLoading(false);
-            return of(null);
-          })
-        );
-      })
-    ).subscribe();
-    
-    this.subscriptions.push(routeSub);
   }
-  
+
   ngOnDestroy(): void {
-    // Clean up subscriptions
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
   
-  // Helper function to get provider initials
-  getProviderInitials(businessName?: string): string {
-    if (!businessName) return 'BF';
+  private loadProviderByBusinessName(businessName: string): void {
+    // In a real app, you would have a method to find provider by business name
+    // For now, we'll get all providers and find the matching one
+    const providerSub = this.providerService.getProviders().subscribe({
+      next: providers => {
+        const foundProvider = providers.find(p => 
+          p.businessName.toLowerCase() === businessName.toLowerCase()
+        );
+        
+        if (foundProvider) {
+          this.provider = foundProvider;
+          this.loadServices(foundProvider.providerId);
+          this.checkIfOwnProvider();
+        } else {
+          console.error(`Provider with business name ${businessName} not found`);
+          this.loadingService.setLoading(false);
+          this.router.navigate(['/']); // Provider not found, navigate home
+        }
+      },
+      error: error => {
+        console.error('Error loading provider:', error);
+        this.loadingService.setLoading(false);
+      }
+    });
     
-    const nameParts = businessName.split(' ');
-    if (nameParts.length === 1) {
-      return nameParts[0].substring(0, 2).toUpperCase();
-    }
-    
-    return (nameParts[0].charAt(0) + nameParts[1].charAt(0)).toUpperCase();
+    this.subscriptions.push(providerSub);
   }
   
-  // Service selection
+  private loadServices(providerId: string): void {
+    const servicesSub = this.serviceService.getServicesByProvider(providerId).subscribe({
+      next: services => {
+        this.services = services;
+        this.loadingService.setLoading(false);
+      },
+      error: error => {
+        console.error('Error loading services:', error);
+        this.loadingService.setLoading(false);
+      }
+    });
+    
+    this.subscriptions.push(servicesSub);
+  }
+  
+  private checkIfOwnProvider(): void {
+    if (!this.provider || !this.isLoggedIn) {
+      this.isOwnProviderPage = false;
+      return;
+    }
+    
+    const currentUser = this.authService.getUser();
+    if (currentUser && this.provider.providerId === currentUser.uid) {
+      this.isOwnProviderPage = true;
+    } else {
+      this.isOwnProviderPage = false;
+    }
+  }
+  
+  getProviderInitials(): string {
+    if (!this.provider || !this.provider.businessName) return '';
+    
+    const nameParts = this.provider.businessName.split(' ');
+    if (nameParts.length === 1) {
+      return nameParts[0].charAt(0).toUpperCase();
+    } else {
+      return (nameParts[0].charAt(0) + nameParts[1].charAt(0)).toUpperCase();
+    }
+  }
+  
+  formatCurrency(price: number): string {
+    return new Intl.NumberFormat('de-DE', { 
+      style: 'currency', 
+      currency: 'EUR' 
+    }).format(price);
+  }
+  
+  formatDate(date: Date | string): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+  
   selectService(service: Service & { id: string }): void {
     if (this.isOwnProviderPage) {
-      this.showSuccessMessage('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
+      this.displayMessage('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
       return;
     }
     
-    // Check if service is already in cart
-    if (this.isInCart(service.id)) {
-      // If already in cart, navigate to booking flow
-      this.startBooking();
-      return;
-    }
-    
-    // Set provider ID for the booking process
-    this.cartService.setProviderId(this.provider?.providerId || '');
-    
-    // Add service to cart
+    this.cartService.clearCart(); // Clear any previous selections
     this.cartService.addItem(service);
-    
-    // Show success message
-    this.showSuccessMessage(`${service.name} wurde zum Warenkorb hinzugefügt!`);
-  }
-  
-  // Check if service is in cart
-  isInCart(serviceId: string): boolean {
-    return this.cartService.isInCart(serviceId);
-  }
-  
-  // Start booking process
-  startBooking(): void {
-    if (this.isOwnProviderPage) {
-      this.showSuccessMessage('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
-      return;
-    }
-    
-    if (this.services.length === 0) {
-      this.showSuccessMessage('Es sind derzeit keine Dienstleistungen verfügbar für die Buchung.');
-      return;
-    }
-    
-    // If cart is empty and we have services, select the first one
-    if (this.cartItemCount === 0 && this.services.length > 0) {
-      this.selectService(this.services[0]);
-    }
-    
-    // Check if we have a provider ID
-    const providerId = this.cartService.getProviderId();
-    if (!providerId && this.provider) {
-      this.cartService.setProviderId(this.provider.providerId);
-    }
+    this.cartService.setProviderId(this.provider?.providerId || '');
     
     // Set booking flow flag
     localStorage.setItem('bookingFlow', 'active');
     
-    // Navigate to next step - check if user is logged in
-    if (!this.isLoggedIn) {
-      // If not logged in, go to login page
-      this.router.navigate(['/booking-login', this.provider?.providerId]);
-    } else {
-      // If logged in, go to booking overview
-      this.router.navigate(['/booking-overview']);
+    this.displayMessage(`${service.name} wurde zum Warenkorb hinzugefügt!`);
+    
+    // Navigate to appointment selection
+    setTimeout(() => {
+      if (this.provider) {
+        this.router.navigate(['/appointment-selection', this.provider.providerId]);
+      }
+    }, 1000);
+  }
+  
+  navigateToBooking(): void {
+    if (this.isOwnProviderPage) {
+      this.displayMessage('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
+      return;
+    }
+    
+    if (!this.services || this.services.length === 0) {
+      this.displayMessage('Es sind derzeit keine Dienstleistungen verfügbar für die Buchung.');
+      return;
+    }
+    
+    // Scroll to services section
+    const servicesSection = document.querySelector('.services-section');
+    if (servicesSection) {
+      servicesSection.scrollIntoView({ behavior: 'smooth' });
     }
   }
   
-  // Show success message with auto-dismiss
-  showSuccessMessage(message: string): void {
+  handleLogin(): void {
+    if (this.isOwnProviderPage) {
+      return;
+    }
+    
+    // Navigate to login page
+    this.router.navigate(['/customer-login']);
+  }
+  
+  navigateToDashboard(): void {
+    if (this.isLoggedIn && this.isOwnProviderPage) {
+      this.router.navigate(['/provider-dashboard']);
+    }
+  }
+  
+  navigateToProfile(): void {
+    if (this.isLoggedIn && !this.isOwnProviderPage) {
+      this.router.navigate(['/customer-profile']);
+    }
+  }
+  
+  displayMessage(message: string): void {
     this.successMessage = message;
-    this.showSuccess = true;
+    this.showSuccessMessage = true;
     
     setTimeout(() => {
-      this.showSuccess = false;
+      this.showSuccessMessage = false;
     }, 3000);
   }
   
-  // Login handler
-  login(): void {
-    this.router.navigate(['/customer-login']);
+  // Helper method for reviews (placeholder functionality)
+  renderStars(rating: number): string[] {
+    const stars: string[] = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(i <= rating ? 'filled' : 'empty');
+    }
+    return stars;
   }
 }
