@@ -10,6 +10,7 @@ import { DashboardOverviewComponent } from './dashboard-overview/dashboard-overv
 import { AppointmentListComponent } from './appointments/appointment-list.component';
 import { ServiceListComponent } from './services/service-list.component';
 import { CustomersListComponent } from './customers/customers-list.component';
+import { CalendarComponent } from './calendar/calendar.component';
 
 // Extended provider type with providerId
 type ProviderWithId = Provider & { providerId: string };
@@ -17,7 +18,15 @@ type ProviderWithId = Provider & { providerId: string };
 @Component({
   selector: 'app-provider-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, DashboardOverviewComponent, AppointmentListComponent, ServiceListComponent, CustomersListComponent],
+  imports: [
+    CommonModule, 
+    RouterModule, 
+    DashboardOverviewComponent, 
+    AppointmentListComponent, 
+    ServiceListComponent, 
+    CustomersListComponent, 
+    CalendarComponent
+  ],
   templateUrl: './provider-dashboard.component.html',
   styleUrls: ['./provider-dashboard.component.css']
 })
