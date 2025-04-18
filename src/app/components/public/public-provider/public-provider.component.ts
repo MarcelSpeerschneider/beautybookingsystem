@@ -18,6 +18,7 @@ import { Service } from '../../../models/service.model';
   styleUrls: ['./public-provider.component.css']
 })
 export class PublicProviderComponent implements OnInit, OnDestroy {
+  // Services
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private authService = inject(AuthenticationService);
@@ -30,7 +31,12 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   provider: Provider & { providerId: string } | null = null;
   services: (Service & { id: string })[] = [];
   
-  // Reviews data (placeholders for now)
+  // Cart state
+  cartItems: (Service & { id: string })[] = [];
+  cartItemCount: number = 0;
+  cartSidebarOpen: boolean = false;
+  
+  // Reviews data (Mock-Daten)
   reviews: any[] = [
     {
       id: '1',
@@ -66,75 +72,98 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadingService.setLoading(true, 'Lade Anbieterinfo...');
     
-    // 1. Get businessName from the route
-    const businessNameSub = this.route.paramMap.subscribe(params => {
-      const businessName = params.get('businessName');
-      if (businessName) {
-        this.loadProviderByBusinessName(businessName);
-      } else {
-        this.loadingService.setLoading(false);
-        this.router.navigate(['/']); // Navigate home if no business name provided
-      }
-    });
+    // Business Name aus der Route holen
+    this.subscriptions.push(
+      this.route.paramMap.subscribe(params => {
+        const businessName = params.get('businessName');
+        if (businessName) {
+          this.loadProviderByBusinessName(businessName);
+        } else {
+          this.loadingService.setLoading(false);
+          this.router.navigate(['/']);
+        }
+      })
+    );
     
-    this.subscriptions.push(businessNameSub);
+    // Auth-Status überwachen
+    this.subscriptions.push(
+      this.authService.user$.subscribe(user => {
+        this.isLoggedIn = !!user;
+        this.checkIfOwnProvider();
+      })
+    );
     
-    // 2. Check authentication state
-    const authSub = this.authService.user$.subscribe(user => {
-      this.isLoggedIn = !!user;
-      this.checkIfOwnProvider();
-    });
-    
-    this.subscriptions.push(authSub);
+    // Warenkorb-Updates abonnieren
+    this.subscriptions.push(
+      this.cartService.cartItems$.subscribe(items => {
+        this.cartItems = items;
+        this.cartItemCount = items.length;
+      })
+    );
+
+    // Event-Listener für ESC-Taste
+    document.addEventListener('keydown', this.handleKeyDown.bind(this));
   }
 
   ngOnDestroy(): void {
+    // Alle Subscriptions beenden
     this.subscriptions.forEach(sub => sub.unsubscribe());
+    
+    // Event-Listener entfernen
+    document.removeEventListener('keydown', this.handleKeyDown.bind(this));
   }
   
+  // Event-Handler für ESC-Taste - schließt Sidebar
+  private handleKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && this.cartSidebarOpen) {
+      this.closeCartSidebar();
+    }
+  }
+  
+  // Provider anhand des Geschäftsnamens laden
   private loadProviderByBusinessName(businessName: string): void {
-    // In a real app, you would have a method to find provider by business name
-    // For now, we'll get all providers and find the matching one
-    const providerSub = this.providerService.getProviders().subscribe({
-      next: providers => {
-        const foundProvider = providers.find(p => 
-          p.businessName.toLowerCase() === businessName.toLowerCase()
-        );
-        
-        if (foundProvider) {
-          this.provider = foundProvider;
-          this.loadServices(foundProvider.providerId);
-          this.checkIfOwnProvider();
-        } else {
-          console.error(`Provider with business name ${businessName} not found`);
+    this.subscriptions.push(
+      this.providerService.getProviders().subscribe({
+        next: providers => {
+          const foundProvider = providers.find(p => 
+            p.businessName.toLowerCase() === businessName.toLowerCase()
+          );
+          
+          if (foundProvider) {
+            this.provider = foundProvider;
+            this.loadServices(foundProvider.providerId);
+            this.checkIfOwnProvider();
+          } else {
+            console.error(`Provider with business name ${businessName} not found`);
+            this.loadingService.setLoading(false);
+            this.router.navigate(['/']);
+          }
+        },
+        error: error => {
+          console.error('Error loading provider:', error);
           this.loadingService.setLoading(false);
-          this.router.navigate(['/']); // Provider not found, navigate home
         }
-      },
-      error: error => {
-        console.error('Error loading provider:', error);
-        this.loadingService.setLoading(false);
-      }
-    });
-    
-    this.subscriptions.push(providerSub);
+      })
+    );
   }
   
+  // Dienste für den Provider laden
   private loadServices(providerId: string): void {
-    const servicesSub = this.serviceService.getServicesByProvider(providerId).subscribe({
-      next: services => {
-        this.services = services;
-        this.loadingService.setLoading(false);
-      },
-      error: error => {
-        console.error('Error loading services:', error);
-        this.loadingService.setLoading(false);
-      }
-    });
-    
-    this.subscriptions.push(servicesSub);
+    this.subscriptions.push(
+      this.serviceService.getServicesByProvider(providerId).subscribe({
+        next: services => {
+          this.services = services;
+          this.loadingService.setLoading(false);
+        },
+        error: error => {
+          console.error('Error loading services:', error);
+          this.loadingService.setLoading(false);
+        }
+      })
+    );
   }
   
+  // Prüfen ob der eingeloggte Nutzer der Provider ist
   private checkIfOwnProvider(): void {
     if (!this.provider || !this.isLoggedIn) {
       this.isOwnProviderPage = false;
@@ -142,13 +171,11 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
     }
     
     const currentUser = this.authService.getUser();
-    if (currentUser && this.provider.providerId === currentUser.uid) {
-      this.isOwnProviderPage = true;
-    } else {
-      this.isOwnProviderPage = false;
-    }
+    this.isOwnProviderPage = currentUser ? this.provider.providerId === currentUser.uid : false;
+
   }
   
+  // Initialen für den Provider-Avatar
   getProviderInitials(): string {
     if (!this.provider || !this.provider.businessName) return '';
     
@@ -160,6 +187,7 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
     }
   }
   
+  // Formatierungshilfen
   formatCurrency(price: number): string {
     return new Intl.NumberFormat('de-DE', { 
       style: 'currency', 
@@ -176,68 +204,96 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
     });
   }
   
+  // Warenkorb-Button-Handler
+  goToCart(): void {
+    this.toggleCartSidebar();
+  }
+  
+  // Service zum Warenkorb hinzufügen
   selectService(service: Service & { id: string }): void {
     if (this.isOwnProviderPage) {
       this.displayMessage('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
       return;
     }
     
-    this.cartService.clearCart(); // Clear any previous selections
     this.cartService.addItem(service);
     this.cartService.setProviderId(this.provider?.providerId || '');
-    
-    // Set booking flow flag
     localStorage.setItem('bookingFlow', 'active');
     
     this.displayMessage(`${service.name} wurde zum Warenkorb hinzugefügt!`);
-    
-    // Navigate to appointment selection
-    setTimeout(() => {
-      if (this.provider) {
-        this.router.navigate(['/appointment-selection', this.provider.providerId]);
-      }
-    }, 1000);
+    this.toggleCartSidebar();
   }
   
-  navigateToBooking(): void {
+  // Warenkorb-Sidebar anzeigen/verstecken
+  toggleCartSidebar(): void {
+    this.cartSidebarOpen = !this.cartSidebarOpen;
+    document.body.style.overflow = this.cartSidebarOpen ? 'hidden' : '';
+  }
+  
+  // Warenkorb-Sidebar schließen
+  closeCartSidebar(event?: Event): void {
+    if (event) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.cart-sidebar') || target.closest('.btn-close')) {
+        this.cartSidebarOpen = false;
+        document.body.style.overflow = '';
+      }
+    } else {
+      this.cartSidebarOpen = false;
+      document.body.style.overflow = '';
+    }
+  }
+  
+  // Service aus dem Warenkorb entfernen
+  removeFromCart(service: Service & { id: string }): void {
+    this.cartService.removeItem(service.id);
+    this.displayMessage(`${service.name} wurde aus dem Warenkorb entfernt.`);
+  }
+  
+  // Gesamtbetrag im Warenkorb berechnen
+  getCartTotal(): number {
+    return this.cartItems.reduce((total, item) => total + item.price, 0);
+  }
+  
+  // Weiter zur Terminauswahl
+  proceedToAppointment(): void {
+    if (this.cartItemCount === 0) {
+      this.displayMessage('Ihr Warenkorb ist leer. Bitte wählen Sie zuerst eine Dienstleistung aus.');
+      return;
+    }
+    
     if (this.isOwnProviderPage) {
       this.displayMessage('Als Anbieter können Sie keine Termine bei sich selbst buchen. Dies ist nur eine Vorschau Ihrer Buchungsseite.');
       return;
     }
     
-    if (!this.services || this.services.length === 0) {
-      this.displayMessage('Es sind derzeit keine Dienstleistungen verfügbar für die Buchung.');
-      return;
-    }
-    
-    // Scroll to services section
-    const servicesSection = document.querySelector('.services-section');
-    if (servicesSection) {
-      servicesSection.scrollIntoView({ behavior: 'smooth' });
-    }
+    const providerId = this.provider?.providerId || '';
+    this.router.navigate(['/appointment-selection', providerId]);
+    this.closeCartSidebar();
   }
   
+  // Login-Handler
   handleLogin(): void {
-    if (this.isOwnProviderPage) {
-      return;
+    if (!this.isOwnProviderPage) {
+      this.router.navigate(['/customer-login']);
     }
-    
-    // Navigate to login page
-    this.router.navigate(['/customer-login']);
   }
   
+  // Zum Dashboard navigieren (für Provider)
   navigateToDashboard(): void {
     if (this.isLoggedIn && this.isOwnProviderPage) {
       this.router.navigate(['/provider-dashboard']);
     }
   }
   
+  // Zum Profil navigieren (für Kunden)
   navigateToProfile(): void {
     if (this.isLoggedIn && !this.isOwnProviderPage) {
       this.router.navigate(['/customer-profile']);
     }
   }
   
+  // Statusmeldungen anzeigen
   displayMessage(message: string): void {
     this.successMessage = message;
     this.showSuccessMessage = true;
@@ -247,7 +303,7 @@ export class PublicProviderComponent implements OnInit, OnDestroy {
     }, 3000);
   }
   
-  // Helper method for reviews (placeholder functionality)
+  // Sterne für Bewertungen rendern
   renderStars(rating: number): string[] {
     const stars: string[] = [];
     for (let i = 1; i <= 5; i++) {

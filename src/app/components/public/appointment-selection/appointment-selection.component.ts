@@ -254,10 +254,11 @@ export class AppointmentSelectionComponent implements OnInit, OnDestroy {
    * Navigiert zurück zur Dienstleistungsübersicht
    */
   goBack(): void {
-    if (this.providerId) {
-      this.router.navigate(['/services', this.providerId]);
+    // Go back to provider page
+    if (this.provider && this.provider.businessName) {
+      this.router.navigate(['/', this.provider.businessName]);
     } else {
-      this.router.navigate(['/']);
+      this.router.navigate(['/']); 
     }
   }
 }
