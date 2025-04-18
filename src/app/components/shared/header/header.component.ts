@@ -16,12 +16,13 @@ import { NotificationPopupComponent } from '../notification-popup/notification-p
   styleUrls: ['./header.component.css']
 })
 export class HeaderComponent implements OnInit, OnDestroy {
-  isMenuOpen = false;
   isScrolled = false;
+  isMenuOpen = false; // Existing property for older mobile menu
+  isSideMenuOpen = false; // New property for side menu
   currentUser: User | null = null;
   userRole: string | null = null;
   
-  // Add notifications properties
+  // Notification properties
   notificationCount = 0;
   isNotificationPopupOpen = false;
   
@@ -75,6 +76,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.isScrolled = window.scrollY > 50;
   }
 
+  // Methods for old mobile menu (keep for backward compatibility)
   toggleMobileMenu(): void {
     this.isMenuOpen = !this.isMenuOpen;
   }
@@ -83,10 +85,33 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.isMenuOpen = false;
   }
 
+  // Methods for the new side menu
+  toggleSideMenu(): void {
+    this.isSideMenuOpen = !this.isSideMenuOpen;
+    
+    // Close notification popup if it's open
+    if (this.isNotificationPopupOpen) {
+      this.isNotificationPopupOpen = false;
+    }
+    
+    // Prevent body scrolling when menu is open
+    if (this.isSideMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
+  
+  closeSideMenu(): void {
+    this.isSideMenuOpen = false;
+    document.body.style.overflow = '';
+  }
+
   logout(): void {
     this.authService.logout().then(() => {
       this.router.navigate(['/']);
-      this.closeMobileMenu();
+      this.closeSideMenu();
+      this.closeMobileMenu(); // Close both menus
       // Stop listening for notifications on logout
       this.notificationService.stopListeningForNotifications();
     });
@@ -100,6 +125,26 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.router.navigate(['/customer-profile']);
     }
     this.closeMobileMenu();
+    this.closeSideMenu();
+  }
+
+  // Notification methods
+  toggleNotificationPopup(): void {
+    this.isNotificationPopupOpen = !this.isNotificationPopupOpen;
+    
+    // Close side menu if it's open
+    if (this.isSideMenuOpen) {
+      this.closeSideMenu();
+    }
+    
+    // Close mobile menu if it's open
+    if (this.isMenuOpen) {
+      this.closeMobileMenu();
+    }
+  }
+  
+  closeNotificationPopup(): void {
+    this.isNotificationPopupOpen = false;
   }
 
   /**
@@ -144,19 +189,4 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.userRole = null;
     }
   }
-  
-  // Add notification methods
-  toggleNotificationPopup(): void {
-    this.isNotificationPopupOpen = !this.isNotificationPopupOpen;
-    
-    // If we're closing mobile menu when opening notifications
-    if (this.isNotificationPopupOpen && this.isMenuOpen) {
-      this.isMenuOpen = false;
-    }
-  }
-  
-  closeNotificationPopup(): void {
-    this.isNotificationPopupOpen = false;
-  }
-
 }

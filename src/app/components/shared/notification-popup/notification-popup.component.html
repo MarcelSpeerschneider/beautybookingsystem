@@ -1,3 +1,5 @@
+<!-- src/app/components/shared/notification-popup/notification-popup.component.html -->
+
 <div class="notification-popup" [class.is-open]="isOpen">
     <div class="notification-popup-content">
       <div class="notification-header">
@@ -11,7 +13,7 @@
         </div>
         
         <div *ngIf="notifications.length > 0" class="notification-list">
-          <div *ngFor="let notification of notifications" class="notification-item">
+          <div *ngFor="let notification of notifications" class="notification-item" (click)="openAppointmentDetails(notification)">
             <div class="notification-content">
               <div class="notification-title">
                 Neue Terminanfrage von {{ notification.customerName }}
@@ -26,10 +28,10 @@
               </div>
             </div>
             <div class="notification-actions">
-              <button class="btn-confirm" (click)="confirmAppointment(notification.id)">
+              <button class="btn-confirm" (click)="confirmAppointment(notification.id); $event.stopPropagation();">
                 Bestätigen
               </button>
-              <button class="btn-reject" (click)="rejectAppointment(notification.id)">
+              <button class="btn-reject" (click)="rejectAppointment(notification.id); $event.stopPropagation();">
                 Ablehnen
               </button>
             </div>
@@ -38,3 +40,12 @@
       </div>
     </div>
   </div>
+  
+  <!-- Appointment Details Popup -->
+  <app-appointment-notification-popup
+    [appointment]="selectedAppointment"
+    [isOpen]="isAppointmentDetailsOpen"
+    (close)="closeAppointmentDetails()"
+    (confirm)="confirmAppointment($event)"
+    (reject)="rejectAppointment($event)">
+  </app-appointment-notification-popup>

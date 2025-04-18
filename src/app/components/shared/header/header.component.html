@@ -1,3 +1,5 @@
+<!-- src/app/components/shared/header/header.component.html -->
+
 <!-- Header -->
 <header class="bg-white shadow-sm sticky top-0 z-50" [ngClass]="{'scrolled': isScrolled}">
   <div class="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -6,8 +8,6 @@
         <h1 class="text-2xl font-bold beaufix-primary">Beau<span class="font-normal text-gray-800">Fix</span></h1>
       </a>
     </div>
-    
-    <!-- Navigation Links wurden entfernt -->
     
     <div class="flex items-center space-x-4">
       <!-- Show these links when user is NOT logged in -->
@@ -28,13 +28,12 @@
           </button>
         </div>
       
-        <a (click)="navigateToProfile()" class="nav-link cursor-pointer">
-          {{ userRole === 'provider' ? 'Dashboard' : 'Profil' }}
-        </a>
+        <!-- Logout button -->
         <button (click)="logout()" class="btn-outline">Logout</button>
       </ng-container>
       
-      <button class="mobile-menu-button md:hidden" (click)="toggleMobileMenu()">
+      <!-- Burger menu button -->
+      <button class="mobile-menu-button" (click)="toggleSideMenu()">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
@@ -42,41 +41,82 @@
     </div>
   </div>
   
-  <!-- Mobile Menu -->
-  <div *ngIf="isMenuOpen" class="md:hidden bg-white shadow-md">
-    <div class="container mx-auto px-4 py-3">
-      <nav class="flex flex-col space-y-3">
-        <!-- Mobile Navigation Links wurden entfernt -->
-        
-        <div class="border-t border-gray-200 my-2 pt-2">
-          <!-- Mobile menu - not logged in -->
-          <ng-container *ngIf="!currentUser">
-            <a routerLink="/login" class="nav-link block mb-2">Login</a>
-            <a routerLink="/customer-register" class="btn-primary inline-block">Sign Up</a>
-          </ng-container>
-          
-          <!-- Mobile menu - logged in -->
-          <ng-container *ngIf="currentUser">
-            <!-- Add notification bell for providers on mobile -->
-            <div *ngIf="userRole === 'provider'" class="mobile-notification-btn mb-2">
-              <button class="mobile-notification-bell" (click)="toggleNotificationPopup()">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span>Benachrichtigungen</span>
-                <span *ngIf="notificationCount > 0" class="mobile-notification-badge">{{ notificationCount }}</span>
-              </button>
-            </div>
-            
-            <a (click)="navigateToProfile()" class="nav-link block mb-2 cursor-pointer">
-              {{ userRole === 'provider' ? 'Dashboard' : 'Profil' }}
+  <!-- Side Menu -->
+  <div class="side-menu" [class.open]="isSideMenuOpen">
+    <div class="side-menu-header">
+      <button class="close-menu-btn" (click)="closeSideMenu()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    
+    <div class="side-menu-content">
+      <nav class="side-menu-nav">
+        <ul>
+          <li>
+            <a routerLink="/" class="side-menu-item" (click)="closeSideMenu()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span>Home</span>
             </a>
-            <button (click)="logout()" class="btn-outline inline-block">Logout</button>
-          </ng-container>
-        </div>
+          </li>
+          
+          <!-- Provider specific link -->
+          <li *ngIf="currentUser && userRole === 'provider'">
+            <a routerLink="/provider-dashboard" class="side-menu-item" (click)="closeSideMenu()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          
+          <!-- Customer specific link -->
+          <li *ngIf="currentUser && userRole === 'customer'">
+            <a routerLink="/customer-profile" class="side-menu-item" (click)="closeSideMenu()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span>Profile</span>
+            </a>
+          </li>
+          
+          <!-- Logout link -->
+          <li *ngIf="currentUser">
+            <a class="side-menu-item" (click)="logout()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Logout</span>
+            </a>
+          </li>
+          
+          <!-- Authentication links for non-logged in users -->
+          <li *ngIf="!currentUser">
+            <a routerLink="/login" class="side-menu-item" (click)="closeSideMenu()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              <span>Login</span>
+            </a>
+          </li>
+          <li *ngIf="!currentUser">
+            <a routerLink="/customer-register" class="side-menu-item" (click)="closeSideMenu()">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              <span>Sign Up</span>
+            </a>
+          </li>
+        </ul>
       </nav>
     </div>
   </div>
+  
+  <!-- Overlay -->
+  <div *ngIf="isSideMenuOpen" class="side-menu-overlay" (click)="closeSideMenu()"></div>
   
   <!-- Notification Popup -->
   <app-notification-popup 

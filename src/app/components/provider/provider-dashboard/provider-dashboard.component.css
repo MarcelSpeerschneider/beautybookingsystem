@@ -648,3 +648,10 @@ button[data-action="create-appointment"]:hover {
     padding: 30px;
   }
 }
+
+/* Verstecke den dashboard-header auf mobilen Geräten */
+@media (max-width: 768px) {
+  .dashboard-header {
+    display: none;
+  }
+}

@@ -1,0 +1,49 @@
+<!-- src/app/components/shared/appointment-notification-popup/appointment-notification-popup.component.html -->
+
+<div class="appointment-popup-overlay" *ngIf="isOpen" (click)="closePopup()">
+    <div class="appointment-popup-container" (click)="$event.stopPropagation()">
+      <div class="appointment-popup-header">
+        <h3>Terminanfrage</h3>
+        <button class="close-btn" (click)="closePopup()">✕</button>
+      </div>
+      
+      <div class="appointment-popup-content" *ngIf="appointment">
+        <div class="appointment-info">
+          <div class="info-row">
+            <div class="info-label">Kunde:</div>
+            <div class="info-value">{{ appointment.customerName || 'Unbekannt' }}</div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-label">Service:</div>
+            <div class="info-value">{{ appointment.serviceName || 'Unbekannt' }}</div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-label">Datum:</div>
+            <div class="info-value">{{ formatDate(appointment.startTime) }}</div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-label">Uhrzeit:</div>
+            <div class="info-value">{{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}</div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-label">Dauer:</div>
+            <div class="info-value">{{ getAppointmentDuration(appointment) }} Minuten</div>
+          </div>
+          
+          <div class="info-row" *ngIf="appointment.notes">
+            <div class="info-label">Notizen:</div>
+            <div class="info-value notes">{{ appointment.notes }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="appointment-popup-actions">
+        <button class="reject-btn" (click)="rejectAppointment()">Ablehnen</button>
+        <button class="confirm-btn" (click)="confirmAppointment()">Bestätigen</button>
+      </div>
+    </div>
+  </div>

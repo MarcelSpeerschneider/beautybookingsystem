@@ -1,14 +1,17 @@
+// src/app/components/shared/notification-popup/notification-popup.component.ts
+
 import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { NotificationService, AppointmentWithId } from '../../../services/notification.service';
 import { AppointmentService } from '../../../services/appointment.service';
 import { LoadingService } from '../../../services/loading.service';
+import { AppointmentNotificationPopupComponent } from '../appointment-notification-popup/appointment-notification-popup.component';
 
 @Component({
   selector: 'app-notification-popup',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, AppointmentNotificationPopupComponent],
   templateUrl: './notification-popup.component.html',
   styleUrls: ['./notification-popup.component.css']
 })
@@ -17,6 +20,10 @@ export class NotificationPopupComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
   
   notifications: AppointmentWithId[] = [];
+  
+  // New property to handle the appointment details popup
+  selectedAppointment: AppointmentWithId | null = null;
+  isAppointmentDetailsOpen: boolean = false;
   
   private notificationService = inject(NotificationService);
   private appointmentService = inject(AppointmentService);
@@ -30,6 +37,18 @@ export class NotificationPopupComponent implements OnInit {
   
   closePopup(): void {
     this.close.emit();
+  }
+  
+  // Opens the appointment details popup
+  openAppointmentDetails(appointment: AppointmentWithId): void {
+    this.selectedAppointment = appointment;
+    this.isAppointmentDetailsOpen = true;
+  }
+  
+  // Closes the appointment details popup
+  closeAppointmentDetails(): void {
+    this.isAppointmentDetailsOpen = false;
+    this.selectedAppointment = null;
   }
   
   formatDate(date: any): string {
@@ -92,6 +111,8 @@ export class NotificationPopupComponent implements OnInit {
     this.loadingService.setLoading(true, 'Bestätige Termin...');
     this.appointmentService.confirmAppointment(appointmentId).then(() => {
       this.loadingService.setLoading(false);
+      // Close the detail view if open
+      this.closeAppointmentDetails();
     }).catch((error: any) => {
       this.loadingService.setLoading(false);
       console.error('Error confirming appointment:', error);
@@ -104,6 +125,8 @@ export class NotificationPopupComponent implements OnInit {
       this.loadingService.setLoading(true, 'Termin wird abgelehnt...');
       this.appointmentService.cancelAppointment(appointmentId).then(() => {
         this.loadingService.setLoading(false);
+        // Close the detail view if open
+        this.closeAppointmentDetails();
       }).catch((error: any) => {
         this.loadingService.setLoading(false);
         console.error('Fehler beim Ablehnen des Termins:', error);

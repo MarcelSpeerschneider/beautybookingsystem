@@ -147,3 +147,12 @@
       z-index: 2000;
     }
   }
+
+  .notification-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .notification-item:hover {
+    background-color: rgba(229, 136, 125, 0.05);
+  }
