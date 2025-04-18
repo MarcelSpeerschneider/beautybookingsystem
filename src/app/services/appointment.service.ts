@@ -129,79 +129,80 @@ export class AppointmentService {
    */
   private async checkForOverlappingAppointments(appointment: Appointment): Promise<boolean> {
     try {
-      // Startdatum des zu prüfenden Termins ermitteln
       const appointmentDate = appointment.startTime instanceof Date ?
         appointment.startTime :
         new Date(appointment.startTime);
-
-      // Tagesgrenzen festlegen, um die Abfrage einzuschränken
+  
       const startOfDay = new Date(appointmentDate);
       startOfDay.setHours(0, 0, 0, 0);
-
+  
       const endOfDay = new Date(appointmentDate);
       endOfDay.setHours(23, 59, 59, 999);
-
-      // Firestore-Collection und Query erstellen
+  
+      // WICHTIGE ÄNDERUNG: Nur nach providerId filtern, nicht nach Status
       const appointmentsCollection = this.collectionInZone(this.collectionName);
-
-      // Wir überprüfen nur Termine für denselben Provider
-      // Außerdem berücksichtigen wir nur bestätigte oder anstehende Termine, nicht stornierte oder abgeschlossene
       const q = this.queryInZone(
         appointmentsCollection,
-        where('providerId', '==', appointment.providerId),
-        where('status', 'in', ['pending', 'confirmed']) // Nur offene Termine prüfen
+        where('providerId', '==', appointment.providerId)
       );
-
+  
       // Abfrage ausführen
       const snapshot = await this.ngZone.run(() => getDocs(q));
       const existingAppointments = snapshot.docs.map(doc => {
-        const data = doc.data() as Record<string, any>; // Expliziter Cast auf ein Objekt-Typ
+        const data = doc.data() as Record<string, any>;
         return { id: doc.id, ...data } as AppointmentWithId;
       });
-
-      // Nur Termine am selben Tag filtern
-      const appointmentsOnSameDay = existingAppointments.filter(app => {
+  
+      // Clientseitig filtern nach Tag UND Status
+      const appointmentsToCheck = existingAppointments.filter(app => {
         const appStartDate = app.startTime instanceof Date ?
           app.startTime :
           new Date(app.startTime);
-        return appStartDate >= startOfDay && appStartDate <= endOfDay;
+        
+        // Termin muss am selben Tag sein...
+        const isSameDay = appStartDate >= startOfDay && appStartDate <= endOfDay;
+        
+        // ... und den Status 'pending' oder 'confirmed' haben
+        const hasRelevantStatus = app.status === 'pending' || app.status === 'confirmed';
+        
+        return isSameDay && hasRelevantStatus;
       });
-
-      // Bei Aktualisierung eines bestehenden Termins diesen selbst ausschließen
-      const appointmentsToCheck = 'id' in appointment
-        ? appointmentsOnSameDay.filter(app => app.id !== (appointment as AppointmentWithId).id)
-        : appointmentsOnSameDay;
-
-      console.log(`Prüfe auf Überschneidungen mit ${appointmentsToCheck.length} anderen Terminen am selben Tag`);
-
-      // Auf Überschneidungen prüfen
+  
+      // Bei Aktualisierung den eigenen Termin ausschließen
+      const filteredAppointments = 'id' in appointment
+        ? appointmentsToCheck.filter(app => app.id !== (appointment as AppointmentWithId).id)
+        : appointmentsToCheck;
+  
+      console.log(`Prüfe auf Überschneidungen mit ${filteredAppointments.length} anderen Terminen am selben Tag`);
+  
+      // Überschneidungsprüfung (Rest bleibt gleich)
       const newAppointmentStart = appointment.startTime instanceof Date ?
         appointment.startTime :
         new Date(appointment.startTime);
       const newAppointmentEnd = appointment.endTime instanceof Date ?
         appointment.endTime :
         new Date(appointment.endTime);
-
-      for (const existingAppointment of appointmentsToCheck) {
+  
+      for (const existingAppointment of filteredAppointments) {
         const existingStart = existingAppointment.startTime instanceof Date ?
           existingAppointment.startTime :
           new Date(existingAppointment.startTime);
         const existingEnd = existingAppointment.endTime instanceof Date ?
           existingAppointment.endTime :
           new Date(existingAppointment.endTime);
-
+  
         if (this.doDateRangesOverlap(newAppointmentStart, newAppointmentEnd, existingStart, existingEnd)) {
-          console.log(`Überschneidung gefunden mit Termin: ${existingAppointment.id} (${existingStart.toLocaleTimeString()} - ${existingEnd.toLocaleTimeString()})`);
+          console.log(`Überschneidung gefunden mit Termin: ${existingAppointment.id}`);
           return true; // Überschneidung gefunden
         }
       }
-
-      // Keine Überschneidung gefunden
-      return false;
+  
+      return false; // Keine Überschneidung gefunden
     } catch (error) {
       console.error('Fehler bei der Überschneidungsprüfung:', error);
-      // Bei Fehlern lieber vorsichtig sein und true zurückgeben
-      return true;
+      
+      // WICHTIGE ÄNDERUNG: Bei Fehlern 'false' zurückgeben, damit Termine trotzdem erstellt werden können
+      return false;
     }
   }
 

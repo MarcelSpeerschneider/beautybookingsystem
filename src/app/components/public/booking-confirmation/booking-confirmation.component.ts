@@ -1,274 +1,142 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
-// Services
-import { CartService } from '../../../services/cart.service';
-import { AuthenticationService } from '../../../services/authentication.service';
+import { Router } from '@angular/router';
 import { AppointmentService } from '../../../services/appointment.service';
 import { ProviderService } from '../../../services/provider.service';
+import { CartService } from '../../../services/cart.service';
 import { LoadingService } from '../../../services/loading.service';
-
-// Models
-import { Service } from '../../../models/service.model';
-import { Provider } from '../../../models/provider.model';
-import { Customer } from '../../../models/customer.model';
-import { Appointment } from '../../../models/appointment.model';
-
-// Define types that include the document ID
-type CustomerWithId = Customer & { id: string };
-type AppointmentWithId = Appointment & { id: string };
+import { ZoneUtils } from '../../../utils/zone-utils';
+import { NgZone } from '@angular/core';
 
 @Component({
   selector: 'app-booking-confirmation',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule],
   templateUrl: './booking-confirmation.component.html',
   styleUrls: ['./booking-confirmation.component.css']
 })
-export class BookingConfirmationComponent implements OnInit, OnDestroy {
-  // Properties
-  provider: Provider | null | undefined = null;
-  providerUserId: string = ''; // Store just the provider ID separately
-  customer: CustomerWithId | null = null;
-  cartItems: Service[] = [];
-  selectedDate: Date | null = null;
-  selectedTime: string | null = null;
-  
-  // UI state
-  selectedPayment: string = 'vor-ort';
-  termsAccepted: boolean = false;
-  showSuccessMessage: boolean = false;
-  bookingNumber: string = '';
-  savedAppointment: AppointmentWithId | null = null;
-  
-  // Subscriptions
-  private subscriptions: Subscription[] = [];
-  
+export class BookingConfirmationComponent implements OnInit {
   // Services
   private router = inject(Router);
-  private cartService = inject(CartService);
-  private authService = inject(AuthenticationService);
   private appointmentService = inject(AppointmentService);
   private providerService = inject(ProviderService);
+  private cartService = inject(CartService);
   private loadingService = inject(LoadingService);
-  
+  private ngZone = inject(NgZone);
+
+  // Data for the template
+  appointment: any = null;
+  provider: any = null;
+  errorMessage: string = '';
+
   ngOnInit(): void {
-    this.loadingService.setLoading(true, 'Lade Buchungsdetails...');
-    
-    // Load cart items
-    this.cartItems = this.cartService.getItems();
-    
-    if (this.cartItems.length === 0) {
-      alert('Keine Dienstleistungen ausgewählt.');
-      this.router.navigate(['/services']);
-      return;
-    }
-    
-    // Get provider
-    const providerId = this.cartService.getProviderId();
-    if (!providerId) {
-      alert('Kein Dienstleister ausgewählt.');
-      this.router.navigate(['/']);
-      return;
-    }
-    
-    // Store provider ID
-    this.providerUserId = providerId;
-    
-    // Load provider details
-    const providerSub = this.providerService.getProvider(providerId).subscribe({
-      next: (provider) => {
-        this.provider = provider || null;
-        this.loadingService.setLoading(false);
-      },
-      error: (error) => {
-        console.error('Error loading provider:', error);
-        this.loadingService.setLoading(false);
-        alert('Fehler beim Laden der Dienstleister-Details.');
-      }
-    });
-    this.subscriptions.push(providerSub);
-    
-    // Get selected date and time from session storage
-    const dateString = sessionStorage.getItem('selectedDate');
-    if (dateString) {
+    ZoneUtils.wrapPromise(async () => {
       try {
-        this.selectedDate = new Date(JSON.parse(dateString));
-      } catch (e) {
-        console.error('Error parsing date:', e);
+        // Get appointment ID and provider ID from localStorage
+        const appointmentId = localStorage.getItem('confirmedAppointmentId');
+        const providerId = localStorage.getItem('confirmedProviderId');
+        
+        if (!appointmentId) {
+          console.error('No appointment ID found in localStorage');
+          this.router.navigate(['/']);
+          return;
+        }
+        
+        // Load appointment details
+        this.loadingService.setLoading(true, 'Lade Termindetails...');
+        console.log('Loading appointment with ID:', appointmentId);
+        
+        this.appointmentService.getAppointment(appointmentId).subscribe({
+          next: (appointment) => {
+            console.log('Appointment loaded:', appointment);
+            this.appointment = appointment;
+            
+            // If provider ID is available, load provider details
+            if (providerId) {
+              console.log('Loading provider with ID:', providerId);
+              this.providerService.getProvider(providerId).subscribe({
+                next: (provider) => {
+                  console.log('Provider loaded:', provider);
+                  this.provider = provider;
+                  this.loadingService.setLoading(false);
+                },
+                error: (error) => {
+                  console.error('Error loading provider:', error);
+                  this.loadingService.setLoading(false);
+                }
+              });
+            } else {
+              // Try to use the provider ID from the appointment
+              if (appointment && appointment.providerId) {
+                console.log('Using provider ID from appointment:', appointment.providerId);
+                this.providerService.getProvider(appointment.providerId).subscribe({
+                  next: (provider) => {
+                    console.log('Provider loaded from appointment ID:', provider);
+                    this.provider = provider;
+                    this.loadingService.setLoading(false);
+                  },
+                  error: (error) => {
+                    console.error('Error loading provider from appointment ID:', error);
+                    this.loadingService.setLoading(false);
+                  }
+                });
+              } else {
+                this.loadingService.setLoading(false);
+              }
+            }
+          },
+          error: (error) => {
+            console.error('Error loading appointment:', error);
+            this.loadingService.setLoading(false);
+            this.errorMessage = 'Der Termin konnte nicht gefunden werden.';
+          }
+        });
+        
+        // Clean up temporary data after 2 seconds
+        setTimeout(() => {
+          this.cartService.cleanupBookingData();
+          localStorage.removeItem('confirmedAppointmentId');
+          localStorage.removeItem('confirmedProviderId');
+        }, 2000);
+      } catch (error) {
+        console.error('Error in ngOnInit:', error);
+        this.loadingService.setLoading(false);
+        this.errorMessage = 'Ein Fehler ist aufgetreten.';
       }
-    }
-    
-    this.selectedTime = sessionStorage.getItem('selectedTime');
-    
-    if (!this.selectedDate || !this.selectedTime) {
-      alert('Bitte wählen Sie einen Termin aus.');
-      const providerId = this.cartService.getProviderId();
-      if (providerId) {
-        this.router.navigate(['/appointment-selection', providerId]);
-      } else {
-        this.router.navigate(['/']);
-      }
-      return;
-    }
-    
-    // Get customer details if logged in
-    const userSub = this.authService.user.subscribe(userWithCustomer => {
-      if (!userWithCustomer.user) {
-        // User is not logged in, redirect to login
-        this.router.navigate(['/booking-login']);
-        return;
-      }
-      
-      if (userWithCustomer.customer) {
-        // The customer from AuthService already has an id field
-        this.customer = userWithCustomer.customer as CustomerWithId;
-      }
-      this.loadingService.setLoading(false);
-    });
-    this.subscriptions.push(userSub);
+    }, this.ngZone);
   }
 
-  // Method to handle booking confirmation
-  confirmBooking(): void {
-    if (!this.termsAccepted) {
-      alert('Bitte akzeptieren Sie die Geschäftsbedingungen.');
-      return;
-    }
-    
-    if (!this.customer || !this.provider || !this.selectedDate || !this.selectedTime) {
-      this.loadingService.setLoading(false);
-      alert('Es fehlen notwendige Daten für die Buchung.');
-      return;
-    }
-    
-    this.loadingService.setLoading(true, 'Buchung wird erstellt...');
-    
-    // Generate booking number
-    this.bookingNumber = 'BK-' + new Date().getFullYear() + 
-                       Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  goToHome(): void {
+    this.router.navigate(['/']);
+  }
 
-    // Parse time string to create appointment date
-    const [hours, minutes] = this.selectedTime.split(':').map(Number);
-    const appointmentDate = new Date(this.selectedDate);
-    appointmentDate.setHours(hours, minutes, 0, 0);
+  formatDate(date: any): string {
+    if (!date) return 'Nicht verfügbar';
     
-    // Calculate end time based on service duration
-    const totalDuration = this.getTotalDuration();
-    const endTime = new Date(appointmentDate);
-    endTime.setMinutes(endTime.getMinutes() + totalDuration);
-  
-    // Create appointment object - without id property
-    const serviceIds = this.cartItems.map(service => service.id);
-    
-    const appointment: Appointment = {
-      customerId: this.customer.id,
-      providerId: this.providerUserId,
-      serviceIds: serviceIds,
-      startTime: appointmentDate,
-      endTime: endTime,
-      status: 'pending',
-      cleaningTime: 15, // 15 minutes cleaning time
-      createdAt: new Date(),
-      // Additional fields for UI display
-      serviceName: this.cartItems[0].name,
-      customerName: `${this.customer.firstName} ${this.customer.lastName}`,
-      notes: localStorage.getItem('notes') ?? ''
-    };
-    
-    // Save appointment to Firestore using the new API
-    this.appointmentService.createAppointment(appointment)
-      .then((appointmentId) => {
-        // Create a new object with the returned ID for display
-        this.savedAppointment = {
-          ...appointment,
-          id: appointmentId
-        };
-        
-        // Show success message
-        this.showSuccessMessage = true;
-
-        // WICHTIG: Bereinige alle buchungsbezogenen Daten
-        // Dies löscht den Warenkorb UND die Provider-ID aus dem Local Storage
-        this.cartService.cleanupBookingData();
-        
-        // Zusätzliche spezifische Bereinigungen
-        sessionStorage.removeItem('selectedDate');
-        sessionStorage.removeItem('selectedTime');
-        localStorage.removeItem('notes');
-        
-        // Protokolliere den Zustand nach der Bereinigung (für Debugging-Zwecke)
-        console.log('Nach Bereinigung - Provider ID im localStorage:', 
-                    localStorage.getItem('providerId'));
-        
-        this.loadingService.setLoading(false);
-      })
-      .catch(error => {
-        console.error('Error creating appointment:', error);
-        this.loadingService.setLoading(false);
-        alert('Es ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.');
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      return dateObj.toLocaleDateString('de-DE', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
+    } catch (error) {
+      return 'Ungültiges Datum';
+    }
   }
-  
-  ngOnDestroy(): void {
-    // Unsubscribe from all subscriptions
-    this.subscriptions.forEach(sub => sub.unsubscribe());
-  }
-  
-  // Helper methods - make all methods used in the template public
-  public formatDate(date: Date | null): string {
-    if (!date) return '';
-    return date.toLocaleDateString('de-DE', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
-  }
-  
-  public formatPrice(price: number): string {
-    return price.toFixed(2).replace('.', ',') + ' €';
-  }
-  
-  public formatDuration(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
+
+  formatTime(date: any): string {
+    if (!date) return 'Nicht verfügbar';
     
-    if (hours > 0) {
-      return `${hours} Std. ${remainingMinutes > 0 ? remainingMinutes + ' Min.' : ''}`;
-    } else {
-      return `${minutes} Min.`;
-    }
-  }
-  
-  public getTotalPrice(): number {
-    return this.cartItems.reduce((total, item) => total + item.price, 0);
-  }
-  
-  public getTotalDuration(): number {
-    return this.cartItems.reduce((total, item) => total + item.duration, 0);
-  }
-  
-  // UI interaction methods
-  public selectPayment(payment: string): void {
-    // For now, only allow "vor-ort" payment
-    if (payment === 'vor-ort') {
-      this.selectedPayment = payment;
-    }
-  }
-  
-  public goBack(): void {
-    this.router.navigate(['/booking-overview']);
-  }
-  
-  public navigateHome(): void {
-    // If provider is available, navigate to provider page
-    if (this.provider && this.provider.businessName) {
-      this.router.navigate(['/', this.provider.businessName]);
-    } else {
-      this.router.navigate(['/']);
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      return dateObj.toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Ungültige Zeit';
     }
   }
 }
