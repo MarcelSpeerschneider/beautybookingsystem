@@ -32,7 +32,8 @@ export class AuthenticationService {
   private loadingService = inject(LoadingService);
 
   // Track if we're in the registration process to prevent duplicate customer creation
-  private registrationInProgress = false;
+  // Make this public so it can be reset by the registration component
+  public registrationInProgress = false;
   
   // BehaviorSubject for the Firebase Auth state
   private firebaseUserSubject = new BehaviorSubject<User | null>(null);
@@ -73,15 +74,13 @@ export class AuthenticationService {
           this.firebaseUserSubject.next(user);
           
           if (user) {
-            // Check for provider registration in progress
-            const isRegisteringProvider = sessionStorage.getItem('registering_provider') === 'true';
-                                         
+            // Check for provider registration in progress - using both storage types
+            const isRegisteringProvider = localStorage.getItem('registering_provider') === 'true' || 
+                                        sessionStorage.getItem('registering_provider') === 'true';
+            
             // If registration is in progress, don't try to load/create customer
             if (this.registrationInProgress || isRegisteringProvider) {
               console.log("Registration in progress, skipping customer auto-creation");
-              
-              // Clear temporary marker once used
-              sessionStorage.removeItem('registering_provider');
               return;
             }
             
@@ -100,11 +99,19 @@ export class AuthenticationService {
 
   private loadUserData(user: User): void {
     ZoneUtils.wrapPromise(async () => {
-      // Prüfe zuerst die role-Eigenschaft im provider-Dokument
-      const providerDoc = this.docInZone('providers', user.uid);
-      
       try {
-        // Important: Use the wrapped getDoc to ensure it runs in NgZone
+        // IMPORTANT: Check if provider registration is in progress - with better detection
+        const isRegisteringProvider = localStorage.getItem('registering_provider') === 'true' || 
+                                    sessionStorage.getItem('registering_provider') === 'true';
+        
+        if (isRegisteringProvider || this.registrationInProgress) {
+          console.log("Provider registration in progress, skipping customer auto-creation");
+          // Don't remove the flag here - let the registration component handle it
+          return;
+        }
+
+        // Prüfe zuerst die role-Eigenschaft im provider-Dokument
+        const providerDoc = this.docInZone('providers', user.uid);
         const providerSnap = await this.getDocInZone(providerDoc);
         
         if (providerSnap.exists() && providerSnap.data().role === 'provider') {
@@ -153,38 +160,64 @@ export class AuthenticationService {
                   
                   // Add a slight delay to prevent race conditions with recent registrations
                   setTimeout(() => {
+                    // Do an additional check for provider registration
+                    const stillRegistering = localStorage.getItem('registering_provider') === 'true' || 
+                                          sessionStorage.getItem('registering_provider') === 'true';
+                    
                     // Check once more if customer exists before creating
-                    this.customerService.getCustomer(user.uid).subscribe(
-                      (latestCustomer) => {
-                        if (!latestCustomer && !this.registrationInProgress) {
-                          this.createEmptyCustomerIfNeeded().subscribe();
+                    if (!stillRegistering && !this.registrationInProgress) {
+                      this.customerService.getCustomer(user.uid).subscribe(
+                        (latestCustomer) => {
+                          if (!latestCustomer) {
+                            // Do one final check for provider record before creating customer
+                            this.isProvider(user.uid).subscribe(isProvider => {
+                              if (!isProvider) {
+                                this.createEmptyCustomerIfNeeded().subscribe();
+                              }
+                            });
+                          }
                         }
-                      }
-                    );
-                  }, 1000);
+                      );
+                    }
+                  }, 1500);
                 }
               },
               error: (error: unknown) => {
                 this.loadingService.setLoading(false);
                 console.error("Error loading customer data:", error);
                 
-                // Try to create an empty customer record for permission errors
-                if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
-                  console.log("Permission denied, attempting to create fallback");
-                  this.createEmptyCustomerIfNeeded().subscribe();
+                // Only try to create customer if not registering provider
+                if (!isRegisteringProvider && !this.registrationInProgress) {
+                  // Try to create an empty customer record for permission errors
+                  if (error instanceof Object && 'code' in error && error.code === 'permission-denied') {
+                    console.log("Permission denied, attempting to create fallback");
+                    this.createEmptyCustomerIfNeeded().subscribe();
+                  }
                 }
               }
             });
           } else {
             // Weder Provider noch Customer mit entsprechender Rolle gefunden
-            console.log("User has no valid role, attempting to create customer");
+            console.log("User has no valid role, checking for provider registration");
             this.userWithCustomerSubject.next({
               user: user,
               customer: null
             });
             
-            if (!this.registrationInProgress) {
-              this.createEmptyCustomerIfNeeded().subscribe();
+            // Only create customer if NOT in provider registration
+            if (!isRegisteringProvider && !this.registrationInProgress) {
+              console.log("Not in provider registration, creating customer");
+              
+              // Double check for provider record with a delay to handle race conditions
+              setTimeout(() => {
+                this.isProvider(user.uid).subscribe(isProvider => {
+                  if (!isProvider) {
+                    this.createEmptyCustomerIfNeeded().subscribe();
+                  }
+                });
+              }, 1500);
+            } else {
+              console.log("In provider registration, skipping customer creation");
             }
           }
         }
@@ -210,6 +243,15 @@ export class AuthenticationService {
         switchMap(providerSnapshot => {
           if (providerSnapshot.exists() && providerSnapshot.data().role === 'provider') {
             console.log("Provider record with provider role exists, skipping customer creation");
+            return of(null);
+          }
+
+          // Double check for provider registration flags
+          const isRegisteringProvider = localStorage.getItem('registering_provider') === 'true' || 
+                                     sessionStorage.getItem('registering_provider') === 'true';
+                                     
+          if (isRegisteringProvider || this.registrationInProgress) {
+            console.log("Provider registration flags found, skipping customer creation");
             return of(null);
           }
 
@@ -365,7 +407,8 @@ export class AuthenticationService {
       try {
         this.registrationInProgress = true;
         
-        // Set this flag to mark the registration process
+        // Set flags in BOTH localStorage and sessionStorage for better persistence
+        localStorage.setItem('registering_provider', 'true');
         sessionStorage.setItem('registering_provider', 'true');
         
         this.loadingService.setLoading(true, 'Registriere Provider-Konto...');
@@ -387,16 +430,13 @@ export class AuthenticationService {
         // Don't create the provider object here - let the component handle that with the role field
         this.loadingService.setLoading(false);
         
-        // Reset flags
-        setTimeout(() => {
-          this.registrationInProgress = false;
-          sessionStorage.removeItem('registering_provider');
-        }, 2000);
+        // Keep the registration flags set - they will be cleared when the provider document is created
         
         return response;
       } catch (error: unknown) {
         this.loadingService.setLoading(false);
         this.registrationInProgress = false;
+        localStorage.removeItem('registering_provider');
         sessionStorage.removeItem('registering_provider');
         console.error("Provider registration error", error);
         throw error;

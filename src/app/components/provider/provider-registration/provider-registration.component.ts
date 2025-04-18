@@ -48,7 +48,7 @@ export class ProviderRegistrationComponent implements OnInit {
   private loadingService = inject(LoadingService);
 
   ngOnInit(): void {
-    // Explicitly set provider registration flag
+    // Explicitly set provider registration flag in BOTH localStorage and sessionStorage
     localStorage.setItem('registering_provider', 'true');
     sessionStorage.setItem('registering_provider', 'true');
 
@@ -236,6 +236,16 @@ export class ProviderRegistrationComponent implements OnInit {
             .then(() => {
               this.loadingService.setLoading(false);
               this.successMessage = 'Provider-Konto erfolgreich erstellt!';
+              
+              // IMPORTANT: Clear the provider registration flags after successful creation
+              localStorage.removeItem('registering_provider');
+              sessionStorage.removeItem('registering_provider');
+              
+              // Reset the registration flag in the auth service
+              this.authService.registrationInProgress = false;
+              
+              console.log("Provider registration flags cleared");
+              
               setTimeout(() => {
                 this.router.navigate(['/provider-dashboard']);
               }, 1500);
@@ -245,12 +255,22 @@ export class ProviderRegistrationComponent implements OnInit {
               this.loadingService.setLoading(false);
               console.error('Error creating provider profile:', error);
               this.errorMessage = 'Fehler beim Erstellen des Provider-Profils. Bitte versuchen Sie es erneut.';
+              
+              // Clear flags in case of error so future attempts might work
+              localStorage.removeItem('registering_provider');
+              sessionStorage.removeItem('registering_provider');
+              this.authService.registrationInProgress = false;
             });
         }
       }).catch(error => {
         this.loadingService.setLoading(false);
         console.error('Registration error:', error);
         this.errorMessage = `Registrierung fehlgeschlagen: ${error.message}`;
+        
+        // Clear flags in case of error so future attempts might work
+        localStorage.removeItem('registering_provider');
+        sessionStorage.removeItem('registering_provider');
+        this.authService.registrationInProgress = false;
       });
     }
   }
