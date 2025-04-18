@@ -1,6 +1,5 @@
 // src/app/app.routes.ts
 import { Routes } from '@angular/router';
-import { CustomerLoginComponent } from './components/customer/customer-login/customer-login.component';
 import { CustomerRegisterComponent } from './components/customer/customer-register/customer-register.component';
 import { CustomerProfileComponent } from './components/customer/customer-profile/customer-profile.component';
 import { CustomerBookingComponent } from './components/customer/customer-booking/customer-booking.component';
@@ -10,7 +9,9 @@ import { provideRouter, withPreloading, PreloadAllModules } from '@angular/route
 // Provider Components
 import { ProviderRegistrationComponent } from './components/provider/provider-registration/provider-registration.component';
 import { ProviderDashboardComponent } from './components/provider/provider-dashboard/provider-dashboard.component';
-import { ProviderLoginComponent } from './components/provider/provider-login/provider-login.component';
+
+// Import the unified login component
+import { UnifiedLoginComponent } from './components/auth/unified-login/unified-login.component';
 
 // Public Booking Flow
 import { BookingLoginComponent } from './components/public/booking-login/booking-login.component';
@@ -24,14 +25,17 @@ import { BookingConfirmationComponent } from './components/public/booking-confir
 import { LandingPageComponent } from './components/public/landing-page/landing-page.component';
 
 export const routes: Routes = [
-  // Öffentliche Routen
+  // Public routes
   { path: '', component: LandingPageComponent, pathMatch: 'full' },
-  { path: 'customer-login', component: CustomerLoginComponent },
+  // Replace both login routes with unified login
+  { path: 'login', component: UnifiedLoginComponent },
+  // Keep these routes for backwards compatibility (redirect to unified login)
+  { path: 'customer-login', redirectTo: 'login', pathMatch: 'full' },
+  { path: 'provider-login', redirectTo: 'login', pathMatch: 'full' },
   { path: 'customer-register', component: CustomerRegisterComponent },
-  { path: 'provider-login', component: ProviderLoginComponent },
   { path: 'provider-registration', component: ProviderRegistrationComponent },
   
-  // Kunden-Routen mit RoleGuard
+  // Customer routes with RoleGuard
   { 
     path: 'customer-profile', 
     component: CustomerProfileComponent, 
@@ -45,7 +49,7 @@ export const routes: Routes = [
     data: { roles: ['customer'] } 
   },
 
-  // Provider-Routen mit RoleGuard
+  // Provider routes with RoleGuard
   { 
     path: 'provider-dashboard', 
     component: ProviderDashboardComponent, 
@@ -58,7 +62,7 @@ export const routes: Routes = [
   { path: 'appointment-selection/:userId', component: AppointmentSelectionComponent, data: { isPublic: true } },
   { path: 'booking-login/:userId', component: BookingLoginComponent, data: { isPublic: true } },
   
-  // Buchungsabschluss-Routen mit AuthGuard und Customer-Rolle
+  // Booking completion routes with AuthGuard and Customer role
   { 
     path: 'booking-overview', 
     component: BookingOverviewComponent, 

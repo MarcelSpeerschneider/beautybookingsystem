@@ -12,8 +12,8 @@ import {
 } from '@angular/fire/firestore';
 
 /**
- * RoleGuard - Schützt Routen basierend auf Benutzerrollen
- * Vereinfachte Version, die nur die role-Eigenschaft prüft
+ * RoleGuard - Protects routes based on user roles
+ * Simplified version that only checks the role property
  */
 @Injectable({
   providedIn: 'root',
@@ -29,58 +29,54 @@ export class RoleGuard implements CanActivate {
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Observable<boolean> {
-    // Holt die erlaubten Rollen aus den Routendaten
+    // Get allowed roles from route data
     const allowedRoles = route.data['roles'] as string[];
     
     if (!allowedRoles || allowedRoles.length === 0) {
-      console.warn('RoleGuard: Keine Rollen definiert für Route', state.url);
-      return of(true); // Ohne definierte Rollen wird Zugriff erlaubt
+      console.warn('RoleGuard: No roles defined for route', state.url);
+      return of(true); // Without defined roles, access is allowed
     }
     
-    this.loadingService.setLoading(true, 'Überprüfe Berechtigungen...');
+    this.loadingService.setLoading(true, 'Checking permissions...');
     
     return this.authService.user$.pipe(
       switchMap(user => {
         if (!user) {
-          console.log('RoleGuard: Benutzer nicht angemeldet');
+          console.log('RoleGuard: User not logged in');
           this.loadingService.setLoading(false);
-          this.router.navigate(['/customer-login']);
+          this.router.navigate(['/login']); // Use unified login route
           return of(false);
         }
         
-        // Speichert die Weiterleitungs-URL für nach dem Login
+        // Store redirect URL for after login
         sessionStorage.setItem('redirectUrl', state.url);
         
         return this.checkUserRole(user.uid, allowedRoles);
       }),
       tap(hasAccess => {
         if (!hasAccess) {
-          // Je nach fehlender Rolle zur entsprechenden Seite weiterleiten
-          if (allowedRoles.includes('provider')) {
-            this.router.navigate(['/provider-login']);
-          } else {
-            this.router.navigate(['/customer-login']);
-          }
+          // Redirect to the unified login page instead of role-specific pages
+          this.router.navigate(['/login']);
         }
       }),
       catchError(error => {
-        console.error('RoleGuard: Fehler bei der Berechtigungsprüfung', error);
+        console.error('RoleGuard: Error checking permissions', error);
         this.loadingService.setLoading(false);
-        this.router.navigate(['/customer-login']);
+        this.router.navigate(['/login']); // Use unified login route
         return of(false);
       })
     );
   }
   
   /**
-   * Prüft, ob der Benutzer eine der erlaubten Rollen hat
-   * Vereinfachte Version, die nur die role-Eigenschaft prüft
+   * Check if the user has one of the allowed roles
+   * Simplified version that only checks the role property
    */
   private checkUserRole(userId: string, allowedRoles: string[]): Observable<boolean> {
     return ZoneUtils.wrapObservable(() => {
-      console.log('RoleGuard: Prüfe Benutzerrolle für', userId);
+      console.log('RoleGuard: Checking user role for', userId);
       
-      // Zuerst prüfen wir, ob der Benutzer eine Provider-Rolle haben soll
+      // First check if the user should have a provider role
       if (allowedRoles.includes('provider')) {
         const providerDoc = doc(this.firestore, 'providers', userId);
         
@@ -91,21 +87,21 @@ export class RoleGuard implements CanActivate {
               const hasRole = data['role'] === 'provider';
               
               this.loadingService.setLoading(false);
-              console.log(`RoleGuard: Benutzer hat ${hasRole ? '' : 'keine'} Provider-Rolle`);
+              console.log(`RoleGuard: User ${hasRole ? 'has' : 'does not have'} provider role`);
               return hasRole;
             }
             this.loadingService.setLoading(false);
             return false;
           }),
           catchError(error => {
-            console.error('RoleGuard: Fehler bei der Provider-Rollenprüfung:', error);
+            console.error('RoleGuard: Error checking provider role:', error);
             this.loadingService.setLoading(false);
             return of(false);
           })
         );
       }
       
-      // Dann prüfen wir, ob der Benutzer eine Customer-Rolle haben soll
+      // Then check if the user should have a customer role
       if (allowedRoles.includes('customer')) {
         const customerDoc = doc(this.firestore, 'customers', userId);
         
@@ -116,21 +112,21 @@ export class RoleGuard implements CanActivate {
               const hasRole = data['role'] === 'customer';
               
               this.loadingService.setLoading(false);
-              console.log(`RoleGuard: Benutzer hat ${hasRole ? '' : 'keine'} Kunden-Rolle`);
+              console.log(`RoleGuard: User ${hasRole ? 'has' : 'does not have'} customer role`);
               return hasRole;
             }
             this.loadingService.setLoading(false);
             return false;
           }),
           catchError(error => {
-            console.error('RoleGuard: Fehler bei der Kunden-Rollenprüfung:', error);
+            console.error('RoleGuard: Error checking customer role:', error);
             this.loadingService.setLoading(false);
             return of(false);
           })
         );
       }
       
-      // Wenn keine der Rollen geprüft wurde
+      // If no roles were checked
       this.loadingService.setLoading(false);
       return of(false);
     }, this.ngZone);

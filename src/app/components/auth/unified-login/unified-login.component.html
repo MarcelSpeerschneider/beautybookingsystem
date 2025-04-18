@@ -1,0 +1,39 @@
+<div class="login-container">
+    <div class="login-form">
+        <h2>Login</h2>
+        
+        <div *ngIf="error" class="error-message">
+            {{ error }}
+        </div>
+        
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" formControlName="email" required>
+                <div *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" class="validation-error">
+                    Please enter a valid email address.
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" formControlName="password" required autocomplete="current-password">
+                <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="validation-error">
+                    Password is required.
+                </div>
+            </div>
+            
+            <button type="submit" class="login-button" [disabled]="loginForm.invalid">
+                Login
+            </button>
+            
+            <div class="register-link">
+                Don't have an account yet?
+            </div>
+            <div class="register-options">
+                <button (click)="navigateToRegister('customer')" class="register-option-button">Register as Customer</button>
+                <button (click)="navigateToRegister('provider')" class="register-option-button">Register as Provider</button>
+            </div>
+        </form>
+    </div>
+</div>
