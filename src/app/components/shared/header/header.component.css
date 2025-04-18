@@ -1,3 +1,5 @@
+/* Complete updated CSS for src/app/components/shared/header/header.component.css */
+
 :root {
   --primary-color: #E5887D;
   --primary-hover: #d67d74;
@@ -9,7 +11,10 @@
 
 /* Header and navigation styles */
 header {
+  width: 100%;
   transition: box-shadow 0.3s ease;
+  box-sizing: border-box;
+  overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
 header.scrolled {
@@ -167,11 +172,13 @@ header.scrolled {
   margin-right: auto;
   padding-left: 1rem;
   padding-right: 1rem;
+  box-sizing: border-box;
 }
 
 /* Utility classes */
 .flex {
   display: flex;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
 .items-center {
@@ -328,6 +335,24 @@ header.scrolled {
 }
 
 /* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* Ensure proper button sizing on mobile */
+  .flex.items-center.space-x-4 {
+    flex-wrap: nowrap;
+  }
+  
+  /* Fix mobile menu width */
+  .md\:hidden {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
 @media (min-width: 768px) {
   .md\:flex {
     display: flex;
@@ -337,3 +362,50 @@ header.scrolled {
     display: none;
   }
 }
+
+.mobile-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(229, 136, 125, 0.1); /* Leicht transparente Primärfarbe */
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  margin-left: 10px;
+}
+
+.mobile-menu-button:hover {
+  background-color: rgba(229, 136, 125, 0.2);
+  transform: translateY(-1px);
+}
+
+.mobile-menu-button:active {
+  transform: translateY(1px);
+}
+
+.mobile-menu-button svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--primary-color); /* Primärfarbe für das Icon */
+}
+
+/* Stelle sicher, dass das Icon auf mobilen Geräten gut sichtbar ist */
+@media (max-width: 768px) {
+  .mobile-menu-button {
+    padding: 6px;
+  }
+  
+  .mobile-menu-button svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (min-width: 768px) {
+  .md\:hidden {
+    display: none;
+  }
+}
+

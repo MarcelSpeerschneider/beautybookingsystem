@@ -158,4 +158,5 @@ export class HeaderComponent implements OnInit, OnDestroy {
   closeNotificationPopup(): void {
     this.isNotificationPopupOpen = false;
   }
+
 }
