@@ -28,10 +28,6 @@
     </div>
     
     <div class="action-controls">
-      <div class="search-container">
-        <span class="search-icon"></span>
-        <input type="text" placeholder="Termine suchen..." />
-      </div>
       <button class="add-button" (click)="createAppointment()">
         <span class="plus-icon"></span>
         <span>Termin</span>
@@ -80,8 +76,8 @@
             class="appointment" 
             [ngClass]="{'pending': appointment.status === 'pending'}"
             [ngStyle]="{
-              'top.px': getAppointmentPosition(appointment).top,
-              'height.px': getAppointmentPosition(appointment).height,
+              'top': getAppointmentPosition(appointment).top,
+              'height': getAppointmentPosition(appointment).height,
               'background-color': appointment.color
             }"
             (click)="onAppointmentClick(appointment)">
@@ -126,8 +122,8 @@
             class="appointment" 
             [ngClass]="{'pending': appointment.status === 'pending'}"
             [ngStyle]="{
-              'top.px': getAppointmentPosition(appointment).top,
-              'height.px': getAppointmentPosition(appointment).height,
+              'top': getAppointmentPosition(appointment).top,
+              'height': getAppointmentPosition(appointment).height,
               'background-color': appointment.color
             }"
             (click)="onAppointmentClick(appointment)">
