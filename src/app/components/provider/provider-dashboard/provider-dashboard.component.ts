@@ -10,6 +10,7 @@ import { DashboardOverviewComponent } from './dashboard-overview/dashboard-overv
 import { AppointmentListComponent } from './appointments/appointment-list.component';
 import { ServiceListComponent } from './services/service-list.component';
 import { CustomersListComponent } from './customers/customers-list.component';
+// Import the calendar component
 import { CalendarComponent } from './calendar/calendar.component';
 
 // Extended provider type with providerId
@@ -24,8 +25,8 @@ type ProviderWithId = Provider & { providerId: string };
     DashboardOverviewComponent, 
     AppointmentListComponent, 
     ServiceListComponent, 
-    CustomersListComponent, 
-    CalendarComponent
+    CustomersListComponent,
+    CalendarComponent // Add the calendar component to imports
   ],
   templateUrl: './provider-dashboard.component.html',
   styleUrls: ['./provider-dashboard.component.css']

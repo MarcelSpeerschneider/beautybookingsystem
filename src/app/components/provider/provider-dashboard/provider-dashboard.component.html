@@ -9,27 +9,34 @@
 
   <nav class="nav-tabs">
     <button class="nav-tab" [ngClass]="{'active': currentTab === 'dashboard'}" (click)="changeTab('dashboard')">Dashboard</button>
+    <button class="nav-tab" [ngClass]="{'active': currentTab === 'appointments'}" (click)="changeTab('appointments')">Termine</button>
     <button class="nav-tab" [ngClass]="{'active': currentTab === 'calendar'}" (click)="changeTab('calendar')">Kalender</button>
-    <button class="nav-tab" [ngClass]="{'active': currentTab === 'appointments'}" (click)="changeTab('appointments')">Terminanfragen</button>
     <button class="nav-tab" [ngClass]="{'active': currentTab === 'services'}" (click)="changeTab('services')">Dienstleistungen</button>
     <button class="nav-tab" [ngClass]="{'active': currentTab === 'customers'}" (click)="changeTab('customers')">Kunden</button>
+    <button class="nav-tab" [ngClass]="{'active': currentTab === 'statistics'}" (click)="changeTab('statistics')">Statistik</button>
   </nav>
 
   <!-- Tab-Inhalte werden abhängig vom aktuellen Tab angezeigt -->
   <div class="tab-content" [ngSwitch]="currentTab">
     <!-- Dashboard-Tab -->
     <app-dashboard-overview *ngSwitchCase="'dashboard'" [provider]="provider"></app-dashboard-overview>
-
-    <!-- Neuer Kalender-Tab -->
-    <app-calendar *ngSwitchCase="'calendar'" [provider]="provider"></app-calendar>
-
-    <!-- Terminanfragen-Tab (ehemals Termine) -->
+    
+    <!-- Termine-Tab -->
     <app-appointment-list *ngSwitchCase="'appointments'" [provider]="provider"></app-appointment-list>
-
+    
+    <!-- Calendar-Tab (NEW) -->
+    <app-calendar *ngSwitchCase="'calendar'" [provider]="provider"></app-calendar>
+    
     <!-- Dienstleistungen-Tab -->
     <app-service-list *ngSwitchCase="'services'" [provider]="provider"></app-service-list>
-
+    
     <!-- Kunden-Tab -->
     <app-customers-list *ngSwitchCase="'customers'" [provider]="provider"></app-customers-list>
+    
+    <!-- Statistik-Tab -->
+    <div *ngSwitchCase="'statistics'" class="tab-content">
+      <h2 class="section-title">Statistik</h2>
+      <p>Hier finden Sie statistische Auswertungen. Diese Funktion wird noch implementiert.</p>
+    </div>
   </div>
 </div>
