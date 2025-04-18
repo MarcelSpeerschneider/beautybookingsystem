@@ -1,80 +1,149 @@
-<div class="container" *ngIf="provider">
-  <!-- Preview mode banner for providers -->
+<div class="service-list-page">
+  <!-- Preview mode banner -->
   <div *ngIf="isOwnProviderPage" class="preview-mode-banner">
-    <p>VORSCHAUMODUS: Sie sehen Ihre eigene Buchungsseite als Anbieter.</p>
+      <div class="container">
+          <p>VORSCHAUMODUS: Sie sehen Ihre eigene Buchungsseite als Anbieter.</p>
+      </div>
   </div>
 
-  <div class="header">
-    <div class="logo-container">
-      <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
-      <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
-      <div class="brand">
-        <h1>{{ provider.businessName }}</h1>
-        <p>Online Termin buchen</p>
+  <!-- Header Section with Banner Image -->
+  <div class="header-section">
+      <div class="container">
+          <div class="header-content">
+              <!-- Provider logo/avatar and name -->
+              <div class="provider-header-info">
+                  <div class="provider-avatar">
+                      <div *ngIf="!provider?.logo" class="avatar-placeholder">
+                          {{ getProviderInitials(provider?.businessName) }}
+                      </div>
+                      <img *ngIf="provider?.logo" [src]="provider?.logo" [alt]="provider?.businessName">
+                  </div>
+                  <div class="provider-title">
+                      <h1 class="page-title">{{ provider?.businessName || 'Provider Name' }}</h1>
+                      <p class="subtitle">Online Termin buchen</p>
+                  </div>
+              </div>
+              
+              <!-- Login/Profile button -->
+              <div class="header-actions">
+                  <button *ngIf="!isLoggedIn" class="btn-login" (click)="login()">Login</button>
+                  <a *ngIf="isLoggedIn && !isOwnProviderPage" class="btn-profile" [routerLink]="['/customer-profile']">Mein Profil</a>
+                  <a *ngIf="isLoggedIn && isOwnProviderPage" class="btn-dashboard" [routerLink]="['/provider-dashboard']">Zum Dashboard</a>
+              </div>
+          </div>
       </div>
-    </div>
-    <button class="login-btn" *ngIf="!isLoggedIn" (click)="login()">Login</button>
-    <a class="profile-btn" *ngIf="isLoggedIn && !isOwnProviderPage" routerLink="/customer-profile">Mein Profil</a>
-    <a class="profile-btn" *ngIf="isLoggedIn && isOwnProviderPage" routerLink="/provider-dashboard">Zum Dashboard</a>
   </div>
-    
-  <div class="provider-info">
-    <div class="provider-description">
-      <p>{{ provider.description }}</p>
-    </div>
-    <div class="provider-details" *ngIf="provider.address">
-      <p><strong>Adresse:</strong> {{ provider.address }}</p>
-    </div>
-    <div class="provider-times">
-      <p><strong>Öffnungszeiten:</strong> {{ provider.openingHours }}</p>
-    </div>
+
+  <!-- Provider Info Section -->
+  <div class="provider-section">
+      <div class="container">
+          <div class="provider-card">
+              <div class="provider-info">
+                  <div class="provider-details">
+                      <p class="provider-description">{{ provider?.description || 'Keine Beschreibung verfügbar' }}</p>
+                      <div class="provider-meta">
+                          <div class="meta-item">
+                              <span class="icon">🕒</span>
+                              <span>{{ provider?.openingHours || 'Keine Öffnungszeiten angegeben' }}</span>
+                          </div>
+                          <div class="meta-item">
+                              <span class="icon">📍</span>
+                              <span>{{ provider?.address || 'Keine Adresse angegeben' }}</span>
+                          </div>
+                          <div class="meta-item" *ngIf="provider?.website">
+                              <span class="icon">🌐</span>
+                              <span>{{ provider?.website }}</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
   </div>
-    
-  <div class="booking-container">
-    <h2 class="welcome-title">Willkommen bei {{ provider.businessName }}</h2>
-    <p class="welcome-text">Buchen Sie einfach und schnell Ihren Wunschtermin online!</p>
-      
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon">🕒</div>
-        <div class="feature-text">Termine 24/7 buchen</div>
+
+  <!-- Services Section -->
+  <div class="services-section">
+      <div class="container">
+          <div class="section-header">
+              <h2 class="section-title">Verfügbare Dienstleistungen</h2>
+              <p class="section-subtitle" id="servicesCountMessage">
+                  {{ services.length > 0 ? services.length + ' Dienstleistungen für Ihre Buchung verfügbar' : 'Es sind derzeit keine Dienstleistungen verfügbar' }}
+              </p>
+          </div>
+
+          <!-- Services Grid -->
+          <div class="services-grid" *ngIf="services.length > 0">
+              <div class="service-card" *ngFor="let service of services">
+                  <div class="service-image">
+                      <img *ngIf="service.image" [src]="service.image" [alt]="service.name">
+                      <div *ngIf="!service.image" class="image-placeholder">✨</div>
+                  </div>
+                  <div class="service-content">
+                      <h3 class="service-name">{{ service.name }}</h3>
+                      <p class="service-description">{{ service.description }}</p>
+                      <div class="service-meta">
+                          <div class="service-price">{{ service.price | currency:'EUR':'symbol':'1.2-2':'de' }}</div>
+                          <div class="service-duration">{{ service.duration }} Min</div>
+                      </div>
+                      <button class="btn-select" (click)="selectService(service)">
+                          {{ isInCart(service.id) ? 'Im Warenkorb' : 'Auswählen' }}
+                      </button>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Empty State (will be shown if no services) -->
+          <div class="empty-state" *ngIf="services.length === 0">
+              <div class="empty-icon">📋</div>
+              <h3>Keine Dienstleistungen gefunden</h3>
+              <p>Der Anbieter hat noch keine Dienstleistungen hinzugefügt</p>
+          </div>
       </div>
-      <div class="feature">
-        <div class="feature-icon">📅</div>
-        <div class="feature-text">Aktuelle Verfügbarkeit</div>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">📱</div>
-        <div class="feature-text">Termin-Erinnerungen</div>
-      </div>
-    </div>
-      
-    <button class="booking-btn" (click)="viewServices()">
-      <ng-container *ngIf="!isOwnProviderPage">
-        Termin buchen
-        <span class="arrow">→</span>
-      </ng-container>
-      <ng-container *ngIf="isOwnProviderPage">
-        Buchungsseite ansehen
-        <span class="arrow">→</span>
-      </ng-container>
-    </button>
   </div>
-    
-  <div class="services-preview" *ngIf="provider.specialties && provider.specialties.length > 0">
-    <h2 class="section-title">Unsere Spezialitäten</h2>
-    <div class="specialties">
-      <div class="specialty" *ngFor="let specialty of provider.specialties">
-        {{ specialty }}
+
+  <!-- Reviews Section -->
+  <div class="reviews-section">
+      <div class="container">
+          <div class="section-header">
+              <h2 class="section-title">Kundenbewertungen</h2>
+              <p class="section-subtitle">Das sagen unsere Kunden</p>
+          </div>
+
+          <!-- Reviews Grid -->
+          <div class="reviews-grid" *ngIf="reviews.length > 0">
+              <div class="review-card" *ngFor="let review of reviews">
+                  <div class="review-header">
+                      <div class="reviewer-name">{{ review.customerName }}</div>
+                      <div class="review-date">{{ review.createdAt | date:'dd.MM.yyyy' }}</div>
+                  </div>
+                  <div class="review-rating">
+                      <span class="star" *ngFor="let star of [1,2,3,4,5]" [style.opacity]="star <= review.rating ? 1 : 0.3">★</span>
+                      <span class="rating-value">{{ review.rating }}/5</span>
+                  </div>
+                  <p class="review-comment">{{ review.comment }}</p>
+              </div>
+          </div>
+
+          <!-- Empty State for Reviews -->
+          <div class="reviews-empty" *ngIf="reviews.length === 0">
+              <div class="empty-icon">⭐</div>
+              <h3>Noch keine Bewertungen</h3>
+              <p>Seien Sie der Erste, der eine Bewertung hinterlässt</p>
+          </div>
       </div>
-    </div>
   </div>
-    
-  <div class="reviews-container">
-    <h2 class="section-title">Das sagen unsere Kunden</h2>
-      
-    <div class="reviews-placeholder">
-      <p>Bewertungen werden geladen...</p>
-    </div>
+
+  <!-- Floating Booking Button -->
+  <div class="floating-booking-container">
+      <button class="floating-booking-btn" (click)="startBooking()">
+          <span class="booking-icon">📅</span>
+          <span class="booking-text">Termin buchen</span>
+          <span *ngIf="cartItemCount > 0" class="cart-count">{{ cartItemCount }}</span>
+      </button>
+  </div>
+
+  <!-- Success Message -->
+  <div class="success-message" [class.show]="showSuccess">
+      {{ successMessage }}
   </div>
 </div>
