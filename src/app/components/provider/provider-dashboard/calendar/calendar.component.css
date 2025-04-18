@@ -1,21 +1,23 @@
-/* Main Calendar Container */
+/* Calendar Component - Updated Styling */
+
 .calendar-container {
   display: flex;
   flex-direction: column;
   height: 100%;
   background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
 /* Calendar Header */
 .calendar-header {
   padding: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--decorative-element-color);
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background-color: var(--section-background-color);
 }
 
 @media (min-width: 768px) {
@@ -36,26 +38,31 @@
 .view-controls h2 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #333;
+  color: var(--heading-text-color);
   margin-right: 1rem;
+  margin: 0;
 }
 
 .view-buttons {
   display: flex;
-  background-color: #f3f4f6;
-  border-radius: 0.5rem;
+  background-color: white;
+  border-radius: 6px;
   overflow: hidden;
+  border: 1px solid var(--decorative-element-color);
 }
 
 .view-buttons button {
-  padding: 0.25rem 0.75rem;
+  padding: 0.5rem 1rem;
   border: none;
   background: transparent;
   cursor: pointer;
+  font-family: var(--font-family-base);
+  color: var(--body-text-color);
+  transition: all 0.2s;
 }
 
 .view-buttons button:hover {
-  background-color: #e5e7eb;
+  background-color: #f5f5f5;
 }
 
 .view-buttons button.active {
@@ -68,20 +75,23 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 
 .today-button {
-  padding: 0.5rem;
-  border: none;
-  background: transparent;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--decorative-element-color);
+  background: white;
   cursor: pointer;
-  border-radius: 0.25rem;
+  border-radius: 6px;
   white-space: nowrap;
+  color: var(--body-text-color);
+  font-family: var(--font-family-base);
+  transition: all 0.2s;
 }
 
 .today-button:hover {
-  background-color: #f3f4f6;
+  background-color: var(--section-background-color);
 }
 
 .nav-button {
@@ -90,29 +100,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: transparent;
+  border: 1px solid var(--decorative-element-color);
+  background: white;
   border-radius: 50%;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .nav-button:hover {
-  background-color: #f3f4f6;
+  background-color: var(--section-background-color);
 }
 
 .chevron-left:before {
   content: "‹";
   font-size: 1.5rem;
+  color: var(--heading-text-color);
 }
 
 .chevron-right:before {
   content: "›";
   font-size: 1.5rem;
+  color: var(--heading-text-color);
 }
 
 .current-period {
   font-weight: 500;
-  color: #333;
+  color: var(--heading-text-color);
   margin-left: 0.5rem;
 }
 
@@ -128,15 +141,19 @@
   gap: 0.25rem;
   background-color: var(--primary-color);
   color: white;
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 1rem;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
+  font-family: var(--font-family-base);
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
 .add-button:hover {
   background-color: #d67d74;
+  transform: translateY(-1px);
 }
 
 .plus-icon:before {
@@ -156,21 +173,21 @@
 /* Week View */
 .days-header {
   display: flex;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--decorative-element-color);
   min-width: 600px; /* Minimum width to ensure readability */
 }
 
 .time-column {
   width: 4rem;
   flex-shrink: 0;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--decorative-element-color);
 }
 
 .day-column {
   flex: 1;
   padding: 0.5rem;
   text-align: center;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--decorative-element-color);
   min-width: 70px;
 }
 
@@ -180,7 +197,7 @@
 
 .day-name {
   font-weight: 500;
-  color: #666;
+  color: var(--body-text-color);
   font-size: 0.75rem;
 }
 
@@ -197,7 +214,7 @@
 .day-number {
   margin-top: 0.25rem;
   font-size: 0.9rem;
-  color: #333;
+  color: var(--heading-text-color);
 }
 
 @media (min-width: 640px) {
@@ -235,28 +252,25 @@
 .time-labels {
   width: 4rem;
   flex-shrink: 0;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--decorative-element-color);
   background-color: white;
   position: sticky;
   left: 0;
   z-index: 10;
 }
 
-/* FIX: Adjust time slot alignment for the time labels */
 .time-labels .time-slot {
   height: 4rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--decorative-element-color);
   font-size: 0.75rem;
-  color: #666;
+  color: var(--body-text-color);
   display: flex;
   justify-content: flex-end;
-  align-items: center; /* Changed from flex-start to center */
-  padding: 0 0.5rem 0 0; /* Adjusted padding */
-  transform: translateY(0); /* Removed the transform that was causing misalignment */
-  position: relative; /* Added for positioning */
+  align-items: center;
+  padding: 0 0.5rem 0 0;
+  position: relative;
 }
 
-/* Create a proper alignment for the time text */
 .time-labels .time-slot::after {
   content: "";
   position: absolute;
@@ -264,20 +278,20 @@
   top: 0;
   width: 8px;
   height: 1px;
-  background-color: #e0e0e0;
+  background-color: var(--decorative-element-color);
 }
 
 .grid-container {
   display: flex;
   flex: 1;
-  min-width: 600px; /* Minimum width to ensure all days are visible */
+  min-width: 600px;
 }
 
 .grid-container .day-column {
   flex: 1;
   position: relative;
   padding: 0;
-  min-width: 85px; /* Minimum width per day column */
+  min-width: 85px;
 }
 
 .grid-container .day-column.today-column {
@@ -287,7 +301,7 @@
 
 .grid-container .time-slot {
   height: 4rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--decorative-element-color);
   padding: 0;
   transform: none;
 }
@@ -297,13 +311,14 @@
   left: 0.25rem;
   right: 0.25rem;
   padding: 0.5rem;
-  border-radius: 0.25rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   cursor: pointer;
   color: white;
   font-size: 0.75rem;
   border-left: 4px solid var(--primary-color);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 @media (min-width: 640px) {
@@ -313,7 +328,8 @@
 }
 
 .appointment:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
 }
 
 .appointment.pending {
@@ -366,62 +382,25 @@
   }
 }
 
-/* Day View */
-.day-header {
-  padding: 0.5rem;
-  border-bottom: 1px solid #e0e0e0;
-  text-align: center;
-}
-
-.day-header.today {
-  background-color: var(--section-background-color);
-}
-
-.day-title {
-  font-weight: 500;
-  color: #333;
-  font-size: 0.9rem;
-}
-
-@media (min-width: 640px) {
-  .day-title {
-    font-size: 1rem;
-  }
-}
-
-.day-header.today .day-title {
-  color: var(--primary-color);
-}
-
-.day-single-column {
-  flex: 1;
-  position: relative;
-  min-width: 200px;
-}
-
-.day-single-column.today-column {
-  background-color: var(--section-background-color);
-  opacity: 0.5;
-}
-
 /* Month View */
 .month-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--decorative-element-color);
+  background-color: var(--section-background-color);
 }
 
 .weekday-header {
-  padding: 0.5rem;
+  padding: 0.75rem 0.5rem;
   font-weight: 500;
-  color: #666;
+  color: var(--body-text-color);
   text-align: center;
   font-size: 0.75rem;
 }
 
 @media (min-width: 640px) {
   .weekday-header {
-    padding: 0.5rem;
+    padding: 0.75rem 0.5rem;
     font-size: 0.875rem;
   }
 }
@@ -435,8 +414,8 @@
 }
 
 .month-day {
-  border-bottom: 1px solid #e0e0e0;
-  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--decorative-element-color);
+  border-right: 1px solid var(--decorative-element-color);
   padding: 0.25rem;
   min-height: 80px;
   height: auto;
@@ -450,7 +429,7 @@
 
 .month-day.other-month {
   background-color: #f9f9f9;
-  color: #bbb;
+  color: var(--placeholder-text-color);
 }
 
 .month-day.today {
@@ -479,8 +458,8 @@
 }
 
 .month-appointment {
-  padding: 0.25rem;
-  border-radius: 0.125rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
   font-size: 0.65rem;
   margin-bottom: 0.25rem;
   white-space: nowrap;
@@ -503,7 +482,7 @@
 .more-appointments {
   text-align: center;
   font-size: 0.65rem;
-  color: #666;
+  color: var(--body-text-color);
   margin-top: 0.25rem;
 }
 
@@ -515,11 +494,11 @@
 
 /* Status Bar */
 .status-bar {
-  padding: 0.5rem 1rem;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f9f9f9;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--decorative-element-color);
+  background-color: var(--section-background-color);
   font-size: 0.75rem;
-  color: #666;
+  color: var(--body-text-color);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
