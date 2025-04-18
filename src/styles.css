@@ -9,5 +9,37 @@
   --heading-text-color: #333333;
   --body-text-color: #666666;
   --placeholder-text-color: #999999;
+  --font-family-base: 'Poppins', sans-serif;
 }
+
+/* Setze Poppins als Hauptschriftart für die gesamte Anwendung */
+body {
+  font-family: var(--font-family-base);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Stelle sicher, dass alle Elemente die Schriftart erben */
+* {
+  font-family: inherit;
+}
+
+/* Anpassungen für Überschriften */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--heading-text-color);
+}
+
+/* Leicht feinere Typografie für kleinere Texte */
+small, .small {
+  font-weight: 300;
+}
+
+/* Du kannst hier weitere Anpassungen für die Typografie vornehmen */
 /* You can add global styles to this file, and also import other style files */
