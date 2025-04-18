@@ -323,11 +323,12 @@
 }
 
 .time-slot.unavailable {
-  background-color: #f0f0f0;
+  background-color: #e0e0e0; 
   color: #999;
   cursor: not-allowed;
   text-decoration: line-through;
-  opacity: 0.6;
+  opacity: 0.5; /* Stärkere Abdunkelung */
+  pointer-events: none; /* Dies stellt sicher, dass Klicks immer blockiert werden */
 }
 
 .time-slot.selected {
