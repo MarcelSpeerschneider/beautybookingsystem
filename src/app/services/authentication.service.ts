@@ -100,15 +100,15 @@ export class AuthenticationService {
 
   private loadUserData(user: User): void {
     ZoneUtils.wrapPromise(async () => {
-      // First check if user is a provider by looking for a provider document
+      // Prüfe zuerst die role-Eigenschaft im provider-Dokument
       const providerDoc = this.docInZone('providers', user.uid);
       
       try {
         // Important: Use the wrapped getDoc to ensure it runs in NgZone
-        const providerSnapshot = await this.getDocInZone(providerDoc);
+        const providerSnap = await this.getDocInZone(providerDoc);
         
-        if (providerSnapshot.exists()) {
-          console.log("User is a provider, loading provider data");
+        if (providerSnap.exists() && providerSnap.data().role === 'provider') {
+          console.log("User has provider role, loading provider data");
           // Load provider data instead of customer
           this.loadingService.setLoading(true, 'Lade Anbieter-Daten...');
           
@@ -127,53 +127,69 @@ export class AuthenticationService {
             }
           });
         } else {
-          // Not a provider, look for customer data
-          this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
+          // Prüfe die role-Eigenschaft im customer-Dokument
+          const customerDoc = this.docInZone('customers', user.uid);
+          const customerSnap = await this.getDocInZone(customerDoc);
           
-          this.customerService.getCustomer(user.uid).subscribe({
-            next: (customer) => {
-              this.loadingService.setLoading(false);
-              
-              if (customer) {
-                // Customer gefunden - füge die ID hinzu und aktualisiere den BehaviorSubject
-                this.userWithCustomerSubject.next({
-                  user: user,
-                  customer: customer // customer enthält bereits die ID
-                });
-              } else {
-                console.log("No customer data found, attempting to create fallback");
-                this.userWithCustomerSubject.next({
-                  user: user,
-                  customer: null
-                });
+          if (customerSnap.exists() && customerSnap.data().role === 'customer') {
+            this.loadingService.setLoading(true, 'Lade Benutzerdaten...');
+            
+            this.customerService.getCustomer(user.uid).subscribe({
+              next: (customer) => {
+                this.loadingService.setLoading(false);
                 
-                // Add a slight delay to prevent race conditions with recent registrations
-                setTimeout(() => {
-                  // Check once more if customer exists before creating
-                  this.customerService.getCustomer(user.uid).subscribe(
-                    (latestCustomer) => {
-                      if (!latestCustomer && !this.registrationInProgress) {
-                        this.createEmptyCustomerIfNeeded().subscribe();
+                if (customer) {
+                  // Customer gefunden - füge die ID hinzu und aktualisiere den BehaviorSubject
+                  this.userWithCustomerSubject.next({
+                    user: user,
+                    customer: customer // customer enthält bereits die ID
+                  });
+                } else {
+                  console.log("No customer data found, attempting to create fallback");
+                  this.userWithCustomerSubject.next({
+                    user: user,
+                    customer: null
+                  });
+                  
+                  // Add a slight delay to prevent race conditions with recent registrations
+                  setTimeout(() => {
+                    // Check once more if customer exists before creating
+                    this.customerService.getCustomer(user.uid).subscribe(
+                      (latestCustomer) => {
+                        if (!latestCustomer && !this.registrationInProgress) {
+                          this.createEmptyCustomerIfNeeded().subscribe();
+                        }
                       }
-                    }
-                  );
-                }, 1000);
+                    );
+                  }, 1000);
+                }
+              },
+              error: (error: unknown) => {
+                this.loadingService.setLoading(false);
+                console.error("Error loading customer data:", error);
+                
+                // Try to create an empty customer record for permission errors
+                if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
+                  console.log("Permission denied, attempting to create fallback");
+                  this.createEmptyCustomerIfNeeded().subscribe();
+                }
               }
-            },
-            error: (error: unknown) => {
-              this.loadingService.setLoading(false);
-              console.error("Error loading customer data:", error);
-              
-              // Try to create an empty customer record for permission errors
-              if (error instanceof Object && 'code' in error && error.code === 'permission-denied' && !this.registrationInProgress) {
-                console.log("Permission denied, attempting to create fallback");
-                this.createEmptyCustomerIfNeeded().subscribe();
-              }
+            });
+          } else {
+            // Weder Provider noch Customer mit entsprechender Rolle gefunden
+            console.log("User has no valid role, attempting to create customer");
+            this.userWithCustomerSubject.next({
+              user: user,
+              customer: null
+            });
+            
+            if (!this.registrationInProgress) {
+              this.createEmptyCustomerIfNeeded().subscribe();
             }
-          });
+          }
         }
       } catch (error) {
-        console.error("Error checking user type:", error);
+        console.error("Error checking user role:", error);
         this.loadingService.setLoading(false);
       }
     }, this.ngZone);
@@ -187,13 +203,13 @@ export class AuthenticationService {
         return of(null);
       }
 
-      // First check if a provider record exists
+      // First check if a provider record exists with provider role
       const providerDoc = this.docInZone('providers', currentUser.uid);
       
       return from(this.getDocInZone(providerDoc)).pipe(
         switchMap(providerSnapshot => {
-          if (providerSnapshot.exists()) {
-            console.log("Provider record exists, skipping customer creation");
+          if (providerSnapshot.exists() && providerSnapshot.data().role === 'provider') {
+            console.log("Provider record with provider role exists, skipping customer creation");
             return of(null);
           }
 
@@ -247,7 +263,7 @@ export class AuthenticationService {
     }, this.ngZone);
   }
 
-  async register({ email, password, firstName, lastName, phone }: any) {
+  async register({ email, password, firstName, lastName, phone, role }: any) {
     return ZoneUtils.wrapPromise(async () => {
       try {
         // Set the flag to prevent duplicate customer creation
@@ -258,7 +274,8 @@ export class AuthenticationService {
           email, 
           firstName: firstName || "", 
           lastName: lastName || "", 
-          phone: phone || "" 
+          phone: phone || "", 
+          role: role || "customer" // Standardmäßig Customer-Rolle, wenn nicht angegeben
         });
         
         // Firebase user registration
@@ -279,43 +296,49 @@ export class AuthenticationService {
         
         // Create customer object if user registration successful
         if (response.user) {
-          // Create Customer with explicit role field
-          const customerData: Customer = {
-            firstName: firstName || "",
-            lastName: lastName || "",
-            email: email || "",
-            phone: phone || "",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            role: 'customer' // Explicit role field
-          };
+          // Stelle sicher, dass die Rolle entweder 'customer' oder 'provider' ist
+          const actualRole = role === 'provider' ? 'provider' : 'customer';
           
-          console.log("Creating customer data:", customerData);
-          
-          // Save customer to Firestore using the user's UID as the document ID
-          try {
-            // Speichere Kunde mit UID als Dokument-ID
-            const customerId = await this.customerService.createCustomer(customerData, response.user.uid);
-            console.log("Customer data created in Firestore successfully with ID:", customerId);
+          if (actualRole === 'customer') {
+            // Create Customer with explicit role field
+            const customerData: Customer = {
+              firstName: firstName || "",
+              lastName: lastName || "",
+              email: email || "",
+              phone: phone || "",
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              role: 'customer' // Explicit role field
+            };
             
-            // Kunden mit seiner ID abrufen
-            this.customerService.getCustomer(customerId).subscribe({
-              next: (customer) => {
-                if (customer) {
-                  // Customer enthält bereits die ID
-                  this.userWithCustomerSubject.next({
-                    user: response.user,
-                    customer: customer
-                  });
+            console.log("Creating customer data:", customerData);
+            
+            // Save customer to Firestore using the user's UID as the document ID
+            try {
+              // Speichere Kunde mit UID als Dokument-ID
+              const customerId = await this.customerService.createCustomer(customerData, response.user.uid);
+              console.log("Customer data created in Firestore successfully with ID:", customerId);
+              
+              // Kunden mit seiner ID abrufen
+              this.customerService.getCustomer(customerId).subscribe({
+                next: (customer) => {
+                  if (customer) {
+                    // Customer enthält bereits die ID
+                    this.userWithCustomerSubject.next({
+                      user: response.user,
+                      customer: customer
+                    });
+                  }
+                },
+                error: (error) => {
+                  console.error("Error loading created customer:", error);
                 }
-              },
-              error: (error) => {
-                console.error("Error loading created customer:", error);
-              }
-            });
-          } catch (customerError) {
-            console.error("Error creating customer data:", customerError);
+              });
+            } catch (customerError) {
+              console.error("Error creating customer data:", customerError);
+            }
           }
+          // Provider-Registrierung wird in der Provider-Registrierungskomponente behandelt
         }
         
         this.loadingService.setLoading(false);
@@ -337,7 +360,7 @@ export class AuthenticationService {
     }, this.ngZone);
   }
   
-  async registerProvider({ email, password, firstName, lastName, phone, companyName, description, street, zip, city, logo, website, openingHours, specialties, facebook, instagram, acceptsOnlinePayments }: any) {
+  async registerProvider({ email, password, firstName, lastName, phone, companyName, description, street, zip, city, logo, website, openingHours, specialties, facebook, instagram, acceptsOnlinePayments, role }: any) {
     return ZoneUtils.wrapPromise(async () => {
       try {
         this.registrationInProgress = true;
@@ -440,15 +463,15 @@ export class AuthenticationService {
     }, this.ngZone);
   }
 
-  // Check if a user is a provider
+  // Check if a user has provider role (vereinfacht)
   isProvider(userId: string): Observable<boolean> {
     return ZoneUtils.wrapObservable(() => {
-      const providerDoc = this.docInZone('providers', userId);
-      return from(this.getDocInZone(providerDoc)).pipe(
+      const userDoc = this.docInZone('providers', userId);
+      return from(this.getDocInZone(userDoc)).pipe(
         map(docSnapshot => {
           if (docSnapshot.exists()) {
             const data = docSnapshot.data();
-            // Überprüfe, ob das role-Feld auf 'provider' gesetzt ist
+            // Prüfe nur die role-Eigenschaft
             return data && data.role === 'provider';
           }
           return false;
@@ -458,7 +481,7 @@ export class AuthenticationService {
     }, this.ngZone);
   }
 
-  // Check if a user is a customer
+  // Check if a user has customer role (vereinfacht)
   isCustomer(userId: string): Observable<boolean> {
     return ZoneUtils.wrapObservable(() => {
       const customerDoc = this.docInZone('customers', userId);
@@ -466,7 +489,7 @@ export class AuthenticationService {
         map(docSnapshot => {
           if (docSnapshot.exists()) {
             const data = docSnapshot.data();
-            // Überprüfe, ob das role-Feld auf 'customer' gesetzt ist
+            // Prüfe nur die role-Eigenschaft
             return data && data.role === 'customer';
           }
           return false;

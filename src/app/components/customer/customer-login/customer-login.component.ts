@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { AuthenticationService } from '../../../services/authentication.service';
 import { CommonModule } from '@angular/common';
 import { LoadingService } from '../../../services/loading.service';
-import { Firestore, doc, getDoc, updateDoc } from '@angular/fire/firestore';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { NgZone } from '@angular/core';
 
 @Component({
@@ -34,64 +34,47 @@ export class CustomerLoginComponent implements OnInit {
     // Prüfen, ob der Benutzer bereits eingeloggt ist
     this.authService.user$.subscribe(user => {
       if (user) {
-        // Prüfen, ob der Benutzer ein Kunde ist
-        this.checkCustomerRole(user.uid);
+        // Prüfen, ob der Benutzer eine Kunden-Rolle hat
+        this.checkUserRole(user.uid);
       }
     });
   }
 
   /**
    * Prüft, ob der Benutzer die Kunden-Rolle hat und leitet entsprechend weiter
+   * Vereinfachte Version, die nur die role-Eigenschaft prüft
    */
-  private async checkCustomerRole(userId: string): Promise<void> {
+  private async checkUserRole(userId: string): Promise<void> {
     try {
+      // Prüft direkt die role-Eigenschaft im customer-Dokument
       const customerDoc = doc(this.firestore, 'customers', userId);
       const customerSnapshot = await getDoc(customerDoc);
       
       if (customerSnapshot.exists()) {
         const data = customerSnapshot.data();
-        // Explizite Prüfung der Rolle mit Index-Notation
-        if (data && data['role'] === 'customer') {  // Hier ['role'] statt .role verwenden
-          console.log('Bereits als Kunde eingeloggt, Weiterleitung zum Profil');
+        // Explizite Prüfung der Rolle
+        if (data['role'] === 'customer') {
+          console.log('Benutzer hat Customer-Rolle, Weiterleitung zum Profil');
           this.router.navigate(['/customer-profile']);
         } else {
-          // Hat zwar ein Customer-Dokument, aber falsche Rolle
-          console.warn('Kunde ohne korrekte Rolle gefunden, setze Rolle...');
-          // Rolle aktualisieren
-          await this.fixCustomerRole(userId);
+          console.warn('Kunde ohne korrekte Rolle gefunden');
+          // Die bisherige Prüfung nach Sammlungen entfällt
         }
       } else {
         // Der Benutzer ist kein Kunde
         console.log('Eingeloggter Benutzer ist kein Kunde');
         
-        // Prüfen, ob es sich um einen Provider handelt
+        // Prüfen, ob es sich um einen Provider handelt (anhand role)
         const providerDoc = doc(this.firestore, 'providers', userId);
         const providerSnapshot = await getDoc(providerDoc);
         
-        if (providerSnapshot.exists()) {
-          console.log('Benutzer ist ein Provider, Weiterleitung zum Provider-Dashboard');
+        if (providerSnapshot.exists() && providerSnapshot.data()['role'] === 'provider') {
+          console.log('Benutzer hat Provider-Rolle, Weiterleitung zum Provider-Dashboard');
           this.router.navigate(['/provider-dashboard']);
         }
       }
     } catch (error) {
       console.error('Fehler bei der Rollenprüfung:', error);
-    }
-  }
-
-  /**
-   * Korrigiert die Rolle eines Kunden, falls diese fehlt
-   */
-  private async fixCustomerRole(userId: string): Promise<void> {
-    try {
-      const customerDoc = doc(this.firestore, 'customers', userId);
-      await updateDoc(customerDoc, { 
-        role: 'customer',
-        updatedAt: new Date()
-      });
-      console.log('Kunden-Rolle wurde korrigiert');
-      this.router.navigate(['/customer-profile']);
-    } catch (error) {
-      console.error('Fehler beim Korrigieren der Kunden-Rolle:', error);
     }
   }
 
@@ -111,8 +94,8 @@ export class CustomerLoginComponent implements OnInit {
             
             if (customerSnapshot.exists()) {
               const data = customerSnapshot.data();
-              // Explizite Prüfung der Rolle mit Index-Notation
-              if (data && data['role'] === 'customer') {  // Hier ['role'] statt .role verwenden
+              // Prüfe nur die role-Eigenschaft
+              if (data['role'] === 'customer') {
                 // Nach dem Login prüfen, ob eine Weiterleitungs-URL in sessionStorage vorhanden ist
                 const redirectUrl = sessionStorage.getItem('redirectUrl') || '/customer-profile';
                 console.log('Login successful, redirecting to:', redirectUrl);
@@ -125,8 +108,8 @@ export class CustomerLoginComponent implements OnInit {
                   sessionStorage.removeItem('redirectUrl');
                 }, 500);
               } else {
-                // Kunde ohne korrekte Rolle - korrigieren
-                await this.fixCustomerRole(user.uid);
+                // Kunde ohne korrekte Rolle
+                this.error = 'Ihr Konto hat nicht die erforderlichen Berechtigungen.';
                 this.loadingService.setLoading(false);
               }
             } else {
@@ -134,7 +117,7 @@ export class CustomerLoginComponent implements OnInit {
               const providerDoc = doc(this.firestore, 'providers', user.uid);
               const providerSnapshot = await getDoc(providerDoc);
               
-              if (providerSnapshot.exists()) {
+              if (providerSnapshot.exists() && providerSnapshot.data()['role'] === 'provider') {
                 this.error = 'Sie sind als Provider registriert. Bitte nutzen Sie die Provider-Anmeldung.';
                 await this.authService.logout();
               } else {

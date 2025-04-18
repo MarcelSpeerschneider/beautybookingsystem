@@ -62,7 +62,7 @@ export class AppointmentService {
 
   /**
    * Prüft, ob der aktuelle Benutzer ein Provider ist
-   * mit expliziter Rollenprüfung
+   * Vereinfachte Version: Prüft nur die role-Eigenschaft
    */
   private async isCurrentUserProvider(): Promise<boolean> {
     const currentUser = this.auth.currentUser;
@@ -74,8 +74,8 @@ export class AppointmentService {
       
       if (providerSnap.exists()) {
         const data = providerSnap.data();
-        // Explizite Rollenprüfung
-        return data.role === 'provider';
+        // Prüfe nur die role-Eigenschaft
+        return data['role'] === 'provider';
       }
       
       return false;
@@ -87,7 +87,7 @@ export class AppointmentService {
 
   /**
    * Prüft, ob der aktuelle Benutzer ein Kunde ist
-   * mit expliziter Rollenprüfung
+   * Vereinfachte Version: Prüft nur die role-Eigenschaft
    */
   private async isCurrentUserCustomer(): Promise<boolean> {
     const currentUser = this.auth.currentUser;
@@ -99,8 +99,8 @@ export class AppointmentService {
       
       if (customerSnap.exists()) {
         const data = customerSnap.data();
-        // Explizite Rollenprüfung
-        return data.role === 'customer';
+        // Prüfe nur die role-Eigenschaft 
+        return data['role'] === 'customer';
       }
       
       return false;
@@ -133,14 +133,14 @@ export class AppointmentService {
 
   /**
    * Holt alle Termine aus der Datenbank
-   * mit rollenbasierter Filterung
+   * mit rollenbasierter Filterung (vereinfacht)
    */
   getAppointments(): Observable<AppointmentWithId[]> {
     return ZoneUtils.wrapObservable(() => {
       console.log('AppointmentService: Fetching all appointments');
       this.loadingService.setLoading(true, 'Lade Termine...');
 
-      // Zuerst prüfen, ob der Benutzer ein Provider oder Customer ist
+      // Zuerst prüfen, ob der Benutzer ein Provider oder Customer ist (anhand role)
       return from(Promise.all([this.isCurrentUserProvider(), this.isCurrentUserCustomer()])).pipe(
         switchMap(([isProvider, isCustomer]) => {
           const currentUser = this.auth.currentUser;
@@ -332,7 +332,7 @@ export class AppointmentService {
 
   /**
    * Erstellt einen neuen Termin in der Datenbank
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    * @returns Promise<string> mit der ID des erstellten Termins
    */
   createAppointment(appointment: Appointment): Promise<string> {
@@ -424,7 +424,7 @@ export class AppointmentService {
 
   /**
    * Aktualisiert einen bestehenden Termin
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    * @returns Promise<boolean> mit dem Ergebnis der Aktualisierung
    */
   updateAppointment(appointment: AppointmentWithId): Promise<boolean> {
@@ -490,7 +490,7 @@ export class AppointmentService {
 
   /**
    * Löscht einen Termin aus der Datenbank
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    * @returns Promise<boolean> mit dem Ergebnis der Löschung
    */
   deleteAppointment(appointmentId: string): Promise<boolean> {
@@ -510,7 +510,7 @@ export class AppointmentService {
         
         const appointmentData = { id: appointmentId, ...appointmentSnap.data() } as AppointmentWithId;
         
-        // Rollenbasierte Zugangskontrolle
+        // Rollenbasierte Zugangskontrolle (vereinfacht)
         const isProvider = await this.isCurrentUserProvider();
         const isCustomer = await this.isCurrentUserCustomer();
         
@@ -546,7 +546,7 @@ export class AppointmentService {
 
   /**
    * Holt alle Termine eines Kunden
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    */
   getAppointmentsByCustomer(customerId: string): Observable<AppointmentWithId[]> {
     return ZoneUtils.wrapObservable(() => {
@@ -611,7 +611,7 @@ export class AppointmentService {
 
   /**
    * Holt alle Termine eines Providers
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    */
   getAppointmentsByProvider(providerId: string): Observable<AppointmentWithId[]> {
     return ZoneUtils.wrapObservable(() => {
@@ -679,7 +679,7 @@ export class AppointmentService {
 
   /**
    * Termine für einen bestimmten Tag abfragen
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    * Verwendet clientseitige Filterung für Datumsbereich
    */
   getAppointmentsByUserAndDate(
@@ -772,7 +772,7 @@ export class AppointmentService {
 
   /**
    * Terminbestätigung durch den Provider
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    */
   confirmAppointment(appointmentId: string): Promise<boolean> {
     return ZoneUtils.wrapPromise(async () => {
@@ -795,7 +795,7 @@ export class AppointmentService {
 
   /**
    * Terminablehnung/Stornierung
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    */
   cancelAppointment(appointmentId: string): Promise<boolean> {
     return ZoneUtils.wrapPromise(async () => {
@@ -850,7 +850,7 @@ export class AppointmentService {
 
   /**
    * Termin als erledigt markieren
-   * mit rollenbasierter Zugangskontrolle
+   * mit rollenbasierter Zugangskontrolle (vereinfacht)
    */
   completeAppointment(appointmentId: string): Promise<boolean> {
     return ZoneUtils.wrapPromise(async () => {

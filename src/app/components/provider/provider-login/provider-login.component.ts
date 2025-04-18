@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthenticationService } from '../../../services/authentication.service';
 import { LoadingService } from '../../../services/loading.service';
 import { Router } from '@angular/router';
-import { Firestore, doc, getDoc, updateDoc } from '@angular/fire/firestore'; // updateDoc hinzugefügt
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-provider-login',
@@ -28,64 +28,47 @@ export class ProviderLoginComponent implements OnInit {
     // Prüfen, ob der Benutzer bereits eingeloggt ist
     this.auth.user$.subscribe(user => {
       if (user) {
-        // Prüfen, ob der Benutzer ein Provider ist
-        this.checkProviderRole(user.uid);
+        // Prüfen, ob der Benutzer die Provider-Rolle hat
+        this.checkUserRole(user.uid);
       }
     });
   }
 
   /**
    * Prüft, ob der Benutzer die Provider-Rolle hat und leitet entsprechend weiter
+   * Vereinfachte Version, die nur die role-Eigenschaft prüft
    */
-  private async checkProviderRole(userId: string): Promise<void> {
+  private async checkUserRole(userId: string): Promise<void> {
     try {
+      // Prüft die role-Eigenschaft im provider-Dokument
       const providerDoc = doc(this.firestore, 'providers', userId);
       const providerSnapshot = await getDoc(providerDoc);
       
       if (providerSnapshot.exists()) {
         const data = providerSnapshot.data();
-        // Explizite Prüfung der Rolle mit Index-Notation
-        if (data && data['role'] === 'provider') {  // ['role'] statt .role
-          console.log('Bereits als Provider eingeloggt, Weiterleitung zum Dashboard');
+        // Prüfe nur die role-Eigenschaft
+        if (data['role'] === 'provider') {
+          console.log('Benutzer hat Provider-Rolle, Weiterleitung zum Dashboard');
           this.router.navigate(['/provider-dashboard']);
         } else {
-          // Hat zwar ein Provider-Dokument, aber falsche Rolle
-          console.warn('Provider ohne korrekte Rolle gefunden, setze Rolle...');
-          // Rolle aktualisieren
-          await this.fixProviderRole(userId);
+          console.warn('Provider ohne korrekte Rolle gefunden');
+          // Die bisherige Prüfung nach Sammlungen entfällt
         }
       } else {
         // Der Benutzer ist kein Provider
         console.log('Eingeloggter Benutzer ist kein Provider');
         
-        // Prüfen, ob es sich um einen Kunden handelt
+        // Prüfen, ob es sich um einen Kunden handelt (anhand role)
         const customerDoc = doc(this.firestore, 'customers', userId);
         const customerSnapshot = await getDoc(customerDoc);
         
-        if (customerSnapshot.exists()) {
-          console.log('Benutzer ist ein Kunde, Weiterleitung zur Kundenseite');
+        if (customerSnapshot.exists() && customerSnapshot.data()['role'] === 'customer') {
+          console.log('Benutzer hat Customer-Rolle, Weiterleitung zur Kundenseite');
           this.router.navigate(['/customer-profile']);
         }
       }
     } catch (error) {
       console.error('Fehler bei der Rollenprüfung:', error);
-    }
-  }
-
-  /**
-   * Korrigiert die Rolle eines Providers, falls diese fehlt
-   */
-  private async fixProviderRole(userId: string): Promise<void> {
-    try {
-      const providerDoc = doc(this.firestore, 'providers', userId);
-      await updateDoc(providerDoc, { 
-        role: 'provider',
-        updatedAt: new Date()
-      });
-      console.log('Provider-Rolle wurde korrigiert');
-      this.router.navigate(['/provider-dashboard']);
-    } catch (error) {
-      console.error('Fehler beim Korrigieren der Provider-Rolle:', error);
     }
   }
 
@@ -102,12 +85,12 @@ export class ProviderLoginComponent implements OnInit {
         
         if (providerSnapshot.exists()) {
           const data = providerSnapshot.data();
-          // Explizite Prüfung der Rolle mit Index-Notation
-          if (data && data['role'] === 'provider') {  // ['role'] statt .role
+          // Prüfe nur die role-Eigenschaft
+          if (data['role'] === 'provider') {
             this.router.navigate(['/provider-dashboard']);
           } else {
-            // Provider ohne korrekte Rolle - korrigieren
-            await this.fixProviderRole(user.uid);
+            this.errorMessage = 'Ihr Konto hat nicht die erforderlichen Provider-Berechtigungen.';
+            await this.auth.logout();
           }
         } else {
           // Kein Provider-Dokument gefunden

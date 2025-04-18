@@ -13,6 +13,7 @@ import {
 
 /**
  * RoleGuard - Schützt Routen basierend auf Benutzerrollen
+ * Vereinfachte Version, die nur die role-Eigenschaft prüft
  */
 @Injectable({
   providedIn: 'root',
@@ -22,7 +23,7 @@ export class RoleGuard implements CanActivate {
   private router = inject(Router);
   private loadingService = inject(LoadingService);
   private firestore = inject(Firestore);
-  private ngZone = inject(NgZone); // NgZone injizieren
+  private ngZone = inject(NgZone);
 
   canActivate(
     route: ActivatedRouteSnapshot,
@@ -50,7 +51,7 @@ export class RoleGuard implements CanActivate {
         // Speichert die Weiterleitungs-URL für nach dem Login
         sessionStorage.setItem('redirectUrl', state.url);
         
-        return this.checkUserRoles(user.uid, allowedRoles);
+        return this.checkUserRole(user.uid, allowedRoles);
       }),
       tap(hasAccess => {
         if (!hasAccess) {
@@ -73,48 +74,56 @@ export class RoleGuard implements CanActivate {
   
   /**
    * Prüft, ob der Benutzer eine der erlaubten Rollen hat
+   * Vereinfachte Version, die nur die role-Eigenschaft prüft
    */
-  private checkUserRoles(userId: string, allowedRoles: string[]): Observable<boolean> {
+  private checkUserRole(userId: string, allowedRoles: string[]): Observable<boolean> {
     return ZoneUtils.wrapObservable(() => {
-      // Strategien für Rollenprüfung: Zuerst Provider prüfen, dann Customer
+      console.log('RoleGuard: Prüfe Benutzerrolle für', userId);
+      
+      // Zuerst prüfen wir, ob der Benutzer eine Provider-Rolle haben soll
       if (allowedRoles.includes('provider')) {
-        return from(getDoc(doc(this.firestore, 'providers', userId))).pipe(
-          map(providerSnapshot => {
-            if (providerSnapshot.exists()) {
-              const data = providerSnapshot.data();
-              // Index-Notation verwenden
-              const hasProviderRole = data['role'] === 'provider';
+        const providerDoc = doc(this.firestore, 'providers', userId);
+        
+        return from(this.ngZone.run(() => getDoc(providerDoc))).pipe(
+          map(docSnapshot => {
+            if (docSnapshot.exists()) {
+              const data = docSnapshot.data();
+              const hasRole = data['role'] === 'provider';
               
               this.loadingService.setLoading(false);
-              console.log(`RoleGuard: Benutzer hat ${hasProviderRole ? '' : 'keine'} Provider-Rolle`);
-              return hasProviderRole;
+              console.log(`RoleGuard: Benutzer hat ${hasRole ? '' : 'keine'} Provider-Rolle`);
+              return hasRole;
             }
+            this.loadingService.setLoading(false);
             return false;
           }),
           catchError(error => {
-            console.error('Fehler bei der Provider-Rollenprüfung:', error);
+            console.error('RoleGuard: Fehler bei der Provider-Rollenprüfung:', error);
             this.loadingService.setLoading(false);
             return of(false);
           })
         );
       }
       
+      // Dann prüfen wir, ob der Benutzer eine Customer-Rolle haben soll
       if (allowedRoles.includes('customer')) {
-        return from(getDoc(doc(this.firestore, 'customers', userId))).pipe(
-          map(customerSnapshot => {
-            if (customerSnapshot.exists()) {
-              const data = customerSnapshot.data();
-              // Index-Notation verwenden
-              const hasCustomerRole = data['role'] === 'customer';
+        const customerDoc = doc(this.firestore, 'customers', userId);
+        
+        return from(this.ngZone.run(() => getDoc(customerDoc))).pipe(
+          map(docSnapshot => {
+            if (docSnapshot.exists()) {
+              const data = docSnapshot.data();
+              const hasRole = data['role'] === 'customer';
               
               this.loadingService.setLoading(false);
-              console.log(`RoleGuard: Benutzer hat ${hasCustomerRole ? '' : 'keine'} Kunden-Rolle`);
-              return hasCustomerRole;
+              console.log(`RoleGuard: Benutzer hat ${hasRole ? '' : 'keine'} Kunden-Rolle`);
+              return hasRole;
             }
+            this.loadingService.setLoading(false);
             return false;
           }),
           catchError(error => {
-            console.error('Fehler bei der Kunden-Rollenprüfung:', error);
+            console.error('RoleGuard: Fehler bei der Kunden-Rollenprüfung:', error);
             this.loadingService.setLoading(false);
             return of(false);
           })
@@ -124,6 +133,6 @@ export class RoleGuard implements CanActivate {
       // Wenn keine der Rollen geprüft wurde
       this.loadingService.setLoading(false);
       return of(false);
-    }, this.ngZone); // NgZone als zweiter Parameter
+    }, this.ngZone);
   }
 }

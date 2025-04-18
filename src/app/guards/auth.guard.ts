@@ -79,27 +79,27 @@ export class AuthGuard implements CanActivate {
           
           console.log('AuthGuard: Checking provider access for user:', user.uid);
           
-          // Direkter Zugriff auf das Dokument, um das role-Feld zu prüfen
-          return from(this.getDocInZone(doc(this.firestore, 'providers', user.uid))).pipe(
+          // Einfache Prüfung anhand der Benutzer-ID
+          // Wir verwenden weiterhin das Dokument, prüfen aber nur die Rolle
+          const userDoc = doc(this.firestore, 'providers', user.uid);
+          
+          return from(this.getDocInZone(userDoc)).pipe(
             map(docSnapshot => {
               this.loadingService.setLoading(false);
               
-              if (!docSnapshot.exists()) {
-                console.log('AuthGuard: User is not a provider, redirecting to provider login');
-                this.router.navigate(['/provider-login']);
-                return false;
+              // Prüfen, ob die Rolle 'provider' ist, unabhängig von der Sammlung
+              if (docSnapshot.exists()) {
+                const data = docSnapshot.data();
+                if (data['role'] === 'provider') {
+                  console.log('AuthGuard: Provider access confirmed via role check');
+                  return true;
+                }
               }
               
-              // Prüfen, ob die Rolle explizit auf 'provider' gesetzt ist
-              const data = docSnapshot.data();
-              if (data.role !== 'provider') {
-                console.log('AuthGuard: User does not have provider role, redirecting');
-                this.router.navigate(['/provider-login']);
-                return false;
-              }
-              
-              console.log('AuthGuard: Provider access confirmed');
-              return true;
+              // Wenn kein Provider-Dokument gefunden oder Rolle nicht 'provider'
+              console.log('AuthGuard: User is not a provider, redirecting to provider login');
+              this.router.navigate(['/provider-login']);
+              return false;
             }),
             catchError(error => {
               console.error('AuthGuard: Error checking provider document', error);
@@ -132,43 +132,35 @@ export class AuthGuard implements CanActivate {
           
           console.log('AuthGuard: User found with UID:', user.uid);
           
-          // Zuerst prüfen, ob der Benutzer ein Provider ist
-          return from(this.getDocInZone(doc(this.firestore, 'providers', user.uid))).pipe(
+          // Zuerst prüfen, ob Benutzer eine Provider-Rolle hat
+          const providerDoc = doc(this.firestore, 'providers', user.uid);
+          
+          return from(this.getDocInZone(providerDoc)).pipe(
             switchMap(providerDocSnapshot => {
-              console.log('AuthGuard: Provider check - document exists?', providerDocSnapshot.exists());
-              
-              if (providerDocSnapshot.exists()) {
+              // Wenn ein Provider-Dokument existiert und die Rolle 'provider' ist
+              if (providerDocSnapshot.exists() && providerDocSnapshot.data()['role'] === 'provider') {
                 console.log('AuthGuard: Provider trying to access customer route, redirecting');
                 this.loadingService.setLoading(false);
                 this.router.navigate(['/provider-dashboard']);
                 return of(false);
               }
               
+              // Dann prüfen, ob Benutzer eine Customer-Rolle hat
               const customerDoc = doc(this.firestore, 'customers', user.uid);
-              console.log('AuthGuard: Checking customer document path:', customerDoc.path);
               
-              // Prüfen des Customer-Dokuments
               return from(this.getDocInZone(customerDoc)).pipe(
-                tap(snapshot => console.log('AuthGuard: Customer document fetch result:', snapshot.exists())),
                 map(customerDocSnapshot => {
                   this.loadingService.setLoading(false);
                   
-                  if (!customerDocSnapshot.exists()) {
-                    console.log('AuthGuard: Customer data not found, redirecting to login');
-                    this.router.navigate(['/customer-login']);
-                    return false;
+                  // Einfache Rollenprüfung
+                  if (customerDocSnapshot.exists() && customerDocSnapshot.data()['role'] === 'customer') {
+                    console.log("AuthGuard: Customer role confirmed, allowing access");
+                    return true;
                   }
                   
-                  // Prüfen, ob die Rolle explizit auf 'customer' gesetzt ist
-                  const data = customerDocSnapshot.data();
-                  if (data.role !== 'customer') {
-                    console.log('AuthGuard: User does not have customer role, redirecting');
-                    this.router.navigate(['/customer-login']);
-                    return false;
-                  }
-                  
-                  console.log("AuthGuard: Customer data found, allowing access");
-                  return true;
+                  console.log('AuthGuard: User does not have customer role, redirecting');
+                  this.router.navigate(['/customer-login']);
+                  return false;
                 }),
                 catchError(error => {
                   console.error('AuthGuard: Error checking customer document', error);

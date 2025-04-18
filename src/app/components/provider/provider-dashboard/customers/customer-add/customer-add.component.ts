@@ -52,13 +52,15 @@ export class CustomerAddComponent implements OnInit {
       this.loadingService.setLoading(true, 'Kunde wird erstellt...');
       
       // Create a customer object without the ID field
+      // WICHTIG: Füge das Feld 'role' mit dem Wert 'customer' hinzu
       const customerData: Customer = {
         firstName: this.customerForm.value.firstName,
         lastName: this.customerForm.value.lastName,
         email: this.customerForm.value.email || '',
         phone: this.customerForm.value.phone || '',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        role: 'customer' // Hinzugefügtes erforderliches Feld
       };
       
       console.log('Erstelle Kunden mit Daten:', customerData);
