@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import { AppointmentService } from '../../../../services/appointment.service';
 import { ServiceService } from '../../../../services/service.service';
 import { LoadingService } from '../../../../services/loading.service';
+import { NotificationService } from '../../../../services/notification.service';
 import { Provider } from '../../../../models/provider.model';
 import { Appointment } from '../../../../models/appointment.model';
 import { Service } from '../../../../models/service.model';
@@ -35,12 +36,48 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
   private appointmentService = inject(AppointmentService);
   private serviceService = inject(ServiceService);
   private loadingService = inject(LoadingService);
+  private notificationService = inject(NotificationService);
 
   ngOnInit(): void {
     if (this.provider) {
+      // Explizit den NotificationService initialisieren, bevor wir Daten laden
+      this.initializeNotifications();
+      
       this.loadTodayAppointments();
       this.loadServices();
     }
+  }
+
+  // Neue Methode zur Initialisierung der Benachrichtigungen
+  private initializeNotifications(): void {
+    if (!this.provider || !this.provider.providerId) {
+      console.error('Provider ID fehlt - kann Benachrichtigungen nicht initialisieren');
+      return;
+    }
+
+    console.log('Initialisiere Benachrichtigungen für Provider ID:', this.provider.providerId);
+    
+    // NotificationService mit der Provider-ID starten
+    this.notificationService.startListeningForNotifications(this.provider.providerId);
+    
+    // Auf Änderungen reagieren
+    const notificationSub = this.notificationService.getUnreadCount().subscribe(count => {
+      console.log('Neue Benachrichtigungsanzahl empfangen:', count);
+      this.pendingAppointments = count;
+    });
+    
+    this.subscriptions.push(notificationSub);
+    
+    // Direkten Abruf der offenen Anfragen durchführen
+    const pendingSub = this.appointmentService.getPendingAppointmentsCount(this.provider.providerId)
+      .subscribe(count => {
+        console.log('Direkte Abfrage der offenen Anfragen:', count);
+        if (this.pendingAppointments === 0 && count > 0) {
+          this.pendingAppointments = count;
+        }
+      });
+      
+    this.subscriptions.push(pendingSub);
   }
 
   ngOnDestroy(): void {
@@ -66,9 +103,6 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
           console.log('Geladene Termine für heute:', appointments);
           // The appointments from the service already have IDs attached
           this.todayAppointments = appointments as AppointmentWithId[];
-
-          // Count pending appointments
-          this.pendingAppointments = appointments.filter(a => a.status === 'pending').length;
 
           // Calculate today's revenue
           this.calculateTodayRevenue();

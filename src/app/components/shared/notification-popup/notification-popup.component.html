@@ -1,0 +1,40 @@
+<div class="notification-popup" [class.is-open]="isOpen">
+    <div class="notification-popup-content">
+      <div class="notification-header">
+        <h3>Terminanfragen</h3>
+        <button class="close-button" (click)="closePopup()">✕</button>
+      </div>
+      
+      <div class="notification-body">
+        <div *ngIf="notifications.length === 0" class="no-notifications">
+          <p>Keine neuen Terminanfragen</p>
+        </div>
+        
+        <div *ngIf="notifications.length > 0" class="notification-list">
+          <div *ngFor="let notification of notifications" class="notification-item">
+            <div class="notification-content">
+              <div class="notification-title">
+                Neue Terminanfrage von {{ notification.customerName }}
+              </div>
+              <div class="notification-details">
+                {{ notification.serviceName }} • 
+                {{ formatDate(notification.startTime) }} • 
+                {{ formatTime(notification.startTime) }}
+              </div>
+              <div *ngIf="notification.notes" class="notification-notes">
+                {{ notification.notes }}
+              </div>
+            </div>
+            <div class="notification-actions">
+              <button class="btn-confirm" (click)="confirmAppointment(notification.id)">
+                Bestätigen
+              </button>
+              <button class="btn-reject" (click)="rejectAppointment(notification.id)">
+                Ablehnen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

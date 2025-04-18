@@ -5,11 +5,13 @@ import { AuthenticationService } from '../../../services/authentication.service'
 import { Subscription } from 'rxjs';
 import { User } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
+import { NotificationService } from '../../../services/notification.service';
+import { NotificationPopupComponent } from '../notification-popup/notification-popup.component';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NotificationPopupComponent],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.css']
 })
@@ -18,11 +20,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isScrolled = false;
   currentUser: User | null = null;
   userRole: string | null = null;
+  
+  // Add notifications properties
+  notificationCount = 0;
+  isNotificationPopupOpen = false;
+  
   private authSubscription: Subscription | null = null;
+  private notificationSubscription: Subscription | null = null;
 
   private authService = inject(AuthenticationService);
   private router = inject(Router);
   private firestore = inject(Firestore);
+  private notificationService = inject(NotificationService);
 
   constructor() { }
 
@@ -37,15 +46,27 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.checkUserRole(user.uid);
       } else {
         this.userRole = null;
+        // Stop listening for notifications if user logs out
+        this.notificationService.stopListeningForNotifications();
+        if (this.notificationSubscription) {
+          this.notificationSubscription.unsubscribe();
+          this.notificationSubscription = null;
+        }
       }
     });
   }
 
   ngOnDestroy(): void {
-    // Clean up subscription to prevent memory leaks
+    // Clean up subscriptions to prevent memory leaks
     if (this.authSubscription) {
       this.authSubscription.unsubscribe();
     }
+    
+    if (this.notificationSubscription) {
+      this.notificationSubscription.unsubscribe();
+    }
+    
+    this.notificationService.stopListeningForNotifications();
   }
 
   @HostListener('window:scroll', [])
@@ -66,6 +87,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.authService.logout().then(() => {
       this.router.navigate(['/']);
       this.closeMobileMenu();
+      // Stop listening for notifications on logout
+      this.notificationService.stopListeningForNotifications();
     });
   }
 
@@ -90,6 +113,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
       
       if (providerSnapshot.exists() && providerSnapshot.data()['role'] === 'provider') {
         this.userRole = 'provider';
+        
+        // Start listening for notifications if the user is a provider
+        this.notificationService.startListeningForNotifications(userId);
+        
+        // Subscribe to notification count
+        if (this.notificationSubscription) {
+          this.notificationSubscription.unsubscribe();
+        }
+        
+        this.notificationSubscription = this.notificationService.getUnreadCount().subscribe(count => {
+          this.notificationCount = count;
+        });
+        
         return;
       }
       
@@ -107,5 +143,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
       console.error('Error checking user role:', error);
       this.userRole = null;
     }
+  }
+  
+  // Add notification methods
+  toggleNotificationPopup(): void {
+    this.isNotificationPopupOpen = !this.isNotificationPopupOpen;
+    
+    // If we're closing mobile menu when opening notifications
+    if (this.isNotificationPopupOpen && this.isMenuOpen) {
+      this.isMenuOpen = false;
+    }
+  }
+  
+  closeNotificationPopup(): void {
+    this.isNotificationPopupOpen = false;
   }
 }

@@ -7,12 +7,7 @@
       </a>
     </div>
     
-    <nav class="hidden md:flex space-x-8">
-      <a routerLink="/features" class="nav-link cursor-pointer">Features</a>
-      <a routerLink="/providers" class="nav-link cursor-pointer">Find Providers</a>
-      <a routerLink="/how-it-works" class="nav-link cursor-pointer">How It Works</a>
-      <a routerLink="/pricing" class="nav-link cursor-pointer">Pricing</a>
-    </nav>
+    <!-- Navigation Links wurden entfernt -->
     
     <div class="flex items-center space-x-4">
       <!-- Show these links when user is NOT logged in -->
@@ -23,6 +18,16 @@
       
       <!-- Show these links when user IS logged in -->
       <ng-container *ngIf="currentUser">
+        <!-- Add notification bell for providers -->
+        <div *ngIf="userRole === 'provider'" class="notification-bell-container">
+          <button class="notification-bell" (click)="toggleNotificationPopup()" title="Benachrichtigungen">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span *ngIf="notificationCount > 0" class="notification-badge">{{ notificationCount }}</span>
+          </button>
+        </div>
+      
         <a (click)="navigateToProfile()" class="nav-link cursor-pointer">
           {{ userRole === 'provider' ? 'Dashboard' : 'Profil' }}
         </a>
@@ -41,10 +46,7 @@
   <div *ngIf="isMenuOpen" class="md:hidden bg-white shadow-md">
     <div class="container mx-auto px-4 py-3">
       <nav class="flex flex-col space-y-3">
-        <a routerLink="/features" class="nav-link cursor-pointer">Features</a>
-        <a routerLink="/providers" class="nav-link cursor-pointer">Find Providers</a>
-        <a routerLink="/how-it-works" class="nav-link cursor-pointer">How It Works</a>
-        <a routerLink="/pricing" class="nav-link cursor-pointer">Pricing</a>
+        <!-- Mobile Navigation Links wurden entfernt -->
         
         <div class="border-t border-gray-200 my-2 pt-2">
           <!-- Mobile menu - not logged in -->
@@ -55,6 +57,17 @@
           
           <!-- Mobile menu - logged in -->
           <ng-container *ngIf="currentUser">
+            <!-- Add notification bell for providers on mobile -->
+            <div *ngIf="userRole === 'provider'" class="mobile-notification-btn mb-2">
+              <button class="mobile-notification-bell" (click)="toggleNotificationPopup()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span>Benachrichtigungen</span>
+                <span *ngIf="notificationCount > 0" class="mobile-notification-badge">{{ notificationCount }}</span>
+              </button>
+            </div>
+            
             <a (click)="navigateToProfile()" class="nav-link block mb-2 cursor-pointer">
               {{ userRole === 'provider' ? 'Dashboard' : 'Profil' }}
             </a>
@@ -64,4 +77,10 @@
       </nav>
     </div>
   </div>
+  
+  <!-- Notification Popup -->
+  <app-notification-popup 
+    [isOpen]="isNotificationPopupOpen"
+    (close)="closeNotificationPopup()">
+  </app-notification-popup>
 </header>

@@ -770,6 +770,31 @@ export class AppointmentService {
     }, this.ngZone);
   }
 
+    // Hier fügen wir eine neue Methode hinzu, um direkt die Anzahl der offenen Anfragen zu zählen
+
+  getPendingAppointmentsCount(providerId: string): Observable<number> {
+    console.log('Zähle direkt die offenen Anfragen für Provider ID:', providerId);
+    
+    const appointmentsRef = collection(this.firestore, 'appointments');
+    const q = query(
+      appointmentsRef,
+      where('providerId', '==', providerId),
+      where('status', '==', 'pending')
+    );
+    
+    return from(getDocs(q)).pipe(
+      map(snapshot => {
+        const count = snapshot.docs.length;
+        console.log(`Gefundene offene Anfragen: ${count}`);
+        return count;
+      }),
+      catchError(error => {
+        console.error('Fehler beim Zählen der offenen Anfragen:', error);
+        return of(0);
+      })
+    );
+  }
+
   /**
    * Terminbestätigung durch den Provider
    * mit rollenbasierter Zugangskontrolle (vereinfacht)
