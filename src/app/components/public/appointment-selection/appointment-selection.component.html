@@ -1,108 +1,111 @@
-<!-- Header für die Appointment Selection -->
-<div class="appointment-header">
-  <!-- Provider Information -->
-  <div class="provider-info">
-    <div class="provider-logo">logo</div>
-    <div class="provider-details">
-      <h1>{{ provider?.businessName || 'Beauty Studio' }}</h1>
-      <p>Online Termin buchen</p>
-    </div>
-  </div>
-
-  <!-- Customer Journey Stepper -->
-  <div class="stepper-container">
-    <div class="stepper">
-      <div class="step completed">
-        <div class="step-circle"></div>
-        <div class="step-label">Dienstleistung</div>
-      </div>
-      <div class="step active">
-        <div class="step-circle">2</div>
-        <div class="step-label">Termin</div>
-      </div>
-      <div class="step">
-        <div class="step-circle">3</div>
-        <div class="step-label">Kontakt</div>
-      </div>
-      <div class="step">
-        <div class="step-circle">4</div>
-        <div class="step-label">Bestätigung</div>
+<!-- Wrap everything in a container -->
+<div class="appointment-selection-wrapper">
+  <!-- Header für die Appointment Selection -->
+  <div class="appointment-header">
+    <!-- Provider Information -->
+    <div class="provider-info">
+      <div class="provider-logo">logo</div>
+      <div class="provider-details">
+        <h1>{{ provider?.businessName || 'Beauty Studio' }}</h1>
+        <p>Online Termin buchen</p>
       </div>
     </div>
-  </div>
 
-  <!-- Selected Service -->
-  <div class="selected-service" *ngIf="selectedService">
-    <h3 class="selected-service-header">Ausgewählte Dienstleistung</h3>
-    <div class="service-details">
-      <div class="service-name"><strong>{{ selectedService.name }}</strong> {{ selectedService.description ? '- ' + selectedService.description : '' }}</div>
-      <div class="service-duration">Dauer: {{ selectedService.duration }} min</div>
-      <div class="service-price">Preis: {{ selectedService.price }} €</div>
-    </div>
-  </div>
-</div>
-
-<div class="booking-container">
-  <div class="booking-content">
-    <!-- Datumsauswahl -->
-    <div class="date-selection">
-      <h3>Datum auswählen</h3>
-      <div class="calendar-nav">
-        <button class="nav-button prev" (click)="navigateMonth(-1)">
-          &lt;
-        </button>
-        <span class="current-month">
-          {{ currentMonth | date:'MMMM yyyy' }}
-        </span>
-        <button class="nav-button next" (click)="navigateMonth(1)">
-          &gt;
-        </button>
-      </div>
-
-      <div class="date-grid">
-        <div *ngFor="let day of calendarDays" 
-             class="day-item" 
-             [class.today]="isToday(day)"
-             [class.selected]="isSelected(day)"
-             (click)="selectDate(day)">
-          <div class="day-number">{{ day.getDate() }}</div>
-          <div class="day-name">{{ day | date:'EEE' }}</div>
+    <!-- Customer Journey Stepper -->
+    <div class="stepper-container">
+      <div class="stepper">
+        <div class="step completed">
+          <div class="step-circle"></div>
+          <div class="step-label">Dienstleistung</div>
+        </div>
+        <div class="step active">
+          <div class="step-circle">2</div>
+          <div class="step-label">Termin</div>
+        </div>
+        <div class="step">
+          <div class="step-circle">3</div>
+          <div class="step-label">Kontakt</div>
+        </div>
+        <div class="step">
+          <div class="step-circle">4</div>
+          <div class="step-label">Bestätigung</div>
         </div>
       </div>
     </div>
 
-    <!-- Zeitauswahl -->
-    <div class="time-selection" *ngIf="selectedService">
-      <h3>Uhrzeit auswählen für {{ selectedDate | date:'EEEE, d. MMMM' }}</h3>
-      
-      <div *ngIf="availableTimeSlots.length === 0" class="no-slots-message">
-        <p>Keine Termine verfügbar für diesen Tag.</p>
-        <p>Bitte wählen Sie ein anderes Datum.</p>
-      </div>
-
-      <div *ngIf="availableTimeSlots.length > 0" class="time-slots-grid">
-        <button 
-          *ngFor="let slot of availableTimeSlots" 
-          class="time-slot" 
-          [class.available]="slot.available"
-          [class.unavailable]="!slot.available"
-          [class.selected]="slot.isSelected"
-          [disabled]="!slot.available"
-          (click)="selectTimeSlot(slot)">
-          {{ formatTime(slot.time) }}
-        </button>
+    <!-- Selected Service -->
+    <div class="selected-service" *ngIf="selectedService">
+      <h3 class="selected-service-header">Ausgewählte Dienstleistung</h3>
+      <div class="service-details">
+        <div class="service-name"><strong>{{ selectedService.name }}</strong> {{ selectedService.description ? '- ' + selectedService.description : '' }}</div>
+        <div class="service-duration">Dauer: {{ selectedService.duration }} min</div>
+        <div class="service-price">Preis: {{ selectedService.price }} €</div>
       </div>
     </div>
   </div>
 
-  <!-- Aktionsleiste -->
-  <div class="booking-actions">
-    <button class="btn-back" (click)="goBack()">Zurück</button>
-    <button 
-      class="btn-next" 
-      [disabled]="!selectedTimeSlot" 
-      (click)="proceedToBooking()">
-      Weiter zur Buchung
-    </button>
+  <div class="booking-container">
+    <div class="booking-content">
+      <!-- Datumsauswahl -->
+      <div class="date-selection">
+        <h3>Datum auswählen</h3>
+        <div class="calendar-nav">
+          <button class="nav-button prev" (click)="navigateMonth(-1)">
+            &lt;
+          </button>
+          <span class="current-month">
+            {{ currentMonth | date:'MMMM yyyy' }}
+          </span>
+          <button class="nav-button next" (click)="navigateMonth(1)">
+            &gt;
+          </button>
+        </div>
+
+        <div class="date-grid">
+          <div *ngFor="let day of calendarDays" 
+               class="day-item" 
+               [class.today]="isToday(day)"
+               [class.selected]="isSelected(day)"
+               (click)="selectDate(day)">
+            <div class="day-number">{{ day.getDate() }}</div>
+            <div class="day-name">{{ day | date:'EEE' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zeitauswahl -->
+      <div class="time-selection" *ngIf="selectedService">
+        <h3>Uhrzeit auswählen für {{ selectedDate | date:'EEEE, d. MMMM' }}</h3>
+        
+        <div *ngIf="availableTimeSlots.length === 0" class="no-slots-message">
+          <p>Keine Termine verfügbar für diesen Tag.</p>
+          <p>Bitte wählen Sie ein anderes Datum.</p>
+        </div>
+
+        <div *ngIf="availableTimeSlots.length > 0" class="time-slots-grid">
+          <button 
+            *ngFor="let slot of availableTimeSlots" 
+            class="time-slot" 
+            [class.available]="slot.available"
+            [class.unavailable]="!slot.available"
+            [class.selected]="slot.isSelected"
+            [disabled]="!slot.available"
+            (click)="selectTimeSlot(slot)">
+            {{ formatTime(slot.time) }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktionsleiste -->
+    <div class="booking-actions">
+      <button class="btn-back" (click)="goBack()">Zurück</button>
+      <button 
+        class="btn-next" 
+        [disabled]="!selectedTimeSlot" 
+        (click)="proceedToBooking()">
+        Weiter zur Buchung
+      </button>
+    </div>
   </div>
 </div>
