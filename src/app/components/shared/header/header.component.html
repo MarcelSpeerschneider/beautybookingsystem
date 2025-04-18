@@ -1,43 +1,67 @@
 <!-- Header -->
-<header class="bg-white shadow-sm sticky top-0 z-50">
-    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-      <div class="flex items-center">
-        <a routerLink="/" class="flex items-center">
-          <h1 class="text-2xl font-bold beaufix-primary">Beau<span class="font-normal text-gray-800">Fix</span></h1>
-        </a>
-      </div>
+<header class="bg-white shadow-sm sticky top-0 z-50" [ngClass]="{'scrolled': isScrolled}">
+  <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+    <div class="flex items-center">
+      <a routerLink="/" class="flex items-center">
+        <h1 class="text-2xl font-bold beaufix-primary">Beau<span class="font-normal text-gray-800">Fix</span></h1>
+      </a>
+    </div>
+    
+    <nav class="hidden md:flex space-x-8">
+      <a routerLink="/features" class="nav-link cursor-pointer">Features</a>
+      <a routerLink="/providers" class="nav-link cursor-pointer">Find Providers</a>
+      <a routerLink="/how-it-works" class="nav-link cursor-pointer">How It Works</a>
+      <a routerLink="/pricing" class="nav-link cursor-pointer">Pricing</a>
+    </nav>
+    
+    <div class="flex items-center space-x-4">
+      <!-- Show these links when user is NOT logged in -->
+      <ng-container *ngIf="!currentUser">
+        <a routerLink="/login" class="nav-link">Login</a>
+        <a routerLink="/customer-register" class="btn-primary">Sign Up</a>
+      </ng-container>
       
-      <nav class="hidden md:flex space-x-8">
+      <!-- Show these links when user IS logged in -->
+      <ng-container *ngIf="currentUser">
+        <a (click)="navigateToProfile()" class="nav-link cursor-pointer">
+          {{ userRole === 'provider' ? 'Dashboard' : 'Profil' }}
+        </a>
+        <button (click)="logout()" class="btn-outline">Logout</button>
+      </ng-container>
+      
+      <button class="md:hidden" (click)="toggleMobileMenu()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Mobile Menu -->
+  <div *ngIf="isMenuOpen" class="md:hidden bg-white shadow-md">
+    <div class="container mx-auto px-4 py-3">
+      <nav class="flex flex-col space-y-3">
         <a routerLink="/features" class="nav-link cursor-pointer">Features</a>
         <a routerLink="/providers" class="nav-link cursor-pointer">Find Providers</a>
         <a routerLink="/how-it-works" class="nav-link cursor-pointer">How It Works</a>
         <a routerLink="/pricing" class="nav-link cursor-pointer">Pricing</a>
-      </nav>
-      
-      <div class="flex items-center space-x-4">
-        <a routerLink="/customer-login" class="nav-link">Login</a>
-        <a routerLink="/customer-register" class="btn-primary">Sign Up</a>
-        <button class="md:hidden" (click)="toggleMobileMenu()">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      </div>
-    </div>
-    
-    <!-- Mobile Menu -->
-    <div *ngIf="isMenuOpen" class="md:hidden bg-white shadow-md">
-      <div class="container mx-auto px-4 py-3">
-        <nav class="flex flex-col space-y-3">
-          <a routerLink="/features" class="nav-link cursor-pointer">Features</a>
-          <a routerLink="/providers" class="nav-link cursor-pointer">Find Providers</a>
-          <a routerLink="/how-it-works" class="nav-link cursor-pointer">How It Works</a>
-          <a routerLink="/pricing" class="nav-link cursor-pointer">Pricing</a>
-          <div class="border-t border-gray-200 my-2 pt-2">
-            <a routerLink="/customer-login" class="nav-link block mb-2">Login</a>
+        
+        <div class="border-t border-gray-200 my-2 pt-2">
+          <!-- Mobile menu - not logged in -->
+          <ng-container *ngIf="!currentUser">
+            <a routerLink="/login" class="nav-link block mb-2">Login</a>
             <a routerLink="/customer-register" class="btn-primary inline-block">Sign Up</a>
-          </div>
-        </nav>
-      </div>
+          </ng-container>
+          
+          <!-- Mobile menu - logged in -->
+          <ng-container *ngIf="currentUser">
+            <a (click)="navigateToProfile()" class="nav-link block mb-2 cursor-pointer">
+              {{ userRole === 'provider' ? 'Dashboard' : 'Profil' }}
+            </a>
+            <button (click)="logout()" class="btn-outline inline-block">Logout</button>
+          </ng-container>
+        </div>
+      </nav>
     </div>
-  </header>
+  </div>
+</header>

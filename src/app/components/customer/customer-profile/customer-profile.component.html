@@ -1,149 +1,278 @@
 <div class="profile-container">
   <div class="profile-header">
-    <div class="profile-info">
-      <div class="profile-avatar">
-        <div class="avatar-placeholder" *ngIf="customer">{{ getInitials() }}</div>
-      </div>
-      <div class="profile-details">
-        <h2 class="profile-name" *ngIf="customer">{{ customer.firstName }} {{ customer.lastName }}</h2>
-        <p class="profile-email" *ngIf="customer">{{ customer.email }}</p>
-        <p class="profile-phone" *ngIf="customer">{{ customer.phone }}</p>
-      </div>
-    </div>
-    <div class="profile-actions">
-      <button class="edit-btn" (click)="editProfile()">
-        <span class="btn-icon">✎</span>
-        Profil bearbeiten
-      </button>
-      <button class="logout-btn" (click)="logout()">
-        <span class="btn-icon">↪</span>
-        Abmelden
-      </button>
+    <div class="container">
+      <h1 class="profile-title">Mein Profil</h1>
     </div>
   </div>
 
-  <!-- Loading indicator -->
-  <div class="loading-container" *ngIf="isLoading">
-    <div class="loading-spinner"></div>
-    <p>Daten werden geladen...</p>
-  </div>
-
-  <!-- Profile edit form (shown when editing) -->
-  <div class="profile-edit-form" *ngIf="isEditing && !isLoading">
-    <h3>Profil bearbeiten</h3>
-    <div class="form-group">
-      <label for="phone">Telefonnummer</label>
-      <input type="text" id="phone" name="phone" [(ngModel)]="editedPhone">
-    </div>
-    <div class="form-actions">
-      <button class="cancel-btn" (click)="isEditing = false">Abbrechen</button>
-      <button class="save-btn" (click)="saveChanges()">Speichern</button>
-    </div>
-  </div>
-
-  <!-- Upcoming appointments section -->
-  <div class="appointments-section upcoming-appointments" *ngIf="!isLoading && upcomingAppointments.length > 0">
-    <h3 class="section-title">
-      <span class="title-icon">📅</span>
-      Bevorstehende Termine
-    </h3>
-    
-    <div class="appointment-cards">
-      <div class="appointment-card" *ngFor="let appointment of upcomingAppointments">
-        <div class="appointment-header">
-          <div class="appointment-service">{{ appointment.serviceName }}</div>
-          <div class="appointment-price">{{ calculatePrice(appointment) }} €</div>
-          <!-- Provider moved to top right -->
-          <div class="appointment-provider" *ngIf="appointment.providerName">
-            <span class="provider-icon">💼</span>
-            {{ appointment.providerName }}
-          </div>
-        </div>
-        
-        <div class="appointment-datetime">
-          <div class="appointment-date">
-            <span class="date-icon">📆</span>
-            {{ formatDate(appointment.startTime) }}
-          </div>
-          <div class="appointment-time">
-            <span class="time-icon">🕒</span>
-            {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}
-          </div>
-        </div>
-        
-        <div class="appointment-footer">
-          <div class="appointment-actions">
-            <button class="reschedule-btn" *ngIf="canRescheduleAppointment(appointment)" (click)="rescheduleAppointment(appointment)">
-              Termin verschieben
-            </button>
-          </div>
-          
-          <!-- Status moved to bottom right -->
-          <div class="appointment-status {{ appointment.status }}">
-            <span class="status-icon">{{ getStatusIcon(appointment.status) }}</span>
-            <span class="status-text">{{ getStatusText(appointment.status) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="no-appointments" *ngIf="!isLoading && upcomingAppointments.length === 0">
-    <div class="empty-state">
-      <div class="empty-icon">📅</div>
-      <h3>Keine bevorstehenden Termine</h3>
-      <p>Sie haben derzeit keine bevorstehenden Termine.</p>
-    </div>
-  </div>
-
-  <!-- Past appointments section -->
-  <div class="appointments-section past-appointments" *ngIf="!isLoading && pastAppointments.length > 0">
-    <h3 class="section-title">
-      <span class="title-icon">📚</span>
-      Vergangene Termine
-    </h3>
-    
-    <div class="appointment-list">
-      <div class="appointment-list-item" *ngFor="let appointment of pastAppointments">
-        <div class="appointment-list-date">{{ formatDate(appointment.startTime) }}</div>
-        <div class="appointment-list-time">{{ formatTime(appointment.startTime) }}</div>
-        <div class="appointment-list-service">{{ appointment.serviceName || 'Unbekannter Service' }}</div>
-        <div class="appointment-list-actions">
-          <button class="review-btn" *ngIf="canReviewAppointment(appointment)" (click)="reviewAppointment(appointment)">
-            Bewerten
+  <div class="container">
+    <div class="profile-content">
+      <!-- Tabs Navigation -->
+      <div class="tabs-container">
+        <div class="tabs-nav">
+          <button [class.active]="activeTab === 'profile'" (click)="activeTab = 'profile'" class="tab-button">
+            <svg xmlns="http://www.w3.org/2000/svg" class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Persönliche Daten
           </button>
-          <button class="rebook-btn" (click)="rebookAppointment(appointment)">
-            Erneut buchen
+          <button [class.active]="activeTab === 'appointments'" (click)="activeTab = 'appointments'" class="tab-button">
+            <svg xmlns="http://www.w3.org/2000/svg" class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Meine Termine
           </button>
-          <!-- Status for past appointments also at the right side -->
-          <div class="appointment-status {{ appointment.status }}">
-            {{ getStatusText(appointment.status) }}
+          <button [class.active]="activeTab === 'favorites'" (click)="activeTab = 'favorites'" class="tab-button">
+            <svg xmlns="http://www.w3.org/2000/svg" class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            Favoriten
+          </button>
+          <button [class.active]="activeTab === 'settings'" (click)="activeTab = 'settings'" class="tab-button">
+            <svg xmlns="http://www.w3.org/2000/svg" class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Einstellungen
+          </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content">
+          <!-- Personal Data Tab Content -->
+          <div *ngIf="activeTab === 'profile'" class="tab-pane">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Persönliche Informationen</h2>
+                <button *ngIf="!isEditing" (click)="toggleEditMode()" class="btn-edit">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  Bearbeiten
+                </button>
+                <div *ngIf="isEditing" class="edit-actions">
+                  <button (click)="saveChanges()" class="btn-primary">Speichern</button>
+                  <button (click)="cancelEdit()" class="btn-outline">Abbrechen</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <form [formGroup]="profileForm">
+                  <div class="form-group-row">
+                    <div class="form-group">
+                      <label for="firstName">Vorname</label>
+                      <input type="text" id="firstName" formControlName="firstName" [readonly]="!isEditing">
+                    </div>
+                    <div class="form-group">
+                      <label for="lastName">Nachname</label>
+                      <input type="text" id="lastName" formControlName="lastName" [readonly]="!isEditing">
+                    </div>
+                  </div>
+                  <div class="form-group-row">
+                    <div class="form-group">
+                      <label for="email">E-Mail</label>
+                      <input type="email" id="email" formControlName="email" [readonly]="!isEditing">
+                    </div>
+                    <div class="form-group">
+                      <label for="phone">Telefonnummer</label>
+                      <input type="tel" id="phone" formControlName="phone" [readonly]="!isEditing">
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Appointments Tab Content -->
+          <div *ngIf="activeTab === 'appointments'" class="tab-pane">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Meine Termine</h2>
+                <div class="card-actions">
+                  <button class="btn-outline">Neuen Termin buchen</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div *ngIf="appointments && appointments.length > 0; else noAppointments">
+                  <div class="appointments-filter">
+                    <button [class.active]="appointmentFilter === 'upcoming'" (click)="appointmentFilter = 'upcoming'" class="filter-button">Kommende</button>
+                    <button [class.active]="appointmentFilter === 'past'" (click)="appointmentFilter = 'past'" class="filter-button">Vergangene</button>
+                    <button [class.active]="appointmentFilter === 'all'" (click)="appointmentFilter = 'all'" class="filter-button">Alle</button>
+                  </div>
+                  <div class="appointments-list">
+                    <div *ngFor="let appointment of filteredAppointments" class="appointment-item">
+                      <div class="appointment-date">
+                        <div class="date-badge">
+                          <span class="month">{{ getMonthShort(appointment.startTime) }}</span>
+                          <span class="day">{{ getDay(appointment.startTime) }}</span>
+                        </div>
+                        <div class="time">{{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}</div>
+                      </div>
+                      <div class="appointment-details">
+                        <h3 class="service-name">{{ appointment.serviceName }}</h3>
+                        <p class="provider-name">{{ appointment.customerName }}</p>
+                      </div>
+                      <div class="appointment-status">
+                        <span class="status-badge" [ngClass]="getStatusClass(appointment.status)">
+                          {{ getStatusText(appointment.status) }}
+                        </span>
+                      </div>
+                      <div class="appointment-actions">
+                        <button [disabled]="!canCancel(appointment)" (click)="cancelAppointment(appointment.id)" class="btn-text">
+                          Stornieren
+                        </button>
+                        <button (click)="viewAppointmentDetails(appointment.id)" class="btn-text">
+                          Details
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noAppointments>
+                  <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <h3>Keine Termine vorhanden</h3>
+                    <p>Sie haben noch keine Termine gebucht.</p>
+                    <button routerLink="/customer-booking" class="btn-primary">Termin buchen</button>
+                  </div>
+                </ng-template>
+              </div>
+            </div>
+          </div>
+
+          <!-- Favorites Tab Content -->
+          <div *ngIf="activeTab === 'favorites'" class="tab-pane">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Meine Favoriten</h2>
+              </div>
+              <div class="card-body">
+                <div *ngIf="favorites && favorites.length > 0; else noFavorites" class="favorites-list">
+                  <div *ngFor="let favorite of favorites" class="favorite-item">
+                    <div class="favorite-image">
+                      <img [src]="favorite.logo || 'assets/placeholder.png'" alt="{{ favorite.businessName }}">
+                    </div>
+                    <div class="favorite-details">
+                      <h3>{{ favorite.businessName }}</h3>
+                      <p>{{ favorite.description | slice:0:120 }}{{ favorite.description.length > 120 ? '...' : '' }}</p>
+                    </div>
+                    <div class="favorite-actions">
+                      <button (click)="bookAppointment(favorite.id)" class="btn-primary">Termin buchen</button>
+                      <button (click)="removeFavorite(favorite.id)" class="btn-outline">Entfernen</button>
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noFavorites>
+                  <div class="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <h3>Keine Favoriten vorhanden</h3>
+                    <p>Sie haben noch keine Anbieter zu Ihren Favoriten hinzugefügt.</p>
+                    <button routerLink="/providers" class="btn-primary">Anbieter entdecken</button>
+                  </div>
+                </ng-template>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Tab Content -->
+          <div *ngIf="activeTab === 'settings'" class="tab-pane">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Kontoeinstellungen</h2>
+              </div>
+              <div class="card-body">
+                <div class="settings-section">
+                  <h3 class="settings-title">Passwort ändern</h3>
+                  <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="password-form">
+                    <div class="form-group">
+                      <label for="currentPassword">Aktuelles Passwort</label>
+                      <input type="password" id="currentPassword" formControlName="currentPassword">
+                    </div>
+                    <div class="form-group">
+                      <label for="newPassword">Neues Passwort</label>
+                      <input type="password" id="newPassword" formControlName="newPassword">
+                    </div>
+                    <div class="form-group">
+                      <label for="confirmPassword">Passwort bestätigen</label>
+                      <input type="password" id="confirmPassword" formControlName="confirmPassword">
+                    </div>
+                    <button type="submit" class="btn-primary" [disabled]="!passwordForm.valid">Passwort ändern</button>
+                  </form>
+                </div>
+                
+                <div class="settings-section">
+                  <h3 class="settings-title">Benachrichtigungen</h3>
+                  <div class="notification-settings">
+                    <div class="notification-option">
+                      <label>
+                        <input type="checkbox" [(ngModel)]="notificationSettings.email">
+                        E-Mail-Benachrichtigungen
+                      </label>
+                      <p class="option-description">Erhalten Sie Erinnerungen und Updates zu Ihren Terminen per E-Mail.</p>
+                    </div>
+                    <div class="notification-option">
+                      <label>
+                        <input type="checkbox" [(ngModel)]="notificationSettings.sms">
+                        SMS-Benachrichtigungen
+                      </label>
+                      <p class="option-description">Erhalten Sie Erinnerungen zu Ihren Terminen per SMS.</p>
+                    </div>
+                    <div class="notification-option">
+                      <label>
+                        <input type="checkbox" [(ngModel)]="notificationSettings.marketing">
+                        Marketing-Mitteilungen
+                      </label>
+                      <p class="option-description">Erhalten Sie Angebote und Updates von Anbietern, die Sie besucht haben.</p>
+                    </div>
+                    <button (click)="saveNotificationSettings()" class="btn-primary">Einstellungen speichern</button>
+                  </div>
+                </div>
+                
+                <div class="settings-section danger-zone">
+                  <h3 class="settings-title">Konto löschen</h3>
+                  <p>Diese Aktion kann nicht rückgängig gemacht werden. Alle Ihre persönlichen Daten werden dauerhaft gelöscht.</p>
+                  <button (click)="showDeleteAccountConfirmation()" class="btn-danger">Konto löschen</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Statistics section -->
-  <div class="statistics-section" *ngIf="!isLoading && pastAppointments.length > 0">
-    <h3 class="section-title">
-      <span class="title-icon">📊</span>
-      Ihre Statistik
-    </h3>
-    
-    <div class="statistics-cards">
-      <div class="statistic-card">
-        <div class="statistic-value">{{ totalAppointments }}</div>
-        <div class="statistic-label">Gebuchte Termine</div>
-      </div>
-      <div class="statistic-card">
-        <div class="statistic-value">{{ formatCurrency(totalSpent) }}</div>
-        <div class="statistic-label">Gesamtausgaben</div>
-      </div>
-      <div class="statistic-card">
-        <div class="statistic-value">{{ favoriteService }}</div>
-        <div class="statistic-label">Beliebteste Behandlung</div>
-      </div>
+<!-- Delete Account Confirmation Modal -->
+<div *ngIf="showDeleteConfirmation" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Konto löschen</h2>
+      <button (click)="hideDeleteAccountConfirmation()" class="modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <p>Sind Sie sicher, dass Sie Ihr Konto löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</p>
+      <p>Geben Sie zur Bestätigung Ihre E-Mail-Adresse ein:</p>
+      <input type="email" [(ngModel)]="deleteConfirmationEmail" placeholder="Ihre E-Mail-Adresse">
+    </div>
+    <div class="modal-footer">
+      <button (click)="hideDeleteAccountConfirmation()" class="btn-outline">Abbrechen</button>
+      <button 
+        [disabled]="deleteConfirmationEmail !== currentUser?.email" 
+        (click)="deleteAccount()" 
+        class="btn-danger">
+        Konto unwiderruflich löschen
+      </button>
     </div>
   </div>
 </div>
