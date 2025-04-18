@@ -1,3 +1,4 @@
+// src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { CustomerLoginComponent } from './components/customer/customer-login/customer-login.component';
 import { CustomerRegisterComponent } from './components/customer/customer-register/customer-register.component';
@@ -18,8 +19,12 @@ import { PublicProviderComponent } from './components/public/public-provider/pub
 import { BookingOverviewComponent } from './components/public/booking-overview/booking-overview.component';
 import { BookingConfirmationComponent } from './components/public/booking-confirmation/booking-confirmation.component';
 
+// Import the landing page component
+import { LandingPageComponent } from './components/public/landing-page/landing-page.component';
+
 export const routes: Routes = [
-  { path: '', redirectTo: '/customer-login', pathMatch: 'full' },
+  // Change the default route to the landing page
+  { path: '', component: LandingPageComponent, pathMatch: 'full' },
   
   // Customer routes
   { path: 'customer-login', component: CustomerLoginComponent },

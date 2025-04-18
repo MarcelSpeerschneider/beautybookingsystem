@@ -6,14 +6,18 @@ import { LoadingComponent } from './components/loading/loading.component';
 import { CommonModule } from '@angular/common';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { from, of } from 'rxjs';
+import { HeaderComponent } from './components/shared/header/header.component';
+import { FooterComponent } from './components/shared/footer/footer.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, LoadingComponent, CommonModule],
+  imports: [RouterOutlet, LoadingComponent, CommonModule, HeaderComponent, FooterComponent],
   template: `
     <app-loading></app-loading>
+    <app-header></app-header>
     <router-outlet></router-outlet>
+    <app-footer></app-footer>
   `,
   styleUrl: './app.component.css'
 })
