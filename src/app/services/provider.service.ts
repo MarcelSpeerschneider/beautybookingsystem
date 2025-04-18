@@ -139,6 +139,7 @@ export class ProviderService {
         const providerWithDefaults = {
           ...provider,
           subscriptionStatus: provider.subscriptionStatus || 'free',
+          role: 'provider', // Immer die Rolle 'provider' setzen
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -160,9 +161,10 @@ export class ProviderService {
       try {
         const document = this.docInZone(this.collectionName, providerId);                    
         
-        // Update updatedAt field
+        // Update updatedAt field and ensure role is preserved
         const updatedProvider = {
           ...providerData,
+          role: 'provider', // Stelle sicher, dass die Rolle nicht überschrieben wird
           updatedAt: new Date()
         };
         

@@ -1,6 +1,6 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
-import { Observable, of, from, throwError } from 'rxjs';
+import { Observable, of, from } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { AuthenticationService } from '../services/authentication.service';
 import { LoadingService } from '../services/loading.service';
@@ -8,11 +8,7 @@ import { ZoneUtils } from '../utils/zone-utils';
 import { 
   Firestore, 
   doc, 
-  getDoc,
-  collection, 
-  query, 
-  where, 
-  getDocs
+  getDoc
 } from '@angular/fire/firestore';
 
 @Injectable({
@@ -83,13 +79,21 @@ export class AuthGuard implements CanActivate {
           
           console.log('AuthGuard: Checking provider access for user:', user.uid);
           
-          // Use getDocInZone instead of direct getDoc
+          // Direkter Zugriff auf das Dokument, um das role-Feld zu prüfen
           return from(this.getDocInZone(doc(this.firestore, 'providers', user.uid))).pipe(
             map(docSnapshot => {
               this.loadingService.setLoading(false);
               
               if (!docSnapshot.exists()) {
                 console.log('AuthGuard: User is not a provider, redirecting to provider login');
+                this.router.navigate(['/provider-login']);
+                return false;
+              }
+              
+              // Prüfen, ob die Rolle explizit auf 'provider' gesetzt ist
+              const data = docSnapshot.data();
+              if (data.role !== 'provider') {
+                console.log('AuthGuard: User does not have provider role, redirecting');
                 this.router.navigate(['/provider-login']);
                 return false;
               }
@@ -128,7 +132,7 @@ export class AuthGuard implements CanActivate {
           
           console.log('AuthGuard: User found with UID:', user.uid);
           
-          // Use getDocInZone instead of direct getDoc
+          // Zuerst prüfen, ob der Benutzer ein Provider ist
           return from(this.getDocInZone(doc(this.firestore, 'providers', user.uid))).pipe(
             switchMap(providerDocSnapshot => {
               console.log('AuthGuard: Provider check - document exists?', providerDocSnapshot.exists());
@@ -143,22 +147,28 @@ export class AuthGuard implements CanActivate {
               const customerDoc = doc(this.firestore, 'customers', user.uid);
               console.log('AuthGuard: Checking customer document path:', customerDoc.path);
               
-              // Use getDocInZone here too
+              // Prüfen des Customer-Dokuments
               return from(this.getDocInZone(customerDoc)).pipe(
                 tap(snapshot => console.log('AuthGuard: Customer document fetch result:', snapshot.exists())),
                 map(customerDocSnapshot => {
                   this.loadingService.setLoading(false);
                   
-                  console.log("AuthGuard: Customer doc exists?", customerDocSnapshot.exists());
-                  
-                  if (customerDocSnapshot.exists()) {
-                    console.log("AuthGuard: Customer data found, allowing access");
-                    return true;
-                  } else {
+                  if (!customerDocSnapshot.exists()) {
                     console.log('AuthGuard: Customer data not found, redirecting to login');
                     this.router.navigate(['/customer-login']);
                     return false;
                   }
+                  
+                  // Prüfen, ob die Rolle explizit auf 'customer' gesetzt ist
+                  const data = customerDocSnapshot.data();
+                  if (data.role !== 'customer') {
+                    console.log('AuthGuard: User does not have customer role, redirecting');
+                    this.router.navigate(['/customer-login']);
+                    return false;
+                  }
+                  
+                  console.log("AuthGuard: Customer data found, allowing access");
+                  return true;
                 }),
                 catchError(error => {
                   console.error('AuthGuard: Error checking customer document', error);

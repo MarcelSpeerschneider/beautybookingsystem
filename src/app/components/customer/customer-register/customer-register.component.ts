@@ -8,7 +8,8 @@ export interface UserWithData {
   lastName: string;
   phone: string;
   email: string;
-  password?: string
+  password?: string;
+  role: 'customer'; // Explizite Rolle als 'customer'
 }
 
 @Component({
@@ -46,7 +47,15 @@ export class CustomerRegisterComponent implements OnInit {
       console.log('Form data being sent:', { firstName, lastName, phone, email });
       
       if(password === this.registerForm.get('passwordAgain')?.value) {
-        this.authService.register({ firstName, lastName, phone, email, password })
+        // Hinzufügen der expliziten Rolle 'customer'
+        this.authService.register({ 
+          firstName, 
+          lastName, 
+          phone, 
+          email, 
+          password,
+          role: 'customer' // Explizit die Rolle setzen 
+        })
           .then(() => {
             this.router.navigate(['/customer-booking']);
           })

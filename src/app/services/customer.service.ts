@@ -119,9 +119,10 @@ export class CustomerService {
       try {
         console.log('Creating new customer' + (userId ? ` with Auth ID ${userId}` : ' with auto-generated ID'));
 
-        // Prepare customer data with timestamps
+        // Prepare customer data with timestamps and ensure role is set
         const customerToSave = {
           ...customer,
+          role: 'customer', // Immer sicherstellen, dass die Rolle gesetzt ist
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -179,9 +180,10 @@ export class CustomerService {
         const { id, ...customerData } = customer;
         const customerDocument = this.ngZone.run(() => doc(this.firestore, this.collectionName, id));
 
-        // Update the updatedAt field
+        // Update the updatedAt field and ensure role is preserved
         const updatedCustomer = {
           ...customerData,
+          role: 'customer', // Sicherstellen, dass die Rolle nicht überschrieben wird
           updatedAt: new Date()
         };
 

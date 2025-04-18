@@ -184,7 +184,7 @@ export class ProviderRegistrationComponent implements OnInit {
       // Get formatted business hours
       const formattedBusinessHours = this.getFormattedBusinessHours();
 
-      // Register the user with authentication service
+      // Register the user with authentication service - add explicit role
       this.authService.registerProvider({
         email: authData.email,
         password: authData.password,
@@ -202,6 +202,7 @@ export class ProviderRegistrationComponent implements OnInit {
         instagram: providerData.instagram,
         facebook: providerData.facebook,
         specialties: specialtiesArray,
+        role: 'provider' // Explizite Angabe der Rolle
       }).then(response => {
         if (response && response.user) {
           const userId = response.user.uid;
@@ -209,9 +210,8 @@ export class ProviderRegistrationComponent implements OnInit {
           // Make sure to mark as provider for subsequent operations
           localStorage.setItem(`user_role_${userId}`, 'provider');
 
-          // Create provider object ohne id-Feld
+          // Create provider object mit expliziter role
           const provider: Provider = {
-            // id: userId, <- Dieses Feld wird entfernt!
             firstName: providerData.firstName,
             lastName: providerData.lastName,
             email: authData.email,
@@ -228,6 +228,7 @@ export class ProviderRegistrationComponent implements OnInit {
             openingHours: formattedBusinessHours,
             specialties: specialtiesArray,
             acceptsOnlinePayments: providerData.acceptsOnlinePayments,
+            role: 'provider' // Explizite Angabe der Rolle
           };
 
           // Save provider to database

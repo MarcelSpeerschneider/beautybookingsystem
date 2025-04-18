@@ -5,6 +5,7 @@ import { CustomerRegisterComponent } from './components/customer/customer-regist
 import { CustomerProfileComponent } from './components/customer/customer-profile/customer-profile.component';
 import { CustomerBookingComponent } from './components/customer/customer-booking/customer-booking.component';
 import { AuthGuard } from './guards/auth.guard';
+import { RoleGuard } from './guards/role.guard';
 import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
 // Provider Components
 import { ProviderRegistrationComponent } from './components/provider/provider-registration/provider-registration.component';
@@ -23,26 +24,53 @@ import { BookingConfirmationComponent } from './components/public/booking-confir
 import { LandingPageComponent } from './components/public/landing-page/landing-page.component';
 
 export const routes: Routes = [
-  // Change the default route to the landing page
+  // Öffentliche Routen
   { path: '', component: LandingPageComponent, pathMatch: 'full' },
-  
-  // Customer routes
   { path: 'customer-login', component: CustomerLoginComponent },
   { path: 'customer-register', component: CustomerRegisterComponent },
-  { path: 'customer-profile', component: CustomerProfileComponent, canActivate: [AuthGuard] },
-  { path: 'customer-booking', component: CustomerBookingComponent, canActivate: [AuthGuard] },
-
-  // Provider routes
-  { path: 'provider-registration', component: ProviderRegistrationComponent },
   { path: 'provider-login', component: ProviderLoginComponent },
-  { path: 'provider-dashboard', component: ProviderDashboardComponent, canActivate: [AuthGuard] },
+  { path: 'provider-registration', component: ProviderRegistrationComponent },
+  
+  // Kunden-Routen mit RoleGuard
+  { 
+    path: 'customer-profile', 
+    component: CustomerProfileComponent, 
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['customer'] } 
+  },
+  { 
+    path: 'customer-booking', 
+    component: CustomerBookingComponent, 
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['customer'] } 
+  },
+
+  // Provider-Routen mit RoleGuard
+  { 
+    path: 'provider-dashboard', 
+    component: ProviderDashboardComponent, 
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['provider'] } 
+  },
   
   // Public booking flow - these should not have AuthGuard or should be marked public
   { path: 'services/:userId', component: PublicServiceListComponent, data: { isPublic: true } },
   { path: 'appointment-selection/:userId', component: AppointmentSelectionComponent, data: { isPublic: true } },
   { path: 'booking-login/:userId', component: BookingLoginComponent, data: { isPublic: true } },
-  { path: 'booking-overview', component: BookingOverviewComponent, canActivate: [AuthGuard] },
-  { path: 'booking-confirmation', component: BookingConfirmationComponent, canActivate: [AuthGuard] },
+  
+  // Buchungsabschluss-Routen mit AuthGuard und Customer-Rolle
+  { 
+    path: 'booking-overview', 
+    component: BookingOverviewComponent, 
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['customer'] }
+  },
+  { 
+    path: 'booking-confirmation', 
+    component: BookingConfirmationComponent, 
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['customer'] }
+  },
 
   // Provider public page - mark this as public
   { path: ':businessName', component: PublicProviderComponent, data: { isPublic: true } }
