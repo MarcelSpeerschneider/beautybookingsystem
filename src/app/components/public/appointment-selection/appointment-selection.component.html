@@ -1,136 +1,75 @@
-<div class="appointment-container">
-    <!-- Preview mode banner for providers -->
-    <div *ngIf="isOwnProviderPage || previewMode" class="preview-mode-banner">
-      <p>VORSCHAUMODUS: Sie sehen Ihre eigene Terminauswahl als Anbieter. Buchungen sind deaktiviert.</p>
-    </div>
-  <div class="provider-header" *ngIf="provider">
-    <div class="logo-container">
-      <div class="logo" *ngIf="!provider.logo">{{ provider.businessName[0] }}</div>
-      <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
-      <div class="brand">
-        <h1>{{ provider.businessName }}</h1>
-        <p>Online Termin buchen</p>
+<div class="booking-container">
+  <div class="booking-header" *ngIf="provider">
+    <h2>Termin bei {{ provider.businessName }} buchen</h2>
+    <div class="service-info" *ngIf="selectedService">
+      <h3>{{ selectedService.name }}</h3>
+      <div class="service-details">
+        <span class="service-duration">{{ selectedService.duration }} Minuten</span>
+        <span class="service-price">{{ selectedService.price }} €</span>
       </div>
     </div>
   </div>
-  
-  <div class="booking-container">
-    <div class="stepper">
-      <div class="step completed">
-        <div class="step-number">✓</div>
-        <div class="step-label">Dienstleistung</div>
+
+  <div class="booking-content">
+    <!-- Datumsauswahl -->
+    <div class="date-selection">
+      <h3>Datum auswählen</h3>
+      <div class="calendar-nav">
+        <button class="nav-button prev" (click)="generateCalendarDays(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))">
+          &lt;
+        </button>
+        <span class="current-month">
+          {{ currentMonth | date:'MMMM yyyy' }}
+        </span>
+        <button class="nav-button next" (click)="generateCalendarDays(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))">
+          &gt;
+        </button>
       </div>
-      <div class="step active">
-        <div class="step-number">2</div>
-        <div class="step-label">Termin</div>
-      </div>
-      <div class="step">
-        <div class="step-number">3</div>
-        <div class="step-label">Kontakt</div>
-      </div>
-      <div class="step">
-        <div class="step-number">4</div>
-        <div class="step-label">Bestätigung</div>
+
+      <div class="date-grid">
+        <div *ngFor="let day of calendarDays" 
+             class="day-item" 
+             [class.today]="isToday(day)"
+             [class.selected]="isSelected(day)"
+             (click)="selectDate(day)">
+          <div class="day-number">{{ day.getDate() }}</div>
+          <div class="day-name">{{ day | date:'EEE' }}</div>
+        </div>
       </div>
     </div>
-    
-    <div class="selected-service">
-      <h3>Ausgewählte Dienstleistungen</h3>
-      <div *ngFor="let item of cartItems" class="service-info">
-        <div><strong>{{ item.name }}</strong> - {{ item.description }}</div>
-        <div><strong>Dauer:</strong> {{ formatDuration(item.duration) }}</div>
-        <div><strong>Preis:</strong> {{ formatPrice(item.price) }}</div>
-      </div>
-      <div *ngIf="cartItems.length > 1" class="service-info total">
-        <div><strong>Gesamt:</strong></div>
-        <div><strong>Dauer:</strong> {{ formatDuration(getTotalDuration()) }}</div>
-        <div><strong>Preis:</strong> {{ formatPrice(getTotalPrice()) }}</div>
-      </div>
-    </div>
-    
-    <h2 class="section-title">Termin auswählen</h2>
-    
-    <div class="appointment-grid">
-      <div class="calendar-container">
-        <div class="calendar-header">
-          <div class="month-title" id="month-year">{{ currentMonthYear }}</div>
-          <div class="month-nav">
-            <button id="prev-month" (click)="prevMonth()">&lt;</button>
-            <button id="next-month" (click)="nextMonth()">&gt;</button>
-          </div>
-        </div>
-        
-        <div class="weekdays">
-          <div>Mo</div>
-          <div>Di</div>
-          <div>Mi</div>
-          <div>Do</div>
-          <div>Fr</div>
-          <div>Sa</div>
-          <div>So</div>
-        </div>
-        
-        <div class="calendar-days">
-          <!-- Empty cells for days before start of month -->
-          <div class="calendar-day" *ngFor="let empty of emptyDaysAtStart"></div>
-          
-          <!-- Actual days of the month -->
-          <div *ngFor="let day of daysInMonth" 
-               class="calendar-day" 
-               [class.past]="isPastDay(day)"
-               [class.today]="isToday(day)"
-               [class.unavailable]="isUnavailableDay(day)"
-               [class.selected]="isSelectedDay(day)"
-               (click)="selectCalendarDay(day)">
-            {{ day }}
-          </div>
-        </div>
-      </div>
+
+    <!-- Zeitauswahl -->
+    <div class="time-selection" *ngIf="selectedService">
+      <h3>Uhrzeit auswählen für {{ selectedDate | date:'EEEE, d. MMMM' }}</h3>
       
-      <div class="times-container">
-        <div class="selected-date" *ngIf="selectedDate">{{ formatFullDate(selectedDate) }}</div>
-        <div class="selected-date" *ngIf="!selectedDate">Bitte wählen Sie ein Datum</div>
-        
-        <div class="slots-grid" *ngIf="selectedDate">
-          <div *ngFor="let slot of availableTimeSlots"
-               class="time-slot"
-               [class.unavailable]="isUnavailableTime(slot)"
-               [class.selected]="selectedTime === slot"
-               (click)="selectTimeSlot(slot)">
-            {{ slot }}
-          </div>
-        </div>
-        
-        <div *ngIf="selectedDate && availableTimeSlots.length === 0" class="no-times">
-          <p>Keine Termine verfügbar für diesen Tag</p>
-        </div>
-        
-        <div class="legend">
-          <div class="legend-item">
-            <div class="legend-color unavailable"></div>
-            <span>Nicht verfügbar</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color selected"></div>
-            <span>Ausgewählt</span>
-          </div>
-        </div>
+      <div *ngIf="availableTimeSlots.length === 0" class="no-slots-message">
+        <p>Keine Termine verfügbar für diesen Tag.</p>
+        <p>Bitte wählen Sie ein anderes Datum.</p>
+      </div>
+
+      <div *ngIf="availableTimeSlots.length > 0" class="time-slots-grid">
+        <button 
+          *ngFor="let slot of availableTimeSlots" 
+          class="time-slot" 
+          [class.available]="slot.available"
+          [class.unavailable]="!slot.available"
+          [class.selected]="slot.isSelected"
+          [disabled]="!slot.available"
+          (click)="selectTimeSlot(slot)">
+          {{ formatTime(slot.time) }}
+        </button>
       </div>
     </div>
-    
-    <div class="action-buttons">
-      <button class="back-btn" (click)="goBack()">
-        <span class="arrow-left">&larr;</span>
-        Zurück
-      </button>
-      <button class="next-btn" [disabled]="!selectedDate || !selectedTime || isOwnProviderPage || previewMode" (click)="navigateToBookingLogin()">
-        <ng-container *ngIf="!isOwnProviderPage && !previewMode">Weiter</ng-container>
-        <ng-container *ngIf="isOwnProviderPage || previewMode">Vorschaumodus</ng-container>
-        <span class="arrow-right">&rarr;</span>
-      </button>
-      
-      <button *ngIf="isOwnProviderPage || previewMode" class="dashboard-btn" [routerLink]="['/provider-dashboard']">
-        Zum Dashboard
-      </button>
-    </div>
+  </div>
+
+  <!-- Aktionsleiste -->
+  <div class="booking-actions">
+    <button class="btn-back" (click)="router.navigate(['/services', providerId])">Zurück</button>
+    <button 
+      class="btn-next" 
+      [disabled]="!selectedTimeSlot" 
+      (click)="proceedToBooking()">
+      Weiter zur Buchung
+    </button>
+  </div>
 </div>

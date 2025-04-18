@@ -1,188 +1,157 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+// src/app/components/public/booking-overview/booking-overview.component.ts
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+
 import { CartService } from '../../../services/cart.service';
-import { AuthenticationService } from '../../../services/authentication.service';
-import { AppointmentService } from '../../../services/appointment.service';
-import { ProviderService } from '../../../services/provider.service';
-import { ServiceService } from '../../../services/service.service';
 import { LoadingService } from '../../../services/loading.service';
+import { AppointmentCreationService } from '../../../services/appointment-creation.service';
 import { Service } from '../../../models/service.model';
-import { Provider } from '../../../models/provider.model';
-import { Appointment } from '../../../models/appointment.model';
+import { ProviderService } from '../../../services/provider.service';
 
 @Component({
   selector: 'app-booking-overview',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './booking-overview.component.html',
   styleUrls: ['./booking-overview.component.css']
 })
-export class BookingOverviewComponent implements OnInit, OnDestroy {
-  contactForm: FormGroup;
-  cartItems: Service[] = [];
-  provider: Provider | null = null;
+export class BookingOverviewComponent implements OnInit {
+  selectedService: Service | null = null;
   selectedDate: Date | null = null;
-  selectedTime: string | null = null;
-  totalPrice: number = 0;
-  totalDuration: number = 0;
+  selectedTime: Date | null = null;
+  providerName: string = '';
+  notes: string = '';
   
-  private subscriptions: Subscription[] = [];
+  // Für Fehlermeldungen und Erfolgsmeldungen
+  errorMessage: string = '';
+  successMessage: string = '';
   
-  private formBuilder = inject(FormBuilder);
-  private router = inject(Router);
   private cartService = inject(CartService);
-  private authService = inject(AuthenticationService);
-  private appointmentService = inject(AppointmentService);
-  private providerService = inject(ProviderService);
-  private serviceService = inject(ServiceService);
+  private router = inject(Router);
   private loadingService = inject(LoadingService);
-  
-  constructor() {
-    this.contactForm = this.formBuilder.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', Validators.required],
-      notes: ['']
-    });
-  }
+  private appointmentCreationService = inject(AppointmentCreationService);
+  private providerService = inject(ProviderService);
   
   ngOnInit(): void {
-    this.loadingService.setLoading(true, 'Lade Buchungsdetails...');
+    this.loadingService.setLoading(true, 'Lade Buchungsübersicht...');
     
-    // Get cart items
-    this.cartItems = this.cartService.getItems();
-    
-    if (this.cartItems.length === 0) {
-      alert('Keine Dienstleistungen ausgewählt.');
-      
-      // Get provider ID to redirect back to services page
-      const providerId = this.cartService.getProviderId();
-      if (providerId) {
-        this.router.navigate(['/services', providerId]);
-      } else {
-        this.router.navigate(['/']);
-      }
-      return;
-    }
-    
-    // Calculate totals
-    this.calculateTotals();
-    
-    // Get provider
-    const providerId = this.cartService.getProviderId();
-    if (!providerId) {
-      alert('Kein Dienstleister ausgewählt.');
+    // Prüfen, ob wir uns im aktiven Buchungsflow befinden
+    const bookingFlow = localStorage.getItem('bookingFlow');
+    if (bookingFlow !== 'active') {
+      console.error('No active booking flow');
       this.router.navigate(['/']);
       return;
     }
     
-    // Load provider details
-    const providerSub = this.providerService.getProvider(providerId).subscribe(provider => {
-      this.provider = provider || null;
-    });
-    
-    this.subscriptions.push(providerSub);
-    
-    // Get selected date and time from session storage
-    const dateString = sessionStorage.getItem('selectedDate');
-    if (dateString) {
-      try {
-        this.selectedDate = new Date(JSON.parse(dateString));
-      } catch (e) {
-        console.error('Error parsing date:', e);
-      }
-    }
-    
-    this.selectedTime = sessionStorage.getItem('selectedTime') || null;
-    
-    if (!this.selectedDate || !this.selectedTime) {
-      alert('Kein Termin ausgewählt.');
-      this.router.navigate(['/appointment-selection', providerId]);
+    // Gewählte Dienstleistung aus dem Cart abrufen
+    const cartItems = this.cartService.getItems();
+    if (cartItems.length === 0) {
+      console.error('No service in cart');
+      this.router.navigate(['/']);
       return;
     }
     
-    // Pre-fill form with customer data if logged in
-    const userSub = this.authService.user.subscribe(userWithCustomer => {
-      if (userWithCustomer.customer) {
-        const customer = userWithCustomer.customer;
-        this.contactForm.patchValue({
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          email: customer.email,
-          phone: customer.phone
-        });
-        
-        // Disable form fields since user is logged in
-        this.contactForm.get('firstName')?.disable();
-        this.contactForm.get('lastName')?.disable();
-        this.contactForm.get('email')?.disable();
-      }
-      
+    this.selectedService = cartItems[0];
+    
+    // Datum und Zeit aus localStorage abrufen
+    const dateString = localStorage.getItem('selectedDate');
+    const timeString = localStorage.getItem('selectedTime');
+    
+    if (!dateString || !timeString) {
+      console.error('Missing date or time selection');
+      this.router.navigate(['/']);
+      return;
+    }
+    
+    this.selectedDate = new Date(dateString);
+    this.selectedTime = new Date(timeString);
+    
+    // Provider-Informationen laden
+    const providerId = this.cartService.getProviderId();
+    if (providerId) {
+      this.providerService.getProvider(providerId).subscribe(provider => {
+        if (provider) {
+          this.providerName = provider.businessName;
+        }
+        this.loadingService.setLoading(false);
+      });
+    } else {
       this.loadingService.setLoading(false);
-    });
-    
-    this.subscriptions.push(userSub);
+    }
   }
   
-  ngOnDestroy(): void {
-    // Unsubscribe from all subscriptions
-    this.subscriptions.forEach(sub => sub.unsubscribe());
-  }
-  
-  calculateTotals(): void {
-    this.totalPrice = this.cartItems.reduce((total, item) => total + item.price, 0);
-    this.totalDuration = this.cartItems.reduce((total, item) => total + item.duration, 0);
-  }
-  
-  onSubmit(): void {
-    if (this.contactForm.invalid) {
+  confirmBooking(): void {
+    if (!this.selectedService || !this.selectedDate || !this.selectedTime) {
+      this.errorMessage = 'Fehlende Buchungsinformationen. Bitte beginnen Sie den Buchungsprozess erneut.';
       return;
     }
     
-    this.loadingService.setLoading(true, 'Buchung wird erstellt...');
+    this.loadingService.setLoading(true, 'Termin wird gebucht...');
+    this.errorMessage = '';
     
-    // Get form values
-    const formValues = this.contactForm.getRawValue(); // Use getRawValue to include disabled fields
-
-    // Speichere Notes temporär
-    const notes = this.contactForm.get('notes')?.value?.trim() || '';
-    localStorage.setItem('notes', notes);
-
-    // Navigate to confirmation page
-    this.router.navigate(['/booking-confirmation']);
-    this.loadingService.setLoading(false);
+    this.appointmentCreationService.createAppointment(
+      this.selectedService,
+      this.selectedDate,
+      this.selectedTime,
+      this.notes
+    ).subscribe({
+      next: (appointmentId) => {
+        console.log('Appointment created with ID:', appointmentId);
+        this.loadingService.setLoading(false);
+        
+        // Buchungsdaten bereinigen
+        this.appointmentCreationService.cleanupAfterBooking();
+        
+        // Zur Bestätigungsseite navigieren
+        this.router.navigate(['/booking-confirmation'], { 
+          queryParams: { appointmentId: appointmentId } 
+        });
+      },
+      error: (error) => {
+        console.error('Error creating appointment:', error);
+        this.loadingService.setLoading(false);
+        this.errorMessage = error.message || 'Fehler bei der Terminbuchung. Bitte versuchen Sie es später erneut.';
+        
+        // Wenn der Fehler eine Überschneidung meldet, zurück zur Terminauswahl navigieren
+        if (error.message && error.message.includes('nicht mehr verfügbar')) {
+          setTimeout(() => {
+            // ProviderId aus Cart holen
+            const providerId = this.cartService.getProviderId();
+            if (providerId) {
+              this.router.navigate(['/appointment-selection', providerId]);
+            } else {
+              this.router.navigate(['/']);
+            }
+          }, 3000); // 3 Sekunden warten, damit die Fehlermeldung gelesen werden kann
+        }
+      }
+    });
   }
   
-  formatDate(date: Date): string {
+  cancelBooking(): void {
+    // Zur vorherigen Seite zurückkehren
+    window.history.back();
+  }
+  
+  // Formatierungshilfen
+  formatDate(date: Date | null): string {
+    if (!date) return '';
     return date.toLocaleDateString('de-DE', {
       weekday: 'long',
-      day: '2-digit',
+      day: 'numeric',
       month: 'long',
       year: 'numeric'
     });
   }
   
-  formatPrice(price: number): string {
-    return price.toFixed(2).replace('.', ',') + ' €';
-  }
-  
-  formatDuration(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    
-    if (hours > 0) {
-      return `${hours} Std. ${remainingMinutes > 0 ? remainingMinutes + ' Min.' : ''}`;
-    } else {
-      return `${minutes} Min.`;
-    }
-  }
-  
-  goBack(): void {
-    const providerId = this.cartService.getProviderId();
-    this.router.navigate(['/appointment-selection', providerId]);
+  formatTime(date: Date | null): string {
+    if (!date) return '';
+    return date.toLocaleTimeString('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
   }
 }

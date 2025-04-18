@@ -1,117 +1,78 @@
-<div class="container">
-    <div class="provider-header" *ngIf="provider">
-      <div class="logo-container">
-        <div class="logo" *ngIf="provider && !provider.logo && provider.businessName">{{ provider.businessName[0] }}</div>
-        <img *ngIf="provider.logo" [src]="provider.logo" [alt]="provider.businessName" class="logo">
-        <div class="brand">
-          <h1>{{ provider.businessName }}</h1>
-          <p>Online Termin buchen</p>
-        </div>
+<div class="booking-overview-container">
+  <div class="booking-overview-header">
+    <h2>Buchungsübersicht</h2>
+    <p class="subtitle">Bitte überprüfen Sie Ihre Buchung und bestätigen Sie Ihren Termin.</p>
+  </div>
+  
+  <!-- Fehlermeldung -->
+  <div *ngIf="errorMessage" class="error-message">
+    <p>{{ errorMessage }}</p>
+  </div>
+  
+  <!-- Buchungsdetails -->
+  <div class="booking-details" *ngIf="selectedService && selectedDate && selectedTime">
+    <div class="detail-card">
+      <div class="detail-header">
+        <h3>Dienstleistung</h3>
       </div>
-    </div>
-    
-    <div class="stepper">
-      <div class="step completed">
-        <div class="step-number">✓</div>
-        <div class="step-label">Dienstleistung</div>
-      </div>
-      <div class="step completed">
-        <div class="step-number">✓</div>
-        <div class="step-label">Termin</div>
-      </div>
-      <div class="step active">
-        <div class="step-number">3</div>
-        <div class="step-label">Kontakt</div>
-      </div>
-      <div class="step">
-        <div class="step-number">4</div>
-        <div class="step-label">Bestätigung</div>
-      </div>
-    </div>
-    
-    <div class="booking-summary">
-      <h3 class="summary-title">Buchungsübersicht</h3>
-      <ng-container *ngIf="cartItems && cartItems.length > 0; else noItems">
-        <div *ngFor="let item of cartItems" class="summary-item">
-          <div class="summary-label">{{ item.name }}</div>
-          <div class="summary-details">
-            <span class="summary-duration">{{ formatDuration(item.duration) }}</span>
-            <span class="summary-price">{{ formatPrice(item.price) }}</span>
+      <div class="detail-content">
+        <div class="service-info">
+          <h4>{{ selectedService.name }}</h4>
+          <div class="service-details">
+            <span class="service-duration">{{ selectedService.duration }} Minuten</span>
+            <span class="service-price">{{ selectedService.price }} €</span>
           </div>
         </div>
-      </ng-container>
-      <ng-template #noItems>
-        <p>Keine Dienstleistungen ausgewählt.</p>
-      </ng-template>
-      
-      <div class="summary-time" *ngIf="selectedDate && selectedTime">
-        <div class="summary-label">Termin</div>
-        <div class="summary-details">
-          <span>{{ formatDate(selectedDate) }} um {{ selectedTime }} Uhr</span>
-        </div>
       </div>
-      
-      <div class="summary-total">
-        <div class="summary-label">Gesamt</div>
-        <div class="summary-details">
-          <span class="summary-duration">{{ formatDuration(totalDuration) }}</span>
-          <span class="summary-price">{{ formatPrice(totalPrice) }}</span>
+    </div>
+    
+    <div class="detail-card">
+      <div class="detail-header">
+        <h3>Termin</h3>
+      </div>
+      <div class="detail-content">
+        <div class="appointment-info">
+          <div class="appointment-provider">
+            <strong>Anbieter:</strong> {{ providerName }}
+          </div>
+          <div class="appointment-date">
+            <strong>Datum:</strong> {{ formatDate(selectedDate) }}
+          </div>
+          <div class="appointment-time">
+            <strong>Uhrzeit:</strong> {{ formatTime(selectedTime) }}
+          </div>
         </div>
       </div>
     </div>
     
-    <div class="contact-form-container">
-      <h2 class="section-title">Ihre Kontaktdaten</h2>
-      
-      <form [formGroup]="contactForm" (ngSubmit)="onSubmit()">
-        <div class="form-group-row">
-          <div class="form-group" *ngIf="contactForm.get('firstName')?.value">
-            <label for="firstName">Vorname:</label>
-            <div>{{ contactForm.get('firstName')?.value }}</div>
-           </div>
-            
-           <div class="form-group" *ngIf="contactForm.get('lastName')?.value">
-            <label for="lastName">Nachname:</label>
-            <div>{{ contactForm.get('lastName')?.value }}</div>
-           </div>
+    <div class="detail-card">
+      <div class="detail-header">
+        <h3>Anmerkungen (optional)</h3>
+      </div>
+      <div class="detail-content">
+        <div class="notes-section">
+          <textarea 
+            [(ngModel)]="notes" 
+            placeholder="Haben Sie besondere Wünsche oder Hinweise zu Ihrem Termin? (optional)"
+            rows="4"></textarea>
         </div>
-        
-        <div class="form-group-row">
-           <div class="form-group" *ngIf="contactForm.get('email')?.value">
-            <label for="email">E-Mail:</label>
-            <div>{{ contactForm.get('email')?.value }}</div>
-           </div>
-          
-          <div class="form-group" *ngIf="contactForm.get('phone')?.value">
-           <label for="phone">Telefon:</label>
-           <div>{{ contactForm.get('phone')?.value }}</div>
-          </div>
-
-        </div>
-        
-        <div class="form-group">
-          <label for="notes">Anmerkungen</label>
-          <textarea id="notes" formControlName="notes" rows="4"></textarea>
-        </div>
-        
-        <div class="form-notice">
-          <p>
-            Mit dem Absenden der Buchung stimmen Sie unseren
-            <a href="#" target="_blank">AGB</a> und
-            <a href="#" target="_blank">Datenschutzbestimmungen</a> zu.
-          </p>
-        </div>
-        
-        <div class="form-actions">
-          <button type="button" class="back-btn" (click)="goBack()">
-            <span class="arrow-left">←</span>
-            Zurück
-          </button>
-          <button type="submit" class="confirm-btn" [disabled]="contactForm.invalid">
-            Termin buchen
-            <span class="arrow-right">→</span>
-          </button>
-        </div>
-      </form>
+      </div>
+    </div>
+    
+    <div class="booking-information">
+      <div class="info-icon">ℹ️</div>
+      <div class="info-text">
+        <p>Ihr Termin muss vom Anbieter bestätigt werden. Sie erhalten eine Bestätigung per E-Mail, sobald Ihr Termin bestätigt wurde.</p>
+        <p>Sie können Ihren Termin bis zu 24 Stunden vorher kostenlos stornieren.</p>
+      </div>
     </div>
   </div>
+  
+  <!-- Aktionsbuttons -->
+  <div class="booking-actions">
+    <button class="btn-back" (click)="cancelBooking()">Zurück</button>
+    <button class="btn-confirm" (click)="confirmBooking()" [disabled]="!selectedService || !selectedDate || !selectedTime">
+      Termin verbindlich buchen
+    </button>
+  </div>
+</div>

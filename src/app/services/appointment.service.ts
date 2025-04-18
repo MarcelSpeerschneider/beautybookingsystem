@@ -1,18 +1,19 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { Observable, from, of } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
-import { 
-  Firestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  collectionData, 
-  docData, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
+import {
+  Firestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,  // Import für die Terminüberlappungsprüfung
+  collectionData,
+  docData,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
   limit
 } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
@@ -30,7 +31,7 @@ export type AppointmentWithId = Appointment & { id: string };
 })
 export class AppointmentService {
   private readonly collectionName = 'appointments';
-  
+
   // Injizierte Services
   private firestore = inject(Firestore);
   private auth = inject(Auth);
@@ -42,19 +43,19 @@ export class AppointmentService {
   private getDocInZone(docRef: any): Promise<any> {
     return this.ngZone.run(() => getDoc(docRef));
   }
-  
+
   private docInZone(path: string, ...pathSegments: string[]): any {
     return this.ngZone.run(() => doc(this.firestore, path, ...pathSegments));
   }
-  
+
   private collectionInZone(path: string): any {
     return this.ngZone.run(() => collection(this.firestore, path));
   }
-  
+
   private queryInZone(collectionRef: any, ...queryConstraints: any[]): any {
     return this.ngZone.run(() => query(collectionRef, ...queryConstraints));
   }
-  
+
   private collectionDataInZone(collectionRef: any, options: any): Observable<any> {
     return this.ngZone.run(() => collectionData(collectionRef, options));
   }
@@ -66,10 +67,10 @@ export class AppointmentService {
     return ZoneUtils.wrapObservable(() => {
       console.log('AppointmentService: Fetching all appointments');
       this.loadingService.setLoading(true, 'Lade Termine...');
-      
+
       const appointmentsCollection = this.collectionInZone(this.collectionName);
       const limitedQuery = this.queryInZone(appointmentsCollection, limit(500));
-      
+
       return this.collectionDataInZone(limitedQuery, { idField: 'id' }).pipe(
         map(data => {
           console.log(`Received ${data.length} total appointments`);
@@ -92,9 +93,9 @@ export class AppointmentService {
     return ZoneUtils.wrapObservable(() => {
       console.log(`AppointmentService: Fetching appointment with ID: ${appointmentId}`);
       this.loadingService.setLoading(true, 'Lade Termin...');
-      
+
       const appointmentDocument = this.docInZone(`${this.collectionName}/${appointmentId}`);
-      
+
       return this.ngZone.run(() => docData(appointmentDocument, { idField: 'id' })).pipe(
         map(data => {
           if (!data) {
@@ -116,6 +117,95 @@ export class AppointmentService {
   }
 
   /**
+   * Prüft, ob sich zwei Zeiträume überschneiden
+   */
+  private doDateRangesOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
+    return start1 < end2 && start2 < end1;
+  }
+
+  /**
+   * Prüft, ob ein Termin sich mit bestehenden Terminen überschneidet
+   * @returns Promise<boolean> true wenn Überschneidung gefunden, false wenn keine Überschneidung
+   */
+  private async checkForOverlappingAppointments(appointment: Appointment): Promise<boolean> {
+    try {
+      // Startdatum des zu prüfenden Termins ermitteln
+      const appointmentDate = appointment.startTime instanceof Date ?
+        appointment.startTime :
+        new Date(appointment.startTime);
+
+      // Tagesgrenzen festlegen, um die Abfrage einzuschränken
+      const startOfDay = new Date(appointmentDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(appointmentDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Firestore-Collection und Query erstellen
+      const appointmentsCollection = this.collectionInZone(this.collectionName);
+
+      // Wir überprüfen nur Termine für denselben Provider
+      // Außerdem berücksichtigen wir nur bestätigte oder anstehende Termine, nicht stornierte oder abgeschlossene
+      const q = this.queryInZone(
+        appointmentsCollection,
+        where('providerId', '==', appointment.providerId),
+        where('status', 'in', ['pending', 'confirmed']) // Nur offene Termine prüfen
+      );
+
+      // Abfrage ausführen
+      const snapshot = await this.ngZone.run(() => getDocs(q));
+      const existingAppointments = snapshot.docs.map(doc => {
+        const data = doc.data() as Record<string, any>; // Expliziter Cast auf ein Objekt-Typ
+        return { id: doc.id, ...data } as AppointmentWithId;
+      });
+
+      // Nur Termine am selben Tag filtern
+      const appointmentsOnSameDay = existingAppointments.filter(app => {
+        const appStartDate = app.startTime instanceof Date ?
+          app.startTime :
+          new Date(app.startTime);
+        return appStartDate >= startOfDay && appStartDate <= endOfDay;
+      });
+
+      // Bei Aktualisierung eines bestehenden Termins diesen selbst ausschließen
+      const appointmentsToCheck = 'id' in appointment
+        ? appointmentsOnSameDay.filter(app => app.id !== (appointment as AppointmentWithId).id)
+        : appointmentsOnSameDay;
+
+      console.log(`Prüfe auf Überschneidungen mit ${appointmentsToCheck.length} anderen Terminen am selben Tag`);
+
+      // Auf Überschneidungen prüfen
+      const newAppointmentStart = appointment.startTime instanceof Date ?
+        appointment.startTime :
+        new Date(appointment.startTime);
+      const newAppointmentEnd = appointment.endTime instanceof Date ?
+        appointment.endTime :
+        new Date(appointment.endTime);
+
+      for (const existingAppointment of appointmentsToCheck) {
+        const existingStart = existingAppointment.startTime instanceof Date ?
+          existingAppointment.startTime :
+          new Date(existingAppointment.startTime);
+        const existingEnd = existingAppointment.endTime instanceof Date ?
+          existingAppointment.endTime :
+          new Date(existingAppointment.endTime);
+
+        if (this.doDateRangesOverlap(newAppointmentStart, newAppointmentEnd, existingStart, existingEnd)) {
+          console.log(`Überschneidung gefunden mit Termin: ${existingAppointment.id} (${existingStart.toLocaleTimeString()} - ${existingEnd.toLocaleTimeString()})`);
+          return true; // Überschneidung gefunden
+        }
+      }
+
+      // Keine Überschneidung gefunden
+      return false;
+    } catch (error) {
+      console.error('Fehler bei der Überschneidungsprüfung:', error);
+      // Bei Fehlern lieber vorsichtig sein und true zurückgeben
+      return true;
+    }
+  }
+
+  /**
    * Erstellt einen neuen Termin in der Datenbank
    * @returns Promise<string> mit der ID des erstellten Termins
    */
@@ -124,30 +214,37 @@ export class AppointmentService {
       try {
         this.loadingService.setLoading(true, 'Erstelle Termin...');
         console.log('Creating new appointment:', appointment);
-        
+
+        // NEUE VALIDIERUNG: Prüfe auf Terminüberschneidungen
+        const hasOverlap = await this.checkForOverlappingAppointments(appointment);
+        if (hasOverlap) {
+          this.loadingService.setLoading(false);
+          throw new Error('Der Termin überschneidet sich mit einem bereits bestehenden Termin. Bitte wählen Sie eine andere Zeit.');
+        }
+
         // Stellen sicher, dass customerId vorhanden ist oder verwenden die aktuelle User-ID
         if (!appointment.customerId && this.auth.currentUser) {
           appointment.customerId = this.auth.currentUser.uid;
           console.log(`Set missing customerId to current user: ${appointment.customerId}`);
         }
-        
+
         // Stelle sicher, dass Datum-Objekte korrekt formatiert sind
         const appointmentToSave = {
           ...appointment,
           createdAt: new Date(),
-          startTime: appointment.startTime instanceof Date ? 
-                     appointment.startTime : 
-                     new Date(appointment.startTime),
-          endTime: appointment.endTime instanceof Date ? 
-                   appointment.endTime : 
-                   new Date(appointment.endTime)
+          startTime: appointment.startTime instanceof Date ?
+            appointment.startTime :
+            new Date(appointment.startTime),
+          endTime: appointment.endTime instanceof Date ?
+            appointment.endTime :
+            new Date(appointment.endTime)
         };
-        
+
         const appointmentsCollection = this.collectionInZone(this.collectionName);
-        
+
         const docRef = await this.ngZone.run(() => addDoc(appointmentsCollection, appointmentToSave));
         console.log('Appointment created successfully with ID:', docRef.id);
-        
+
         // Nach dem Erstellen des Termins, aktualisiere die Provider-Customer-Beziehung
         try {
           await this.providerCustomerService.updateRelationAfterAppointment(
@@ -167,7 +264,7 @@ export class AppointmentService {
           console.error('Error updating provider-customer relation:', relationError);
           // Wir werfen diesen Fehler nicht, da der Termin trotzdem erfolgreich erstellt wurde
         }
-        
+
         this.loadingService.setLoading(false);
         return docRef.id;
       } catch (error) {
@@ -187,22 +284,29 @@ export class AppointmentService {
       try {
         this.loadingService.setLoading(true, 'Aktualisiere Termin...');
         console.log('Updating appointment:', appointment);
-        
+
+        // NEUE VALIDIERUNG: Prüfe auf Terminüberschneidungen
+        const hasOverlap = await this.checkForOverlappingAppointments(appointment);
+        if (hasOverlap) {
+          this.loadingService.setLoading(false);
+          throw new Error('Die Terminänderung würde zu einer Überschneidung mit einem anderen Termin führen. Bitte wählen Sie eine andere Zeit.');
+        }
+
         const { id, ...appointmentData } = appointment;
-        
+
         const updatedAppointment = {
           ...appointmentData,
           updatedAt: new Date(),
-          startTime: appointmentData.startTime instanceof Date ? 
-                    appointmentData.startTime : 
-                    new Date(appointmentData.startTime),
-          endTime: appointmentData.endTime instanceof Date ? 
-                   appointmentData.endTime : 
-                   new Date(appointmentData.endTime)
+          startTime: appointmentData.startTime instanceof Date ?
+            appointmentData.startTime :
+            new Date(appointmentData.startTime),
+          endTime: appointmentData.endTime instanceof Date ?
+            appointmentData.endTime :
+            new Date(appointmentData.endTime)
         };
-        
+
         const appointmentDocument = this.docInZone(this.collectionName, id);
-        
+
         await this.ngZone.run(() => updateDoc(appointmentDocument, updatedAppointment));
         console.log(`Appointment ${id} updated successfully`);
         this.loadingService.setLoading(false);
@@ -224,9 +328,9 @@ export class AppointmentService {
       try {
         this.loadingService.setLoading(true, 'Lösche Termin...');
         console.log(`Deleting appointment with ID: ${appointmentId}`);
-        
+
         const appointmentDocument = this.docInZone(this.collectionName, appointmentId);
-        
+
         await this.ngZone.run(() => deleteDoc(appointmentDocument));
         console.log(`Appointment ${appointmentId} deleted successfully`);
         this.loadingService.setLoading(false);
@@ -246,21 +350,21 @@ export class AppointmentService {
     return ZoneUtils.wrapObservable(() => {
       console.log(`AppointmentService: Getting appointments for customer ID: ${customerId}`);
       this.loadingService.setLoading(true, 'Lade Kundentermine...');
-      
+
       // Sicherheitscheck
       const currentUser = this.auth.currentUser;
       if (currentUser && currentUser.uid !== customerId) {
         console.warn(`Request customerId (${customerId}) doesn't match current user (${currentUser.uid})`);
       }
-      
+
       // Erstelle die Abfrage
       const appointmentsCollection = this.collectionInZone(this.collectionName);
       const q = this.queryInZone(
-        appointmentsCollection, 
+        appointmentsCollection,
         where('customerId', '==', customerId),
         limit(500)
       );
-      
+
       return this.collectionDataInZone(q, { idField: 'id' }).pipe(
         tap(data => console.log(`Found ${data.length} appointments for customer ${customerId}`)),
         map(data => {
@@ -284,21 +388,21 @@ export class AppointmentService {
     return ZoneUtils.wrapObservable(() => {
       console.log(`AppointmentService: Getting appointments for provider ID: ${providerId}`);
       this.loadingService.setLoading(true, 'Lade Anbietertermine...');
-      
+
       // Sicherheitscheck
       const currentUser = this.auth.currentUser;
       if (currentUser && currentUser.uid !== providerId) {
         console.warn(`Request providerId (${providerId}) doesn't match current user (${currentUser.uid})`);
       }
-      
+
       // Erstelle die Abfrage - alle in NgZone
       const appointmentsCollection = this.collectionInZone(this.collectionName);
       const q = this.queryInZone(
-        appointmentsCollection, 
+        appointmentsCollection,
         where('providerId', '==', providerId),
         limit(500)
       );
-      
+
       return this.collectionDataInZone(q, { idField: 'id' }).pipe(
         tap(data => console.log(`Raw data received: ${data.length} appointments`)),
         map(data => {
@@ -320,26 +424,26 @@ export class AppointmentService {
    * Verwendet clientseitige Filterung für Datumsbereich
    */
   getAppointmentsByUserAndDate(
-    userId: string, 
-    date: Date, 
+    userId: string,
+    date: Date,
     isProvider: boolean = false
   ): Observable<AppointmentWithId[]> {
     return ZoneUtils.wrapObservable(() => {
       console.log(`AppointmentService: Getting appointments for ${isProvider ? 'provider' : 'customer'} ID: ${userId} on date: ${date}`);
       this.loadingService.setLoading(true, 'Lade Termine...');
-      
+
       // Datumsgrenzen erstellen
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
-      
+
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       console.log(`Date range: ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
-      
+
       // Feldname bestimmen
       const fieldName = isProvider ? 'providerId' : 'customerId';
-      
+
       // Erstelle Firestore-Abfrage OHNE Datumsfilter - nur mit einem einzigen Filter
       const appointmentsCollection = this.collectionInZone(this.collectionName);
       const q = this.queryInZone(
@@ -347,7 +451,7 @@ export class AppointmentService {
         where(fieldName, '==', userId),
         limit(500)
       );
-      
+
       return this.collectionDataInZone(q, { idField: 'id' }).pipe(
         map(data => {
           const appointments = (data as any[])
@@ -357,7 +461,7 @@ export class AppointmentService {
               const apptDate = new Date(appt.startTime);
               return apptDate >= startOfDay && apptDate <= endOfDay;
             });
-          
+
           console.log(`Found ${appointments.length} appointments for date ${date}`);
           this.loadingService.setLoading(false);
           return appointments;
@@ -377,14 +481,14 @@ export class AppointmentService {
   confirmAppointment(appointmentId: string): Promise<boolean> {
     return this.updateAppointmentStatus(appointmentId, 'confirmed');
   }
-  
+
   /**
    * Terminablehnung/Stornierung
    */
   cancelAppointment(appointmentId: string): Promise<boolean> {
     return this.updateAppointmentStatus(appointmentId, 'canceled');
   }
-  
+
   /**
    * Termin als erledigt markieren
    */
@@ -392,20 +496,20 @@ export class AppointmentService {
     return ZoneUtils.wrapPromise(async () => {
       try {
         this.loadingService.setLoading(true, 'Termin wird als erledigt markiert...');
-        
+
         // Zuerst den Termin laden, um die Provider- und Customer-IDs zu bekommen
         const appointmentDoc = this.docInZone(this.collectionName, appointmentId);
         const appointmentSnap = await this.getDocInZone(appointmentDoc);
-        
+
         if (appointmentSnap.exists()) {
           const appointmentData = appointmentSnap.data();
-          
+
           // Terminstatuts aktualisieren
           await this.ngZone.run(() => updateDoc(appointmentDoc, {
             status: 'completed',
             updatedAt: new Date()
           }));
-          
+
           // Auch die Provider-Customer-Beziehung aktualisieren
           try {
             await this.providerCustomerService.updateRelationAfterAppointment(
@@ -425,7 +529,7 @@ export class AppointmentService {
             console.error('Error updating provider-customer relation after completion:', relationError);
             // Wir werfen diesen Fehler nicht, da der Termin trotzdem als erledigt markiert wurde
           }
-          
+
           console.log(`Successfully updated appointment ${appointmentId} status to completed`);
           this.loadingService.setLoading(false);
           return true;
@@ -441,31 +545,31 @@ export class AppointmentService {
       }
     }, this.ngZone);
   }
-  
+
   /**
    * Hilfsmethode zum Aktualisieren des Terminstatus
    */
   private updateAppointmentStatus(
-    appointmentId: string, 
+    appointmentId: string,
     status: 'pending' | 'confirmed' | 'canceled' | 'completed'
   ): Promise<boolean> {
     // Für 'completed' Status verwenden wir unsere spezielle Methode
     if (status === 'completed') {
       return this.completeAppointment(appointmentId);
     }
-    
+
     return ZoneUtils.wrapPromise(async () => {
       try {
         this.loadingService.setLoading(true, `Setze Terminstatus auf ${status}...`);
         console.log(`Updating appointment ${appointmentId} status to ${status}`);
-        
+
         const appointmentDocument = this.docInZone(this.collectionName, appointmentId);
-        
+
         await this.ngZone.run(() => updateDoc(appointmentDocument, {
           status: status,
           updatedAt: new Date()
         }));
-        
+
         console.log(`Successfully updated appointment ${appointmentId} status to ${status}`);
         this.loadingService.setLoading(false);
         return true;
