@@ -5,4 +5,5 @@ export interface Customer {
   phone: string;
   createdAt?: Date;
   updatedAt?: Date;
+  role: 'customer';
 }

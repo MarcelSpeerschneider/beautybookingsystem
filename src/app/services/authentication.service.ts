@@ -204,14 +204,15 @@ export class AuthenticationService {
           const firstName = nameParts[0] || '';
           const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
-          // Customer-Daten ohne ID (das Model hat keine ID mehr)
+          // Create customer with role field
           const customer: Customer = {
             firstName: firstName,
             lastName: lastName,
             email: email,
             phone: '',
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            role: 'customer' // Explicit role field
           };
 
           return from(this.customerService.createCustomer(customer, currentUser.uid)).pipe(
@@ -278,14 +279,15 @@ export class AuthenticationService {
         
         // Create customer object if user registration successful
         if (response.user) {
-          // Erstelle ein Customer-Objekt ohne ID-Feld (entsprechend dem neuen Interface)
+          // Create Customer with explicit role field
           const customerData: Customer = {
             firstName: firstName || "",
             lastName: lastName || "",
             email: email || "",
             phone: phone || "",
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            role: 'customer' // Explicit role field
           };
           
           console.log("Creating customer data:", customerData);
@@ -359,21 +361,7 @@ export class AuthenticationService {
           );
         }
         
-        // Store user metadata in Firestore
-        try {
-          const metadataCollection = this.collectionInZone('user_metadata');
-          await this.ngZone.run(() => 
-            addDoc(metadataCollection, {
-              userId: response.user.uid,
-              userType: 'provider',
-              createdAt: new Date()
-            })
-          );
-        } catch (error: unknown) {
-          console.error("Could not save user metadata", error);
-        }
-        
-        // Don't create the provider object here - let the component handle that
+        // Don't create the provider object here - let the component handle that with the role field
         this.loadingService.setLoading(false);
         
         // Reset flags
@@ -457,7 +445,14 @@ export class AuthenticationService {
     return ZoneUtils.wrapObservable(() => {
       const providerDoc = this.docInZone('providers', userId);
       return from(this.getDocInZone(providerDoc)).pipe(
-        map(docSnapshot => docSnapshot.exists()),
+        map(docSnapshot => {
+          if (docSnapshot.exists()) {
+            const data = docSnapshot.data();
+            // Überprüfe, ob das role-Feld auf 'provider' gesetzt ist
+            return data && data.role === 'provider';
+          }
+          return false;
+        }),
         take(1)
       );
     }, this.ngZone);
@@ -468,7 +463,14 @@ export class AuthenticationService {
     return ZoneUtils.wrapObservable(() => {
       const customerDoc = this.docInZone('customers', userId);
       return from(this.getDocInZone(customerDoc)).pipe(
-        map(docSnapshot => docSnapshot.exists()),
+        map(docSnapshot => {
+          if (docSnapshot.exists()) {
+            const data = docSnapshot.data();
+            // Überprüfe, ob das role-Feld auf 'customer' gesetzt ist
+            return data && data.role === 'customer';
+          }
+          return false;
+        }),
         take(1)
       );
     }, this.ngZone);

@@ -16,4 +16,5 @@ export interface Provider {
   specialties?: string[];
   acceptsOnlinePayments?: boolean; 
   subscriptionStatus?: string;
+  role: 'provider';
 }
