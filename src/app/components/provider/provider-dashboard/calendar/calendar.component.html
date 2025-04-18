@@ -1,46 +1,97 @@
+<!-- src/app/components/provider/provider-dashboard/calendar/calendar.component.html -->
+
 <div class="calendar-container">
-    <div class="calendar-header">
+  <!-- Calendar Header -->
+  <div class="calendar-header">
+    <div class="view-controls">
       <h2>Kalender</h2>
-      
-      <div class="view-controls">
-        <button [class.active]="viewMode === 'day'" (click)="changeViewMode('day')">Tag</button>
-        <button [class.active]="viewMode === 'week'" (click)="changeViewMode('week')">Woche</button>
-        <button [class.active]="viewMode === 'month'" (click)="changeViewMode('month')">Monat</button>
-      </div>
-      
-      <div class="date-controls">
-        <button (click)="goToToday()">Heute</button>
-        <button (click)="navigatePeriod(-1)">←</button>
-        <button (click)="navigatePeriod(1)">→</button>
-        <span>{{ formatDate(currentDate) }}</span>
-      </div>
-      
-      <div class="search-controls">
-        <input type="text" placeholder="Termine suchen...">
-        <button>Termin</button>
+      <div class="view-toggles">
+        <button 
+          [class.active]="viewMode === 'day'" 
+          (click)="changeViewMode('day')">Tag</button>
+        <button 
+          [class.active]="viewMode === 'week'" 
+          (click)="changeViewMode('week')">Woche</button>
+        <button 
+          [class.active]="viewMode === 'month'" 
+          (click)="changeViewMode('month')">Monat</button>
       </div>
     </div>
     
-    <!-- Tagesansicht -->
-    <div *ngIf="viewMode === 'day'" class="day-view">
-      <div class="day-header">
-        <h3>{{ formatDate(currentDate) }}</h3>
+    <div class="navigation-controls">
+      <button class="today-btn" (click)="goToToday()">Heute</button>
+      <button class="nav-btn" (click)="navigatePeriod(-1)">
+        <span class="chevron-left"></span>
+      </button>
+      <button class="nav-btn" (click)="navigatePeriod(1)">
+        <span class="chevron-right"></span>
+      </button>
+      <span class="current-period">{{ formatMonthYear(currentDate) }}</span>
+    </div>
+    
+    <div class="action-controls">
+      <div class="search-box">
+        <input type="text" placeholder="Termine suchen...">
+        <span class="search-icon"></span>
+      </div>
+      <button class="add-appointment-btn" (click)="addAppointment()">
+        <span class="plus-icon"></span>
+        <span class="btn-text">Termin</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Week View -->
+  <div class="calendar-week-view" *ngIf="viewMode === 'week'">
+    <!-- Week Header -->
+    <div class="week-header">
+      <div class="time-column-header"></div>
+      <div 
+        *ngFor="let day of weekDays" 
+        class="day-column-header"
+        [class.today]="isToday(day)">
+        <div class="weekday">{{ formatDayShort(day) }}</div>
+        <div 
+          class="day-number" 
+          [class.today-circle]="isToday(day)">
+          {{ day.getDate() }}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Week Grid -->
+    <div class="week-grid">
+      <!-- Time column -->
+      <div class="time-column">
+        <div 
+          *ngFor="let time of timeSlots" 
+          class="time-cell">
+          {{ formatTime(time) }}
+        </div>
       </div>
       
-      <div class="day-timeline">
-        <div *ngFor="let time of timeSlots" class="time-slot">
-          <div class="time-label">{{ formatTime(time) }}</div>
-          <div class="time-content"></div>
+      <!-- Day columns -->
+      <div 
+        *ngFor="let day of weekDays" 
+        class="day-column"
+        [class.today]="isToday(day)">
+        <!-- Time slots -->
+        <div 
+          *ngFor="let time of timeSlots" 
+          class="time-slot">
         </div>
         
         <!-- Appointments -->
-        <div *ngFor="let appointment of getAppointmentsForDay(currentDate)" 
-             class="appointment"
-             [ngStyle]="{
-               'top': getAppointmentPosition(appointment).top,
-               'height': getAppointmentPosition(appointment).height,
-               'background-color': appointment.status === 'pending' ? '#FFD54F' : '#E5887D'
-             }">
+        <div 
+          *ngFor="let appointment of appointments | appointmentFilter:day" 
+          class="appointment"
+          [class.pending]="appointment.status === 'pending'"
+          [class.confirmed]="appointment.status === 'confirmed'"
+          [ngStyle]="{ 
+            'top.px': getAppointmentPosition(appointment).top,
+            'height.px': getAppointmentPosition(appointment).height
+          }"
+          (click)="$event.stopPropagation()">
           <div class="appointment-title">{{ appointment.serviceName }}</div>
           <div class="appointment-time">
             {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}
@@ -49,68 +100,118 @@
         </div>
       </div>
     </div>
-    
-    <!-- Wochenansicht -->
-    <div *ngIf="viewMode === 'week'" class="week-view">
-      <!-- Wochenüberschriften -->
-      <div class="week-header">
-        <div class="time-header"></div>
-        <div *ngFor="let day of weekDays" class="day-column" [class.today]="isToday(day)">
-          {{ formatDayShort(day) }} {{ day.getDate() }}
-        </div>
-      </div>
-      
-      <!-- Wochenraster -->
-      <div class="week-grid">
-        <!-- Zeitraster links -->
-        <div class="time-column">
-          <div *ngFor="let time of timeSlots" class="time-cell">
-            {{ formatTime(time) }}
-          </div>
-        </div>
-        
-        <!-- Tagesraster mit Terminen -->
-        <div *ngFor="let day of weekDays" class="day-column" [class.today]="isToday(day)">
-          <!-- Zeitraster für den Tag -->
-          <div *ngFor="let time of timeSlots" class="time-cell"></div>
-          
-          <!-- Container für Termine (wichtig für korrekte Positionierung) -->
-          <div class="day-content">
-            <!-- Termine für diesen Tag -->
-            <div *ngFor="let appointment of getAppointmentsForDay(day)" 
-                 class="appointment"
-                 [ngStyle]="{
-                   'top': getAppointmentPosition(appointment).top,
-                   'height': getAppointmentPosition(appointment).height,
-                   'background-color': appointment.status === 'pending' ? '#FFD54F' : '#E5887D'
-                 }">
-              <div class="appointment-title">{{ appointment.serviceName }}</div>
-              <div class="appointment-time">
-                {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}
-              </div>
-              <div class="appointment-customer">{{ appointment.customerName }}</div>
-            </div>
-          </div>
+  </div>
+  
+  <!-- Day View -->
+  <div class="calendar-day-view" *ngIf="viewMode === 'day'">
+    <!-- Day Header -->
+    <div class="day-header">
+      <div class="time-column-header"></div>
+      <div 
+        class="day-column-header"
+        [class.today]="isToday(currentDate)">
+        <div class="date-full">
+          {{ currentDate | date:'EEEE, d. MMMM yyyy' }}
         </div>
       </div>
     </div>
     
-    <!-- Monatsansicht -->
-    <div *ngIf="viewMode === 'month'" class="month-view">
-      <div class="month-header">
-        <div *ngFor="let day of ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']" class="week-day">
-          {{ day }}
+    <!-- Day Grid -->
+    <div class="day-grid">
+      <!-- Time column -->
+      <div class="time-column">
+        <div 
+          *ngFor="let time of timeSlots" 
+          class="time-cell">
+          {{ formatTime(time) }}
         </div>
       </div>
       
-      <!-- Vereinfachte Monatsansicht für den Moment -->
-      <div class="month-grid">
-        <div *ngFor="let day of weekDays" class="month-day" [class.today]="isToday(day)">
-          <div class="day-number">{{ day.getDate() }}</div>
-          <div *ngFor="let appointment of getAppointmentsForDay(day)" class="month-appointment">
+      <!-- Day column -->
+      <div 
+        class="day-column"
+        [class.today]="isToday(currentDate)">
+        <!-- Time slots -->
+        <div 
+          *ngFor="let time of timeSlots" 
+          class="time-slot">
+        </div>
+        
+        <!-- Appointments -->
+        <div 
+          *ngFor="let appointment of appointments | appointmentFilter:currentDate" 
+          class="appointment"
+          [class.pending]="appointment.status === 'pending'"
+          [class.confirmed]="appointment.status === 'confirmed'"
+          [ngStyle]="{ 
+            'top.px': getAppointmentPosition(appointment).top,
+            'height.px': getAppointmentPosition(appointment).height
+          }"
+          (click)="$event.stopPropagation()">
+          <div class="appointment-title">{{ appointment.serviceName }}</div>
+          <div class="appointment-time">
+            {{ formatTime(appointment.startTime) }} - {{ formatTime(appointment.endTime) }}
+          </div>
+          <div class="appointment-customer">{{ appointment.customerName }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Month View -->
+  <div class="calendar-month-view" *ngIf="viewMode === 'month'">
+    <!-- Weekday Headers -->
+    <div class="month-weekdays">
+      <div class="weekday-header" *ngFor="let day of ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']">
+        {{ day }}
+      </div>
+    </div>
+    
+    <!-- Month Grid -->
+    <div class="month-grid">
+      <div 
+        *ngFor="let day of monthDays" 
+        class="month-day"
+        [class.other-month]="!day.isCurrentMonth"
+        [class.today]="isToday(day.date)">
+        <div class="day-number" [class.today-circle]="isToday(day.date)">
+          {{ day.date.getDate() }}
+        </div>
+        
+        <!-- Appointments (up to 3) -->
+        <div class="month-day-appointments">
+          <div 
+            *ngFor="let appointment of appointments | appointmentFilter:day.date | slice:0:3" 
+            class="month-appointment"
+            [class.pending]="appointment.status === 'pending'"
+            [class.confirmed]="appointment.status === 'confirmed'">
             {{ formatTime(appointment.startTime) }} {{ appointment.serviceName }}
+          </div>
+          
+          <!-- More indicator -->
+          <div 
+            *ngIf="(appointments | appointmentFilter:day.date | length) > 3" 
+            class="more-appointments">
+            +{{ (appointments | appointmentFilter:day.date | length) - 3 }} mehr
           </div>
         </div>
       </div>
     </div>
   </div>
+  
+  <!-- Calendar Footer -->
+  <div class="calendar-footer">
+    <div class="calendar-info">
+      <span class="calendar-icon"></span>
+      Heutige Termine: {{ appointments | appointmentFilter:(new Date()) | length }}
+    </div>
+    <div class="legend">
+      <span class="legend-item">
+        <span class="legend-color confirmed"></span> Bestätigt
+      </span>
+      <span class="legend-item">
+        <span class="legend-color pending"></span> Anfragen
+      </span>
+    </div>
+  </div>
+</div>

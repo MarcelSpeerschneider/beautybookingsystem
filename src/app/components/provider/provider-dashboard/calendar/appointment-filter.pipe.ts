@@ -1,3 +1,5 @@
+// src/app/pipes/appointment-filter.pipe.ts
+
 import { Pipe, PipeTransform } from '@angular/core';
 import { Appointment } from '../../../../models/appointment.model';
 
@@ -9,7 +11,12 @@ type AppointmentWithId = Appointment & { id: string };
   standalone: true
 })
 export class AppointmentFilterPipe implements PipeTransform {
-  
+  /**
+   * Filtert Termine für einen bestimmten Tag
+   * @param appointments Die Liste der Termine
+   * @param date Das Datum, für das die Termine gefiltert werden sollen
+   * @returns Eine gefilterte Liste der Termine für diesen Tag
+   */
   transform(appointments: AppointmentWithId[], date: Date): AppointmentWithId[] {
     if (!appointments || !date) {
       return [];
@@ -22,16 +29,5 @@ export class AppointmentFilterPipe implements PipeTransform {
              appointmentDate.getMonth() === date.getMonth() && 
              appointmentDate.getFullYear() === date.getFullYear();
     });
-  }
-}
-
-// Hilfspipe für die Länge einer Liste
-@Pipe({
-  name: 'length',
-  standalone: true
-})
-export class LengthPipe implements PipeTransform {
-  transform(value: any[]): number {
-    return value ? value.length : 0;
   }
 }
