@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Appointment } from '../models/appointment.model';
 import { Firestore, collection, query, where, onSnapshot } from '@angular/fire/firestore';
+import { convertAppointmentDates } from '../utils/date-utils'; // Import der existierenden Utility
 
 // Export the type so it can be imported by other components
 export type AppointmentWithId = Appointment & { id: string };
@@ -55,13 +56,16 @@ export class NotificationService {
       
       snapshot.forEach(doc => {
         const data = doc.data() as Appointment;
+        // Hier verwenden wir die existierende Utility-Funktion für die Datumskonvertierung
+        const convertedData = convertAppointmentDates(data);
         notifications.push({
-          ...data,
+          ...convertedData,
           id: doc.id
         });
       });
       
       console.log('Received notifications:', notifications.length);
+      console.log('First notification date example:', notifications[0]?.startTime);
       
       // Update the BehaviorSubjects
       this.unreadNotificationsSubject.next(notifications);

@@ -21,7 +21,7 @@ export class NotificationPopupComponent implements OnInit {
   
   notifications: AppointmentWithId[] = [];
   
-  // New property to handle the appointment details popup
+  // Property für das Appointments-Detail-Popup
   selectedAppointment: AppointmentWithId | null = null;
   isAppointmentDetailsOpen: boolean = false;
   
@@ -39,13 +39,13 @@ export class NotificationPopupComponent implements OnInit {
     this.close.emit();
   }
   
-  // Opens the appointment details popup
+  // Öffnet das Termin-Details-Popup
   openAppointmentDetails(appointment: AppointmentWithId): void {
     this.selectedAppointment = appointment;
     this.isAppointmentDetailsOpen = true;
   }
   
-  // Closes the appointment details popup
+  // Schließt das Termin-Details-Popup
   closeAppointmentDetails(): void {
     this.isAppointmentDetailsOpen = false;
     this.selectedAppointment = null;
@@ -55,14 +55,18 @@ export class NotificationPopupComponent implements OnInit {
     try {
       const validDate = date instanceof Date ? date : new Date(date);
       if (isNaN(validDate.getTime())) {
+        console.warn('Ungültiges Datum erhalten in formatDate:', date);
         return 'Ungültiges Datum';
       }
+      
+      // Benutzerfreundlicheres deutsches Datumsformat
       return validDate.toLocaleDateString('de-DE', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric'
       });
     } catch (error) {
+      console.error('Fehler beim Formatieren des Datums:', error, date);
       return 'Ungültiges Datum';
     }
   }
@@ -71,13 +75,16 @@ export class NotificationPopupComponent implements OnInit {
     try {
       const validDate = date instanceof Date ? date : new Date(date);
       if (isNaN(validDate.getTime())) {
+        console.warn('Ungültiges Datum erhalten in formatTime:', date);
         return '--:--';
       }
+      
       return validDate.toLocaleTimeString('de-DE', {
         hour: '2-digit',
         minute: '2-digit'
       });
     } catch (error) {
+      console.error('Fehler beim Formatieren der Uhrzeit:', error, date);
       return '--:--';
     }
   }
@@ -111,11 +118,11 @@ export class NotificationPopupComponent implements OnInit {
     this.loadingService.setLoading(true, 'Bestätige Termin...');
     this.appointmentService.confirmAppointment(appointmentId).then(() => {
       this.loadingService.setLoading(false);
-      // Close the detail view if open
+      // Detailansicht schließen, falls geöffnet
       this.closeAppointmentDetails();
     }).catch((error: any) => {
       this.loadingService.setLoading(false);
-      console.error('Error confirming appointment:', error);
+      console.error('Fehler bei der Terminbestätigung:', error);
       alert('Fehler bei der Bestätigung des Termins.');
     });
   }
@@ -125,7 +132,7 @@ export class NotificationPopupComponent implements OnInit {
       this.loadingService.setLoading(true, 'Termin wird abgelehnt...');
       this.appointmentService.cancelAppointment(appointmentId).then(() => {
         this.loadingService.setLoading(false);
-        // Close the detail view if open
+        // Detailansicht schließen, falls geöffnet
         this.closeAppointmentDetails();
       }).catch((error: any) => {
         this.loadingService.setLoading(false);

@@ -1,51 +1,51 @@
 <!-- src/app/components/shared/notification-popup/notification-popup.component.html -->
 
 <div class="notification-popup" [class.is-open]="isOpen">
-    <div class="notification-popup-content">
-      <div class="notification-header">
-        <h3>Terminanfragen</h3>
-        <button class="close-button" (click)="closePopup()">✕</button>
+  <div class="notification-popup-content">
+    <div class="notification-header">
+      <h3>Terminanfragen</h3>
+      <button class="close-button" (click)="closePopup()">✕</button>
+    </div>
+    
+    <div class="notification-body">
+      <div *ngIf="notifications.length === 0" class="no-notifications">
+        <p>Keine neuen Terminanfragen</p>
       </div>
       
-      <div class="notification-body">
-        <div *ngIf="notifications.length === 0" class="no-notifications">
-          <p>Keine neuen Terminanfragen</p>
-        </div>
-        
-        <div *ngIf="notifications.length > 0" class="notification-list">
-          <div *ngFor="let notification of notifications" class="notification-item" (click)="openAppointmentDetails(notification)">
-            <div class="notification-content">
-              <div class="notification-title">
-                Neue Terminanfrage von {{ notification.customerName }}
-              </div>
-              <div class="notification-details">
-                {{ notification.serviceName }} • 
-                {{ formatDate(notification.startTime) }} • 
-                {{ formatTime(notification.startTime) }}
-              </div>
-              <div *ngIf="notification.notes" class="notification-notes">
-                {{ notification.notes }}
-              </div>
+      <div *ngIf="notifications.length > 0" class="notification-list">
+        <div *ngFor="let notification of notifications" class="notification-item" (click)="openAppointmentDetails(notification)">
+          <div class="notification-content">
+            <div class="notification-title">
+              Neue Terminanfrage von {{ notification.customerName }}
             </div>
-            <div class="notification-actions">
-              <button class="btn-confirm" (click)="confirmAppointment(notification.id); $event.stopPropagation();">
-                Bestätigen
-              </button>
-              <button class="btn-reject" (click)="rejectAppointment(notification.id); $event.stopPropagation();">
-                Ablehnen
-              </button>
+            <div class="notification-details">
+              <span class="service-name">{{ notification.serviceName }}</span> •
+              <span class="notification-date">{{ formatDate(notification.startTime) }}</span> •
+              <span class="notification-time">{{ formatTime(notification.startTime) }}</span>
             </div>
+            <div *ngIf="notification.notes" class="notification-notes">
+              {{ notification.notes }}
+            </div>
+          </div>
+          <div class="notification-actions">
+            <button class="btn-confirm" (click)="confirmAppointment(notification.id); $event.stopPropagation();">
+              Bestätigen
+            </button>
+            <button class="btn-reject" (click)="rejectAppointment(notification.id); $event.stopPropagation();">
+              Ablehnen
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
-  <!-- Appointment Details Popup -->
-  <app-appointment-notification-popup
-    [appointment]="selectedAppointment"
-    [isOpen]="isAppointmentDetailsOpen"
-    (close)="closeAppointmentDetails()"
-    (confirm)="confirmAppointment($event)"
-    (reject)="rejectAppointment($event)">
-  </app-appointment-notification-popup>
+</div>
+
+<!-- Appointment Details Popup -->
+<app-appointment-notification-popup
+  [appointment]="selectedAppointment"
+  [isOpen]="isAppointmentDetailsOpen"
+  (close)="closeAppointmentDetails()"
+  (confirm)="confirmAppointment($event)"
+  (reject)="rejectAppointment($event)">
+</app-appointment-notification-popup>
