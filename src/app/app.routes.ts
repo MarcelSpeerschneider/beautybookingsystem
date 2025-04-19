@@ -10,6 +10,10 @@ import { provideRouter, withPreloading, PreloadAllModules } from '@angular/route
 import { ProviderRegistrationComponent } from './components/provider/provider-registration/provider-registration.component';
 import { ProviderDashboardComponent } from './components/provider/provider-dashboard/provider-dashboard.component';
 import { ProviderProfileComponent } from './components/provider/provider-profile/provider-profile.component';
+import { RoleCheckerComponent } from './utils/role-checker';
+import { SimpleAuthCheckComponent } from './utils/simple-auth-check';
+import { AuthFixComponent } from './utils/auth-fix';
+
 
 // Import the unified login component
 import { UnifiedLoginComponent } from './components/auth/unified-login/unified-login.component';
@@ -69,6 +73,10 @@ export const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['provider'] } 
   },
+
+  { path: 'role-checker', component: RoleCheckerComponent },
+  { path: 'auth-check', component: SimpleAuthCheckComponent },
+  { path: 'auth-fix', component: AuthFixComponent },
   
   // Public booking flow - these should not have AuthGuard or should be marked public
   { path: 'services/:userId', component: PublicServiceListComponent, data: { isPublic: true } },

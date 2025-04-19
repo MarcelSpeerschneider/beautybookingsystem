@@ -98,7 +98,7 @@ export class AppComponent implements OnInit {
         'customer-login', 'customer-register', 'provider-login', 
         'provider-dashboard', 'customer-profile', 'customer-booking',
         'services', 'appointment-selection', 'booking-login',
-        'booking-overview', 'booking-confirmation'
+        'booking-overview', 'booking-confirmation', 'provider-profile'
       ];
       
       // If not a known route, it's likely a business name

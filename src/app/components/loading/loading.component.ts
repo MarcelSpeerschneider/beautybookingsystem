@@ -42,7 +42,7 @@ import { Observable } from 'rxjs';
       width: 50px;
       height: 50px;
       border: 5px solid #f3f3f3;
-      border-top: 5px solid #3498db;
+      border-top: 5px solid var(--primary-color, #E5887D);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }

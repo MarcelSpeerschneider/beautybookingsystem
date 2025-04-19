@@ -1,3 +1,4 @@
+// src/app/guards/auth.guard.ts
 import { Injectable, inject, NgZone } from '@angular/core';
 import { CanActivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { Observable, of, from } from 'rxjs';
@@ -32,6 +33,14 @@ export class AuthGuard implements CanActivate {
   ): Observable<boolean> {
     return ZoneUtils.wrapObservable(() => {
       console.log('AuthGuard: Checking access to', state.url);
+      
+      // WICHTIG: Wenn provider-profile direkt aufgerufen wird, erlaube den Zugriff
+      // ohne weitere Umleitungen
+      if (state.url.includes('provider-profile')) {
+        console.log('AuthGuard: Provider-Profil wird direkt aufgerufen, Zugriff erlaubt');
+        this.loadingService.setLoading(false);
+        return of(true);
+      }
       
       if (route.data['isPublic']) {
         console.log('AuthGuard: Public route, allowing access');
@@ -78,7 +87,7 @@ export class AuthGuard implements CanActivate {
           console.log('AuthGuard: Checking access for user:', user.uid);
           
           // Check if the route is provider-specific
-          const isProviderRoute = url.includes('provider-dashboard');
+          const isProviderRoute = url.includes('provider');
           
           if (isProviderRoute) {
             // Check for provider role
@@ -92,6 +101,10 @@ export class AuthGuard implements CanActivate {
                   const data = docSnapshot.data();
                   if (data['role'] === 'provider') {
                     console.log('AuthGuard: Provider access confirmed via role check');
+                    
+                    // WICHTIG: KEIN Umleiten von provider-profile zu provider-dashboard
+                    // ENTFERNT: if (url.includes('provider-profile')) { ... Umleitung ... }
+                    
                     return true;
                   }
                 }
@@ -109,7 +122,7 @@ export class AuthGuard implements CanActivate {
             );
           } else {
             // Check for customer role for non-provider routes
-            return from(this.checkCustomerAccess(user.uid)).pipe(
+            return from(this.checkCustomerAccess(user.uid, url)).pipe(
               catchError(error => {
                 console.error('AuthGuard: Error checking customer access', error);
                 this.loadingService.setLoading(false);
@@ -129,7 +142,7 @@ export class AuthGuard implements CanActivate {
     }, this.ngZone);
   }
   
-  private async checkCustomerAccess(userId: string): Promise<boolean> {
+  private async checkCustomerAccess(userId: string, url: string): Promise<boolean> {
     try {
       // First check if user is a provider
       const providerDoc = doc(this.firestore, 'providers', userId);
@@ -138,6 +151,13 @@ export class AuthGuard implements CanActivate {
       if (providerSnapshot.exists() && providerSnapshot.data()['role'] === 'provider') {
         console.log('AuthGuard: Provider trying to access customer route, redirecting');
         this.loadingService.setLoading(false);
+        
+        // WICHTIG: Wenn die URL provider-profile enthält, erlaube direkten Zugriff
+        if (url.includes('provider-profile')) {
+          console.log('AuthGuard: Allowing provider access to profile');
+          return true;
+        }
+        
         this.router.navigate(['/provider-dashboard']);
         return false;
       }
