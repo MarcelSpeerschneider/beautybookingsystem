@@ -8,29 +8,39 @@ service cloud.firestore {
     
     // Hilfsfunktionen
     
-    // Prüft, ob der Benutzer ein Admin ist (optional)
+    // Prüft, ob der Benutzer ein Admin ist
     function isAdmin() {
       return request.auth != null && request.auth.token.admin == true;
     }
     
-    // Prüft, ob der Benutzer ein Provider ist (prüft Existenz in der providers-Collection)
+    // Prüft, ob der Benutzer ein Provider ist - MIT ROLLENPRÜFUNG
     function isProvider() {
       return request.auth != null && 
-             exists(/databases/$(database)/documents/providers/$(request.auth.uid));
+             exists(/databases/$(database)/documents/providers/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/providers/$(request.auth.uid)).data.role == "provider";
     }
     
-    // Prüft, ob der Benutzer ein Customer ist (prüft Existenz in der customers-Collection)
+    // Prüft, ob der Benutzer ein Customer ist - MIT ROLLENPRÜFUNG
     function isCustomer() {
       return request.auth != null && 
-             exists(/databases/$(database)/documents/customers/$(request.auth.uid));
+             exists(/databases/$(database)/documents/customers/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/customers/$(request.auth.uid)).data.role == "customer";
     }
     
     // Prüft, ob es sich um den eigenen Datensatz handelt
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
+
+    // Prüft, ob eine Abfrage das angegebene Feld mit dem angegebenen Wert filtert
+    function hasFieldFilter(field, value) {
+      return request.query.filters != null && 
+             request.query.filters.fieldPath == field && 
+             request.query.filters.op == "==" && 
+             request.query.filters.value == value;
+    }
     
-    // IMPORTANT NEW RULE: Allow access to user_metadata collection
+    // User Metadata Collection
     match /user_metadata/{docId} {
       allow read, write: if request.auth != null;
     }
@@ -40,7 +50,7 @@ service cloud.firestore {
       // Lesen: Eigene Daten, Provider für Kunden
       allow get: if isOwner(customerId) || isProvider() || isAdmin();
       
-      // Erlaubt Abfragen auf die Collection
+      // Abfragen auf die Collection
       allow list: if request.auth != null && 
                   request.query.limit <= 500 && 
                   (isProvider() || isAdmin());
@@ -48,7 +58,7 @@ service cloud.firestore {
       // Erstellen: Nur der Benutzer selbst oder Admins
       allow create: if isOwner(customerId) || isAdmin();
       
-      // Aktualisieren: Nur der Benutzer selbst, zugeordnete Provider oder Admins
+      // Aktualisieren: Nur der Benutzer selbst oder Admins
       allow update: if isOwner(customerId) || isAdmin();
       
       // Löschen: Nur der Benutzer selbst oder Admins
@@ -60,7 +70,7 @@ service cloud.firestore {
       // Lesen: Für jeden zugänglich (Anbieterinfos sind öffentlich)
       allow read: if true;
       
-      // MODIFIED: Allow provider creation during registration
+      // Erstellen: Nur während der Registrierung
       allow create: if request.auth != null && (
         providerId == request.auth.uid || 
         request.resource.data.id == request.auth.uid ||
@@ -76,80 +86,74 @@ service cloud.firestore {
     
     // Regeln für Services Collection
     match /services/{serviceId} {
-      // Lesen: Für jeden zugänglich (Dienstleistungen sind öffentlich)
+      // Lesen: Für jeden zugänglich
       allow read: if true;
       
-      // Schreiben: Nur der zugehörige Provider oder Admins
+      // Schreiben: Nur der zugehörige Provider mit Provider-Rolle oder Admins
       allow write: if 
         request.auth != null && 
         (
-          request.resource.data.providerId == request.auth.uid || 
-          (resource.data != null && resource.data.providerId == request.auth.uid) || 
+          (request.resource.data.providerId == request.auth.uid && isProvider()) || 
+          (resource.data != null && resource.data.providerId == request.auth.uid && isProvider()) || 
           isAdmin()
         );
     }
     
-    // Regeln für Appointments Collection - UPDATED WITH BETTER QUERY STRUCTURE
+    // Regeln für Appointments Collection - VEREINFACHTE UND VERBESSERTE REGELN
     match /appointments/{appointmentId} {
-      // Erlaube direktes Lesen eines Dokuments
-      allow get: if 
-        request.auth != null && 
-        (
-          resource.data.providerId == request.auth.uid || 
-          resource.data.customerId == request.auth.uid || 
-          isAdmin()
-        );
+  // Direktes Lesen eines Dokuments - mit Rollenprüfung
+  allow get: if 
+    request.auth != null && 
+    (
+      (resource.data.providerId == request.auth.uid && isProvider()) || 
+      (resource.data.customerId == request.auth.uid && isCustomer()) || 
+      isAdmin()
+    );
+  
+  // LIST-REGELN mit verbesserter Abfrage-Unterstützung
+  allow list: if 
+    request.auth != null && 
+    request.query.limit <= 500 &&
+    (
+      // Provider dürfen nach ihrer eigenen providerId filtern
+      (isProvider() && hasFieldFilter("providerId", request.auth.uid)) ||
       
-      // VERBESSERTE REGELN mit korrekter Abfragestruktur
-      allow list: if 
-        request.auth != null && 
-        request.query.limit <= 500 &&
-        (
-          // Provider können nur nach ihrer eigenen providerId filtern
-          (isProvider() && 
-           request.query.filters.fieldPath == "providerId" && 
-           request.query.filters.op == "==" && 
-           request.query.filters.value == request.auth.uid) ||
-          
-          // Kunden können nur nach ihrer eigenen customerId filtern
-          (request.auth != null && 
-           request.query.filters.fieldPath == "customerId" && 
-           request.query.filters.op == "==" && 
-           request.query.filters.value == request.auth.uid) ||
-          
-          // Admins dürfen alle Dokumente abfragen
-          isAdmin()
-        );
+      // Kunden dürfen nach ihrer eigenen customerId filtern
+      (isCustomer() && hasFieldFilter("customerId", request.auth.uid)) ||
       
-      // Erstellen: Nur angemeldete Benutzer (Customer oder Provider)
-      allow create: if 
-        request.auth != null && 
-        (
-          request.resource.data.providerId == request.auth.uid || 
-          request.resource.data.customerId == request.auth.uid
-        );
-      
-      // Aktualisieren: Nur zugehörige Provider und Kunden oder Admins
-      allow update: if 
-        request.auth != null && 
-        (
-          resource.data.providerId == request.auth.uid || 
-          resource.data.customerId == request.auth.uid || 
-          isAdmin()
-        );
-      
-      // Löschen: Nur zugehörige Provider oder Admins
-      allow delete: if 
-        request.auth != null && 
-        (
-          resource.data.providerId == request.auth.uid || 
-          isAdmin()
-        );
-    }
+      // Admins dürfen alles abfragen
+      isAdmin()
+    );
+  
+  // Erstellen: Nur angemeldete Benutzer mit korrekter Rolle
+  allow create: if 
+    request.auth != null && 
+    (
+      (request.resource.data.providerId == request.auth.uid && isProvider()) || 
+      (request.resource.data.customerId == request.auth.uid && isCustomer())
+    );
+  
+  // Aktualisieren: Nur zugehörige Provider und Kunden mit korrekter Rolle oder Admins
+  allow update: if 
+    request.auth != null && 
+    (
+      (resource.data.providerId == request.auth.uid && isProvider()) || 
+      (resource.data.customerId == request.auth.uid && isCustomer()) || 
+      isAdmin()
+    );
+  
+  // Löschen: Nur zugehörige Provider mit Provider-Rolle oder Admins
+  allow delete: if 
+    request.auth != null && 
+    (
+      (resource.data.providerId == request.auth.uid && isProvider()) || 
+      isAdmin()
+    );
+}
     
     // Regeln für Reviews Collection
     match /reviews/{reviewId} {
-      // Lesen: Für jeden zugänglich (Bewertungen sind öffentlich)
+      // Lesen: Für jeden zugänglich
       allow read: if true;
       
       // Erstellen: Nur Kunden können Bewertungen erstellen
@@ -157,73 +161,40 @@ service cloud.firestore {
         request.auth != null && isCustomer() && 
         request.resource.data.customerId == request.auth.uid;
       
-      // Aktualisieren: Nur der Ersteller kann seine Bewertung aktualisieren
+      // Aktualisieren: Nur der Ersteller mit Kunden-Rolle
       allow update: if 
         request.auth != null && 
-        resource.data.customerId == request.auth.uid;
+        resource.data.customerId == request.auth.uid &&
+        isCustomer();
       
-      // Löschen: Nur der Ersteller oder Admins können Bewertungen löschen
+      // Löschen: Nur der Ersteller mit Kunden-Rolle oder Admins
       allow delete: if 
         request.auth != null && 
         (
-          resource.data.customerId == request.auth.uid || 
+          (resource.data.customerId == request.auth.uid && isCustomer()) || 
           isAdmin()
         );
     }
     
-    // Sichere Regeln für providerCustomerRelations Collection - COMPLETELY UPDATED
+    // Regeln für providerCustomerRelations Collection - MIT ROLLENPRÜFUNG
     match /providerCustomerRelations/{relationId} {
-      // Direktes Lesen eines Dokuments: nur wenn der Benutzer beteiligt ist
-      allow get: if 
+      // Erlaubt Lesen, wenn der Benutzer angemeldet ist und eine Rolle hat
+      allow read: if request.auth != null && (isProvider() || isCustomer() || isAdmin());
+      
+      // Erstellen und Update bleiben eingeschränkt auf beteiligte Parteien mit korrekten Rollen
+      allow create, update: if 
         request.auth != null && 
         (
-          resource.data.providerId == request.auth.uid || 
-          resource.data.customerId == request.auth.uid || 
-          isAdmin()
+          (request.resource.data.providerId == request.auth.uid && isProvider()) || 
+          (request.resource.data.customerId == request.auth.uid && isCustomer())
         );
       
-      // Abfragen auf Collection-Ebene mit verbesserter Syntax
-      allow list: if 
-        request.auth != null && 
-        request.query.limit <= 500 &&
-        (
-          // Provider können nur nach ihrer eigenen providerId filtern
-          (isProvider() && 
-           request.query.filters.fieldPath == "providerId" && 
-           request.query.filters.op == "==" && 
-           request.query.filters.value == request.auth.uid) ||
-          
-          // Kunden können nur nach ihrer eigenen customerId filtern
-          (request.auth != null && 
-           request.query.filters.fieldPath == "customerId" && 
-           request.query.filters.op == "==" && 
-           request.query.filters.value == request.auth.uid) ||
-          
-          // Admins dürfen alle Dokumente abfragen
-          isAdmin()
-        );
-      
-      // Erstellen: nur wenn der Benutzer beteiligt ist
-      allow create: if 
-        request.auth != null && 
-        (
-          request.resource.data.providerId == request.auth.uid || 
-          request.resource.data.customerId == request.auth.uid
-        );
-      
-      // Aktualisieren: nur der Provider oder Admin
-      allow update: if 
-        request.auth != null && 
-        (
-          resource.data.providerId == request.auth.uid || 
-          isAdmin()
-        );
-      
-      // Löschen: nur der Provider oder Admin
+      // Löschen nur für beteiligte Parteien mit korrekten Rollen
       allow delete: if 
         request.auth != null && 
         (
-          resource.data.providerId == request.auth.uid || 
+          (resource.data.providerId == request.auth.uid && isProvider()) || 
+          (resource.data.customerId == request.auth.uid && isCustomer()) ||
           isAdmin()
         );
     }
