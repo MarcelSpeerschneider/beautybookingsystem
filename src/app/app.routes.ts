@@ -9,6 +9,7 @@ import { provideRouter, withPreloading, PreloadAllModules } from '@angular/route
 // Provider Components
 import { ProviderRegistrationComponent } from './components/provider/provider-registration/provider-registration.component';
 import { ProviderDashboardComponent } from './components/provider/provider-dashboard/provider-dashboard.component';
+import { ProviderProfileComponent } from './components/provider/provider-profile/provider-profile.component';
 
 // Import the unified login component
 import { UnifiedLoginComponent } from './components/auth/unified-login/unified-login.component';
@@ -34,6 +35,9 @@ export const routes: Routes = [
   { path: 'provider-login', redirectTo: 'login', pathMatch: 'full' },
   { path: 'customer-register', component: CustomerRegisterComponent },
   { path: 'provider-registration', component: ProviderRegistrationComponent },
+
+
+
   
   // Customer routes with RoleGuard
   { 
@@ -42,6 +46,7 @@ export const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['customer'] } 
   },
+
   { 
     path: 'customer-booking', 
     component: CustomerBookingComponent, 
@@ -50,6 +55,14 @@ export const routes: Routes = [
   },
 
   // Provider routes with RoleGuard
+
+  { 
+    path: 'provider-profile', 
+    component: ProviderProfileComponent, 
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['provider'] } 
+  },
+
   { 
     path: 'provider-dashboard', 
     component: ProviderDashboardComponent, 

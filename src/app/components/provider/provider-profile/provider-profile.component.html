@@ -1,0 +1,300 @@
+<div class="profile-container">
+    <div class="profile-header">
+      <h2>Provider Profil</h2>
+      <div class="action-buttons">
+        <button *ngIf="!isEditMode" class="btn btn-primary" (click)="toggleEditMode()">Profil bearbeiten</button>
+        <div *ngIf="isEditMode" class="edit-actions">
+          <button class="btn btn-secondary" (click)="toggleEditMode()">Abbrechen</button>
+          <button class="btn btn-primary" (click)="onSubmit()">Änderungen speichern</button>
+        </div>
+      </div>
+    </div>
+  
+    <div *ngIf="successMessage" class="alert alert-success">{{ successMessage }}</div>
+    <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+  
+    <!-- Readonly mode -->
+    <div *ngIf="!isEditMode && provider" class="profile-info">
+      <div class="profile-section">
+        <h3>Geschäftsinformationen</h3>
+        <div class="info-card">
+          <div class="profile-logo">
+            <img *ngIf="provider.logo" [src]="provider.logo" alt="Logo">
+            <div *ngIf="!provider.logo" class="logo-placeholder">
+              <span>{{ provider.businessName.charAt(0) || 'B' }}</span>
+            </div>
+          </div>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Unternehmensname</span>
+              <span class="info-value">{{ provider.businessName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Beschreibung</span>
+              <span class="info-value description">{{ provider.description }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Adresse</span>
+              <span class="info-value">{{ provider.address || 'Nicht angegeben' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Website</span>
+              <span class="info-value">
+                <a *ngIf="provider.website" [href]="provider.website" target="_blank">{{ provider.website }}</a>
+                <span *ngIf="!provider.website">Nicht angegeben</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="profile-section">
+        <h3>Kontaktinformationen</h3>
+        <div class="info-card">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Name</span>
+              <span class="info-value">{{ provider.firstName }} {{ provider.lastName }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">E-Mail</span>
+              <span class="info-value">{{ provider.email }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Telefon</span>
+              <span class="info-value">{{ provider.phone }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="profile-section">
+        <h3>Öffnungszeiten</h3>
+        <div class="info-card">
+          <div class="hours-display">
+            <div *ngFor="let day of businessDays" class="hours-row">
+              <div class="day-name">{{ day.label }}</div>
+              <div class="hours-value" *ngIf="!day.closed">{{ day.openTime }} - {{ day.closeTime }}</div>
+              <div class="hours-value closed" *ngIf="day.closed">Geschlossen</div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="profile-section">
+        <h3>Social Media</h3>
+        <div class="info-card">
+          <div class="social-links">
+            <div class="social-item" *ngIf="provider.socialMedia?.instagram">
+              <i class="social-icon instagram"></i>
+              <a [href]="'https://instagram.com/' + provider.socialMedia?.instagram" target="_blank">
+                {{ provider.socialMedia?.instagram }}
+              </a>
+            </div>
+            <div class="social-item" *ngIf="provider.socialMedia?.facebook">
+              <i class="social-icon facebook"></i>
+              <a [href]="'https://facebook.com/' + provider.socialMedia?.facebook" target="_blank">
+                {{ provider.socialMedia?.facebook }}
+              </a>
+            </div>
+            <div *ngIf="!provider.socialMedia?.instagram && !provider.socialMedia?.facebook" class="no-socials">
+              Keine Social Media Profile angegeben
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="profile-section">
+        <h3>Spezialisierungen</h3>
+        <div class="info-card">
+          <div class="specialties-tags" *ngIf="provider.specialties && provider.specialties.length > 0">
+            <span class="specialty-tag" *ngFor="let specialty of provider.specialties">{{ specialty }}</span>
+          </div>
+          <div *ngIf="!provider.specialties || provider.specialties.length === 0" class="no-specialties">
+            Keine Spezialisierungen angegeben
+          </div>
+        </div>
+      </div>
+  
+      <div class="profile-section">
+        <h3>Zahlungsoptionen</h3>
+        <div class="info-card">
+          <div class="payment-options">
+            <div class="payment-option">
+              <span class="option-label">Online-Zahlungen</span>
+              <span class="option-value" [ngClass]="provider.acceptsOnlinePayments ? 'enabled' : 'disabled'">
+                {{ provider.acceptsOnlinePayments ? 'Akzeptiert' : 'Nicht akzeptiert' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Edit mode -->
+    <form *ngIf="isEditMode" [formGroup]="profileForm" class="profile-form">
+      <div class="form-section">
+        <h3>Geschäftsinformationen</h3>
+        <div class="form-card">
+          <div class="form-group">
+            <label for="logo">Logo URL</label>
+            <input type="text" id="logo" formControlName="logo" class="form-control" placeholder="https://example.com/logo.png">
+            <small class="form-text">Fügen Sie hier eine URL zu Ihrem Logo ein</small>
+          </div>
+  
+          <div class="form-group">
+            <label for="businessName">Unternehmensname*</label>
+            <input type="text" id="businessName" formControlName="businessName" class="form-control" required>
+            <div *ngIf="profileForm.get('businessName')?.invalid && profileForm.get('businessName')?.touched" class="validation-error">
+              Unternehmensname ist erforderlich
+            </div>
+          </div>
+  
+          <div class="form-group">
+            <label for="description">Beschreibung*</label>
+            <textarea id="description" formControlName="description" class="form-control" rows="4" required></textarea>
+            <div *ngIf="profileForm.get('description')?.invalid && profileForm.get('description')?.touched" class="validation-error">
+              Beschreibung ist erforderlich
+            </div>
+          </div>
+  
+          <div class="form-group">
+            <label for="address">Adresse</label>
+            <input type="text" id="address" formControlName="address" class="form-control">
+          </div>
+  
+          <div class="form-group">
+            <label for="website">Website</label>
+            <input type="text" id="website" formControlName="website" class="form-control" placeholder="https://example.com">
+          </div>
+        </div>
+      </div>
+  
+      <div class="form-section">
+        <h3>Kontaktinformationen</h3>
+        <div class="form-card">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="firstName">Vorname*</label>
+              <input type="text" id="firstName" formControlName="firstName" class="form-control" required>
+              <div *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched" class="validation-error">
+                Vorname ist erforderlich
+              </div>
+            </div>
+  
+            <div class="form-group">
+              <label for="lastName">Nachname*</label>
+              <input type="text" id="lastName" formControlName="lastName" class="form-control" required>
+              <div *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched" class="validation-error">
+                Nachname ist erforderlich
+              </div>
+            </div>
+          </div>
+  
+          <div class="form-group">
+            <label for="email">E-Mail*</label>
+            <input type="email" id="email" formControlName="email" class="form-control" required>
+            <div *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched" class="validation-error">
+              Bitte geben Sie eine gültige E-Mail-Adresse ein
+            </div>
+          </div>
+  
+          <div class="form-group">
+            <label for="phone">Telefonnummer*</label>
+            <input type="tel" id="phone" formControlName="phone" class="form-control" required>
+            <div *ngIf="profileForm.get('phone')?.invalid && profileForm.get('phone')?.touched" class="validation-error">
+              Telefonnummer ist erforderlich
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="form-section">
+        <h3>Öffnungszeiten</h3>
+        <div class="form-card">
+          <div class="business-hours-container">
+            <div class="business-hours-header">
+              <div class="day-column">Tag</div>
+              <div class="time-column">Öffnungszeit</div>
+              <div class="time-column">Schließzeit</div>
+              <div class="closed-column">Geschlossen</div>
+            </div>
+            
+            <div class="business-hours-row" *ngFor="let day of businessDays">
+              <div class="day-column">{{ day.label }}</div>
+              
+              <div class="time-column">
+                <select [disabled]="day.closed" [(ngModel)]="day.openTime" [ngModelOptions]="{standalone: true}">
+                  <option *ngFor="let time of timeSlots" [value]="time">{{ time }}</option>
+                </select>
+              </div>
+              
+              <div class="time-column">
+                <select [disabled]="day.closed" [(ngModel)]="day.closeTime" [ngModelOptions]="{standalone: true}">
+                  <option *ngFor="let time of timeSlots" [value]="time">{{ time }}</option>
+                </select>
+              </div>
+              
+              <div class="closed-column">
+                <input type="checkbox" [(ngModel)]="day.closed" [ngModelOptions]="{standalone: true}" (change)="updateClosedStatus(day)">
+              </div>
+            </div>
+          </div>
+          
+          <div class="business-hours-preview">
+            <p><strong>Vorschau:</strong></p>
+            <p>{{ formatBusinessHours() }}</p>
+          </div>
+        </div>
+      </div>
+  
+      <div class="form-section">
+        <h3>Social Media</h3>
+        <div class="form-card">
+          <div formGroupName="socialMedia">
+            <div class="form-group">
+              <label for="instagram">Instagram</label>
+              <div class="input-group">
+                <span class="input-prefix">instagram.com/</span>
+                <input type="text" id="instagram" formControlName="instagram" class="form-control" placeholder="username">
+              </div>
+            </div>
+  
+            <div class="form-group">
+              <label for="facebook">Facebook</label>
+              <div class="input-group">
+                <span class="input-prefix">facebook.com/</span>
+                <input type="text" id="facebook" formControlName="facebook" class="form-control" placeholder="username">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="form-section">
+        <h3>Spezialisierungen</h3>
+        <div class="form-card">
+          <div class="form-group">
+            <label for="specialties">Spezialisierungen (durch Komma getrennt)</label>
+            <input type="text" id="specialties" formControlName="specialties" class="form-control" placeholder="z.B. Maniküre, Pediküre, Wimpernverlängerung">
+            <small class="form-text">Geben Sie Ihre Spezialisierungen ein, getrennt durch Kommas</small>
+          </div>
+        </div>
+      </div>
+  
+      <div class="form-section">
+        <h3>Zahlungsoptionen</h3>
+        <div class="form-card">
+          <div class="form-group checkbox-group">
+            <input type="checkbox" id="acceptsOnlinePayments" formControlName="acceptsOnlinePayments">
+            <label for="acceptsOnlinePayments">Online-Zahlungen akzeptieren</label>
+          </div>
+        </div>
+      </div>
+  
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="toggleEditMode()">Abbrechen</button>
+        <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid">Speichern</button>
+      </div>
+    </form>
+  </div>
