@@ -18,6 +18,20 @@
       
       <!-- Show these links when user IS logged in -->
       <ng-container *ngIf="currentUser">
+        <!-- Desktop navigation links based on role (hidden on mobile) -->
+        <div class="desktop-nav-links">
+          <!-- For providers - show both Dashboard and Profil -->
+          <ng-container *ngIf="userRole === 'provider'">
+            <a routerLink="/provider-dashboard" class="nav-link">Dashboard</a>
+            <a routerLink="/provider-profile" class="nav-link">Profil</a>
+          </ng-container>
+          
+          <!-- For customers - show only Profil -->
+          <ng-container *ngIf="userRole === 'customer'">
+            <a routerLink="/customer-profile" class="nav-link">Profil</a>
+          </ng-container>
+        </div>
+      
         <!-- Add notification bell for providers -->
         <div *ngIf="userRole === 'provider'" class="notification-bell-container">
           <button class="notification-bell" (click)="toggleNotificationPopup()" title="Benachrichtigungen">
@@ -63,15 +77,25 @@
             </a>
           </li>
           
-          <!-- Provider specific link -->
-          <li *ngIf="currentUser && userRole === 'provider'">
-            <a routerLink="/provider-dashboard" class="side-menu-item" (click)="closeSideMenu()">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-              </svg>
-              <span>Dashboard</span>
-            </a>
-          </li>
+          <!-- Provider specific links -->
+          <ng-container *ngIf="currentUser && userRole === 'provider'">
+            <li>
+              <a routerLink="/provider-dashboard" class="side-menu-item" (click)="closeSideMenu()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+                <span>Dashboard</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/provider-profile" class="side-menu-item" (click)="closeSideMenu()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>Profil</span>
+              </a>
+            </li>
+          </ng-container>
           
           <!-- Customer specific link -->
           <li *ngIf="currentUser && userRole === 'customer'">
@@ -79,7 +103,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <span>Profile</span>
+              <span>Profil</span>
             </a>
           </li>
           

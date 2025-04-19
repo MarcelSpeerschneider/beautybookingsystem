@@ -60,9 +60,59 @@ header.scrolled {
   width: 100%;
 }
 
+/* Desktop navigation links */
+.desktop-nav-links {
+  display: none; /* Hide by default on mobile */
+}
+
+/* Show on desktop */
+@media (min-width: 768px) {
+  .desktop-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem; /* Abstand zwischen den Links */
+  }
+  
+  .desktop-nav-links .nav-link {
+    font-weight: 500;
+    color: var(--text-medium);
+    position: relative;
+    transition: color 0.2s ease-in-out;
+  }
+  
+  .desktop-nav-links .nav-link:hover {
+    color: var(--primary-color);
+  }
+  
+  .desktop-nav-links .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease;
+  }
+  
+  .desktop-nav-links .nav-link:hover::after {
+    width: 100%;
+  }
+  
+  /* Aktiver Link-Stil */
+  .desktop-nav-links .nav-link.active {
+    color: var(--primary-color);
+  }
+  
+  .desktop-nav-links .nav-link.active::after {
+    width: 100%;
+  }
+}
+
 /* Notification bell styling */
 .notification-bell-container {
   position: relative;
+  margin-left: 0.75rem;
 }
 
 .notification-bell {
@@ -224,6 +274,12 @@ header.scrolled {
   margin-right: 0.75rem;
 }
 
+/* Side menu item highlight style */
+.side-menu-item.active {
+  background-color: rgba(229, 136, 125, 0.1);
+  color: var(--primary-color);
+}
+
 /* Overlay for when the side menu is open */
 .side-menu-overlay {
   position: fixed;
@@ -273,12 +329,8 @@ header.scrolled {
   justify-content: space-between;
 }
 
-.space-x-4>*+* {
-  margin-left: 1rem;
-}
-
-.space-x-8>*+* {
-  margin-left: 2rem;
+.space-x-4 {
+  gap: 1rem;
 }
 
 .bg-white {
@@ -403,26 +455,6 @@ header.scrolled {
     height: 16px;
     font-size: 0.65rem;
   }
-}
-
-@media (min-width: 769px) {
-  /* Add styles for larger screens here if needed */
-}
-
-.mobile-menu-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-}
-
-.mobile-menu-button svg {
-  width: 24px;
-  height: 24px;
-  color: var(--text-medium);
 }
 
 /* Hide burger button on desktop */
