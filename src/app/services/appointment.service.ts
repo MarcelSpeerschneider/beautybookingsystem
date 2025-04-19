@@ -158,7 +158,7 @@ export class AppointmentService {
             const providerQuery = this.queryInZone(
               appointmentsCollection, 
               where('providerId', '==', currentUser.uid),
-              limit(500)
+              limit(1000)
             );
             
             return this.collectionDataInZone(providerQuery, { idField: 'id' });
@@ -170,7 +170,7 @@ export class AppointmentService {
             const customerQuery = this.queryInZone(
               appointmentsCollection, 
               where('customerId', '==', currentUser.uid),
-              limit(500)
+              limit(1000)
             );
             
             return this.collectionDataInZone(customerQuery, { idField: 'id' });
@@ -588,7 +588,7 @@ export class AppointmentService {
           const q = this.queryInZone(
             appointmentsCollection,
             where('customerId', '==', customerId),
-            limit(500)
+            limit(1000)
           );
           
           return this.collectionDataInZone(q, { idField: 'id' }).pipe(
@@ -647,7 +647,7 @@ export class AppointmentService {
           const q = this.queryInZone(
             appointmentsCollection,
             where('providerId', '==', providerId),
-            limit(500)
+            limit(1000)
           );
           
           return this.collectionDataInZone(q, { idField: 'id' }).pipe(
@@ -742,7 +742,7 @@ export class AppointmentService {
           const q = this.queryInZone(
             appointmentsCollection,
             where(fieldName, '==', userId),
-            limit(500)
+            limit(1000)
           );
 
           return this.collectionDataInZone(q, { idField: 'id' }).pipe(
@@ -779,7 +779,8 @@ export class AppointmentService {
     const q = query(
       appointmentsRef,
       where('providerId', '==', providerId),
-      where('status', '==', 'pending')
+      where('status', '==', 'pending'),
+      limit(1000) 
     );
     
     return from(getDocs(q)).pipe(

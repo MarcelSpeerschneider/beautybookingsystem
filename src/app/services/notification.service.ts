@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Appointment } from '../models/appointment.model';
-import { Firestore, collection, query, where, onSnapshot } from '@angular/fire/firestore';
+import { Firestore, collection, query, where, onSnapshot, limit } from '@angular/fire/firestore';
 import { convertAppointmentDates } from '../utils/date-utils'; // Import der existierenden Utility
 
 // Export the type so it can be imported by other components
@@ -47,7 +47,8 @@ export class NotificationService {
     const pendingAppointmentsQuery = query(
       appointmentsRef,
       where('providerId', '==', providerId),
-      where('status', '==', 'pending')
+      where('status', '==', 'pending'),
+      limit(1000)
     );
     
     // Set up real-time listener

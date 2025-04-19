@@ -101,55 +101,55 @@ service cloud.firestore {
     
     // Regeln für Appointments Collection - VEREINFACHTE UND VERBESSERTE REGELN
     match /appointments/{appointmentId} {
-  // Direktes Lesen eines Dokuments - mit Rollenprüfung
-  allow get: if 
-    request.auth != null && 
-    (
-      (resource.data.providerId == request.auth.uid && isProvider()) || 
-      (resource.data.customerId == request.auth.uid && isCustomer()) || 
-      isAdmin()
-    );
-  
-  // LIST-REGELN mit verbesserter Abfrage-Unterstützung
-  allow list: if 
-    request.auth != null && 
-    request.query.limit <= 500 &&
-    (
-      // Provider dürfen nach ihrer eigenen providerId filtern
-      (isProvider() && hasFieldFilter("providerId", request.auth.uid)) ||
+      // Direktes Lesen eines Dokuments - mit Rollenprüfung
+      allow get: if 
+        request.auth != null && 
+        (
+          (resource.data.providerId == request.auth.uid && isProvider()) || 
+          (resource.data.customerId == request.auth.uid && isCustomer()) || 
+          isAdmin()
+        );
       
-      // Kunden dürfen nach ihrer eigenen customerId filtern
-      (isCustomer() && hasFieldFilter("customerId", request.auth.uid)) ||
+      // GEÄNDERTE LIST-REGELN mit verbesserter Flexibilität für Provider
+      allow list: if 
+        request.auth != null && 
+        request.query.limit <= 500 &&
+        (
+          // Provider dürfen alle ihre Termine sehen (auch ohne explicit filter)
+          isProvider() ||
+          
+          // Kunden dürfen nur ihre eigenen Termine sehen
+          (isCustomer() && hasFieldFilter("customerId", request.auth.uid)) ||
+          
+          // Admins dürfen alles sehen
+          isAdmin()
+        );
       
-      // Admins dürfen alles abfragen
-      isAdmin()
-    );
-  
-  // Erstellen: Nur angemeldete Benutzer mit korrekter Rolle
-  allow create: if 
-    request.auth != null && 
-    (
-      (request.resource.data.providerId == request.auth.uid && isProvider()) || 
-      (request.resource.data.customerId == request.auth.uid && isCustomer())
-    );
-  
-  // Aktualisieren: Nur zugehörige Provider und Kunden mit korrekter Rolle oder Admins
-  allow update: if 
-    request.auth != null && 
-    (
-      (resource.data.providerId == request.auth.uid && isProvider()) || 
-      (resource.data.customerId == request.auth.uid && isCustomer()) || 
-      isAdmin()
-    );
-  
-  // Löschen: Nur zugehörige Provider mit Provider-Rolle oder Admins
-  allow delete: if 
-    request.auth != null && 
-    (
-      (resource.data.providerId == request.auth.uid && isProvider()) || 
-      isAdmin()
-    );
-}
+      // Erstellen: Nur angemeldete Benutzer mit korrekter Rolle
+      allow create: if 
+        request.auth != null && 
+        (
+          (request.resource.data.providerId == request.auth.uid && isProvider()) || 
+          (request.resource.data.customerId == request.auth.uid && isCustomer())
+        );
+      
+      // Aktualisieren: Nur zugehörige Provider und Kunden mit korrekter Rolle oder Admins
+      allow update: if 
+        request.auth != null && 
+        (
+          (resource.data.providerId == request.auth.uid && isProvider()) || 
+          (resource.data.customerId == request.auth.uid && isCustomer()) || 
+          isAdmin()
+        );
+      
+      // Löschen: Nur zugehörige Provider mit Provider-Rolle oder Admins
+      allow delete: if 
+        request.auth != null && 
+        (
+          (resource.data.providerId == request.auth.uid && isProvider()) || 
+          isAdmin()
+        );
+    }
     
     // Regeln für Reviews Collection
     match /reviews/{reviewId} {
