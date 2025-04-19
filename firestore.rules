@@ -52,7 +52,7 @@ service cloud.firestore {
       
       // Abfragen auf die Collection
       allow list: if request.auth != null && 
-                  request.query.limit <= 500 && 
+                  request.query.limit <= 1000 && 
                   (isProvider() || isAdmin());
       
       // Erstellen: Nur der Benutzer selbst oder Admins
@@ -111,19 +111,19 @@ service cloud.firestore {
         );
       
       // GEÄNDERTE LIST-REGELN mit verbesserter Flexibilität für Provider
-      allow list: if 
-        request.auth != null && 
-        request.query.limit <= 500 &&
-        (
-          // Provider dürfen alle ihre Termine sehen (auch ohne explicit filter)
-          isProvider() ||
-          
-          // Kunden dürfen nur ihre eigenen Termine sehen
-          (isCustomer() && hasFieldFilter("customerId", request.auth.uid)) ||
-          
-          // Admins dürfen alles sehen
-          isAdmin()
-        );
+        allow list: if 
+    request.auth != null && 
+    (
+      // Provider dürfen ihre eigenen Termine sehen
+      (isProvider() && request.query.limit <= 1000) ||
+      
+      // Kunden dürfen ihre eigenen Termine sehen
+      (isCustomer() && hasFieldFilter("customerId", request.auth.uid)) ||
+      
+      // Admins dürfen alles abfragen
+      isAdmin()
+    );
+
       
       // Erstellen: Nur angemeldete Benutzer mit korrekter Rolle
       allow create: if 
