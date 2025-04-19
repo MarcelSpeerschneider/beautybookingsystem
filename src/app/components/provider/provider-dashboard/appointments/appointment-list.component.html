@@ -1,126 +1,148 @@
 <div class="tab-content">
-    <h2 class="section-title">Terminübersicht</h2>
-    
-    <!-- Filter Controls -->
-    <div class="appointments-filters">
-      <div class="filter-group">
-        <label for="statusFilter">Status:</label>
-        <select id="statusFilter" [(ngModel)]="statusFilter" (change)="filterAppointments()">
-          <option value="all">Alle</option>
-          <option value="pending">Anfragen</option>
-          <option value="confirmed">Bestätigt</option>
-          <option value="completed">Abgeschlossen</option>
-          <option value="canceled">Storniert</option>
-        </select>
-      </div>
-      
-      <div class="filter-group">
-        <label for="dateFilter">Zeitraum:</label>
-        <select id="dateFilter" [(ngModel)]="dateFilter" (change)="filterAppointments()">
-          <option value="all">Alle Termine</option>
-          <option value="today">Heute</option>
-          <option value="tomorrow">Morgen</option>
-          <option value="week">Diese Woche</option>
-          <option value="month">Diesen Monat</option>
-        </select>
-      </div>
-      
-      <div class="filter-group search">
-        <input type="text" placeholder="Nach Kundenname suchen..." [(ngModel)]="searchQuery" (input)="filterAppointments()">
-        <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()">✕</button>
-      </div>
+  <h2 class="section-title">Terminübersicht</h2>
+  
+  <!-- Filter Controls -->
+  <div class="appointments-filters">
+    <div class="filter-group">
+      <label for="statusFilter">Status:</label>
+      <select id="statusFilter" [(ngModel)]="statusFilter" (change)="filterAppointments()">
+        <option value="all">Alle</option>
+        <option value="pending">Anfragen</option>
+        <option value="confirmed">Bestätigt</option>
+        <option value="completed">Abgeschlossen</option>
+        <option value="canceled">Storniert</option>
+      </select>
     </div>
     
-    <!-- Appointments Table -->
-    <div class="appointments-table-container" *ngIf="filteredAppointments.length > 0">
-      <table class="appointments-table">
-        <thead>
-          <tr>
-            <th (click)="sortAppointments('date')">
-              Datum
-              <span class="sort-icon" *ngIf="sortField === 'date'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th (click)="sortAppointments('time')">
-              Uhrzeit
-              <span class="sort-icon" *ngIf="sortField === 'time'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th>Dauer</th>
-            <th (click)="sortAppointments('customer')">
-              Kunde
-              <span class="sort-icon" *ngIf="sortField === 'customer'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th (click)="sortAppointments('service')">
-              Dienstleistung
-              <span class="sort-icon" *ngIf="sortField === 'service'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th (click)="sortAppointments('status')">
-              Status
-              <span class="sort-icon" *ngIf="sortField === 'status'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th>Aktionen</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let appointment of filteredAppointments" [ngClass]="appointment.status">
-            <td>{{ formatDate(appointment.startTime) }}</td>
-            <td>{{ formatTime(appointment.startTime) }}</td>
-            <td>{{ getAppointmentDuration(appointment) }} Min.</td>
-            <td>{{ appointment.customerName || 'Unbekannt' }}</td>
-            <td>{{ appointment.serviceName || 'Unbekannt' }}</td>
-            <td>
-              <span class="status-badge {{ appointment.status }}">
-                {{ getStatusText(appointment.status) }}
-              </span>
-            </td>
-            <td class="action-cell">
-              <div *ngIf="appointment.status === 'pending'" class="appointment-actions">
-                <button class="btn-action accept" (click)="confirmAppointment(appointment.id)" title="Termin bestätigen">
-                  <span class="action-icon">✓</span>
-                </button>
-                <button class="btn-action reject" (click)="rejectAppointment(appointment.id)" title="Termin ablehnen">
-                  <span class="action-icon">✗</span>
-                </button>
-              </div>
-              
-              <div *ngIf="appointment.status === 'confirmed'" class="appointment-actions">
-                <button class="btn-action complete" (click)="completeAppointment(appointment.id)" title="Als erledigt markieren">
-                  <span class="action-icon">✓</span>
-                </button>
-                <button class="btn-action cancel" (click)="cancelAppointment(appointment.id)" title="Termin stornieren">
-                  <span class="action-icon">✗</span>
-                </button>
-              </div>
-              
-              <button class="btn-action view" (click)="viewAppointmentDetails(appointment)" title="Details anzeigen">
-                <span class="action-icon">ℹ</span>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="filter-group">
+      <label for="dateFilter">Zeitraum:</label>
+      <select id="dateFilter" [(ngModel)]="dateFilter" (change)="filterAppointments()">
+        <option value="all">Alle Termine</option>
+        <option value="today">Heute</option>
+        <option value="tomorrow">Morgen</option>
+        <option value="week">Diese Woche</option>
+        <option value="month">Diesen Monat</option>
+      </select>
     </div>
     
-    <!-- Empty State -->
-    <div class="empty-state" *ngIf="filteredAppointments.length === 0">
-      <div class="empty-icon">📅</div>
-      <h3>Keine Termine gefunden</h3>
-      <p *ngIf="statusFilter !== 'all' || dateFilter !== 'all' || searchQuery">
-        Versuche, deine Filtereinstellungen anzupassen.
-      </p>
-      <p *ngIf="statusFilter === 'all' && dateFilter === 'all' && !searchQuery">
-        Es wurden keine Termine gefunden.
-      </p>
-      <button class="btn btn-secondary" (click)="resetFilters()">Filter zurücksetzen</button>
+    <div class="filter-group search">
+      <input type="text" placeholder="Nach Kundenname suchen..." [(ngModel)]="searchQuery" (input)="filterAppointments()">
+      <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()">✕</button>
     </div>
-    
-    <!-- Appointment Details Modal -->
-    <app-appointment-detail
-      *ngIf="selectedAppointment"
-      [appointment]="selectedAppointment"
-      (close)="closeAppointmentDetails()"
-      (confirm)="confirmAppointment($event)"
-      (reject)="rejectAppointment($event)"
-      (complete)="completeAppointment($event)"
-      (cancel)="cancelAppointment($event)">
-    </app-appointment-detail>
   </div>
+  
+  <!-- Appointments Table -->
+  <div class="appointments-table-container" *ngIf="filteredAppointments.length > 0">
+    <table class="appointments-table">
+      <thead>
+        <tr>
+          <th (click)="sortAppointments('date')">
+            Datum
+            <span class="sort-icon" *ngIf="sortField === 'date'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th (click)="sortAppointments('time')">
+            Uhrzeit
+            <span class="sort-icon" *ngIf="sortField === 'time'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th>Dauer</th>
+          <th (click)="sortAppointments('customer')">
+            Kunde
+            <span class="sort-icon" *ngIf="sortField === 'customer'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th (click)="sortAppointments('service')">
+            Dienstleistung
+            <span class="sort-icon" *ngIf="sortField === 'service'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th (click)="sortAppointments('status')">
+            Status
+            <span class="sort-icon" *ngIf="sortField === 'status'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let appointment of filteredAppointments" [ngClass]="appointment.status">
+          <td>{{ formatDate(appointment.startTime) }}</td>
+          <td>{{ formatTime(appointment.startTime) }}</td>
+          <td>{{ getAppointmentDuration(appointment) }} Min.</td>
+          <td>{{ appointment.customerName || 'Unbekannt' }}</td>
+          <td>{{ appointment.serviceName || 'Unbekannt' }}</td>
+          <td>
+            <span class="status-badge {{ appointment.status }}">
+              {{ getStatusText(appointment.status) }}
+            </span>
+          </td>
+          <td class="action-cell">
+            <div class="appointment-actions">
+              <!-- Bestätigen / Erledigen -->
+              <button *ngIf="appointment.status === 'pending'" 
+                     class="btn-action confirm" 
+                     title="Bestätigen"
+                     (click)="confirmAppointment(appointment.id)">
+                <span class="action-icon">✓</span>
+              </button>
+              
+              <button *ngIf="appointment.status === 'confirmed'" 
+                     class="btn-action confirm" 
+                     title="Als erledigt markieren"
+                     (click)="completeAppointment(appointment.id)">
+                <span class="action-icon">✓</span>
+              </button>
+              
+              <!-- Verschieben -->
+              <button class="btn-action move" 
+                     title="Termin verschieben"
+                     (click)="moveAppointment(appointment.id)">
+                <span class="action-icon">↻</span>
+              </button>
+              
+              <!-- Ablehnen / Stornieren -->
+              <button *ngIf="appointment.status === 'pending'" 
+                     class="btn-action reject" 
+                     title="Anfrage ablehnen"
+                     (click)="rejectAppointment(appointment.id)">
+                <span class="action-icon">✕</span>
+              </button>
+              
+              <button *ngIf="appointment.status === 'confirmed'" 
+                     class="btn-action reject" 
+                     title="Termin stornieren"
+                     (click)="cancelAppointment(appointment.id)">
+                <span class="action-icon">✕</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="filteredAppointments.length === 0">
+    <div class="empty-icon">📅</div>
+    <h3>Keine Termine gefunden</h3>
+    <p *ngIf="statusFilter !== 'all' || dateFilter !== 'all' || searchQuery">
+      Versuche, deine Filtereinstellungen anzupassen.
+    </p>
+    <p *ngIf="statusFilter === 'all' && dateFilter === 'all' && !searchQuery">
+      Es wurden keine Termine gefunden.
+    </p>
+    <button class="btn btn-secondary" (click)="resetFilters()">Filter zurücksetzen</button>
+  </div>
+  
+  <!-- Add Appointment Button -->
+  <div class="action-buttons">
+    <button class="btn btn-primary" (click)="createAppointment()">+ Neuer Termin</button>
+  </div>
+  
+  <!-- Appointment Details Modal -->
+  <app-appointment-detail
+    *ngIf="selectedAppointment"
+    [appointment]="selectedAppointment"
+    (close)="closeAppointmentDetails()"
+    (confirm)="confirmAppointment($event)"
+    (reject)="rejectAppointment($event)"
+    (complete)="completeAppointment($event)"
+    (cancel)="cancelAppointment($event)">
+  </app-appointment-detail>
+</div>

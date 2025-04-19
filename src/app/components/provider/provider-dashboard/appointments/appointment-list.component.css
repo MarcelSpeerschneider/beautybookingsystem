@@ -1,279 +1,291 @@
-.section-title {
-    margin-bottom: 20px;
-    color: #333;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  /* Appointments Filters */
+/* src/app/components/appointment-list/appointment-list.component.css */
+
+.appointments-table-container {
+  background-color: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 30px;
+}
+
+.appointments-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.appointments-table th,
+.appointments-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.appointments-table th {
+  background-color: var(--section-background-color, #FCF5F2);
+  color: var(--heading-text-color, #333333);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.appointments-table th:hover {
+  background-color: #f5efe9;
+}
+
+.sort-icon {
+  margin-left: 5px;
+  font-size: 0.8rem;
+}
+
+.appointments-table tbody tr:hover {
+  background-color: #fafafa;
+}
+
+/* Termine mit verschiedenen Status */
+.appointments-table tbody tr.pending {
+  border-left: 4px solid #ffc107;
+}
+
+.appointments-table tbody tr.confirmed {
+  border-left: 4px solid #2196f3;
+}
+
+.appointments-table tbody tr.completed {
+  border-left: 4px solid #4caf50;
+}
+
+.appointments-table tbody tr.canceled {
+  border-left: 4px solid #f44336;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-badge.pending {
+  background-color: #FFF8E1;
+  color: #FF9800;
+}
+
+.status-badge.confirmed {
+  background-color: #E3F2FD;
+  color: #2196F3;
+}
+
+.status-badge.completed {
+  background-color: #E8F5E9;
+  color: #4CAF50;
+}
+
+.status-badge.canceled {
+  background-color: #FFEBEE;
+  color: #F44336;
+}
+
+/* Action Buttons - Subtle Icon Buttons Style */
+.appointment-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-action {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-size: 16px;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-action.confirm {
+  background-color: #F9F5F2;
+  color: var(--primary-color, #E5887D);
+}
+
+.btn-action.confirm:hover {
+  background-color: #f7ece8;
+}
+
+.btn-action.move {
+  background-color: #F0F4F8;
+  color: #6B7280;
+}
+
+.btn-action.move:hover {
+  background-color: #e6ebf2;
+}
+
+.btn-action.reject {
+  background-color: #FFF5F5;
+  color: #F44336;
+}
+
+.btn-action.reject:hover {
+  background-color: #ffeaea;
+}
+
+/* Filter Styling */
+.appointments-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+  background-color: var(--section-background-color, #FCF5F2);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-weight: 500;
+  color: var(--body-text-color, #666666);
+  white-space: nowrap;
+}
+
+.filter-group select,
+.filter-group input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  min-width: 150px;
+  background-color: white;
+}
+
+.filter-group.search {
+  flex-grow: 1;
+  position: relative;
+}
+
+.filter-group.search input {
+  width: 100%;
+  padding-right: 30px;
+}
+
+.clear-search {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.clear-search:hover {
+  color: #666;
+}
+
+/* Empty State */
+.empty-state {
+  background-color: white;
+  border-radius: 10px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  color: #e0e0e0;
+}
+
+.empty-state h3 {
+  margin-bottom: 10px;
+  color: var(--heading-text-color, #333333);
+}
+
+.empty-state p {
+  color: var(--body-text-color, #666666);
+  margin-bottom: 20px;
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 20px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  background-color: var(--primary-color, #E5887D);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #d67d74;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--body-text-color, #666666);
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+  background-color: #f5f5f5;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+/* Responsive Styling */
+@media (max-width: 768px) {
   .appointments-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-bottom: 20px;
-    background-color: #f9f9f9;
-    padding: 15px;
-    border-radius: 8px;
+    flex-direction: column;
+    align-items: stretch;
   }
   
   .filter-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  .filter-group label {
-    font-weight: 500;
-    color: #555;
-    white-space: nowrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
   }
   
   .filter-group select,
   .filter-group input {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    min-width: 150px;
-  }
-  
-  .filter-group.search {
-    flex-grow: 1;
-    position: relative;
-  }
-  
-  .filter-group.search input {
     width: 100%;
-    padding-right: 30px;
-  }
-  
-  .clear-search {
-    position: absolute;
-    right: 10px;
-    background: none;
-    border: none;
-    color: #999;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  
-  .clear-search:hover {
-    color: #666;
-  }
-  
-  /* Appointments Table */
-  .appointments-table-container {
-    background-color: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    margin-bottom: 30px;
+    min-width: auto;
   }
   
   .appointments-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  .appointments-table th,
-  .appointments-table td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #f0f0f0;
-  }
-  
-  .appointments-table th {
-    background-color: #f5f5f5;
-    font-weight: 500;
-    color: #333;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    white-space: nowrap;
-  }
-  
-  .appointments-table th:hover {
-    background-color: #e8e8e8;
-  }
-  
-  .sort-icon {
-    margin-left: 5px;
-    font-size: 0.8rem;
-  }
-  
-  .appointments-table tbody tr:hover {
-    background-color: #f9f9f9;
-  }
-  
-  /* Termine mit verschiedenen Status */
-  .appointments-table tbody tr.pending {
-    border-left: 4px solid #ffc107;
-  }
-  
-  .appointments-table tbody tr.confirmed {
-    border-left: 4px solid #2196f3;
-  }
-  
-  .appointments-table tbody tr.completed {
-    border-left: 4px solid #4caf50;
-  }
-  
-  .appointments-table tbody tr.canceled {
-    border-left: 4px solid #f44336;
-  }
-  
-  /* Status Badge */
-  .status-badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-  
-  .status-badge.pending {
-    background-color: #fff8e1;
-    color: #ff9800;
-  }
-  
-  .status-badge.confirmed {
-    background-color: #e3f2fd;
-    color: #2196f3;
-  }
-  
-  .status-badge.completed {
-    background-color: #e8f5e9;
-    color: #4caf50;
-  }
-  
-  .status-badge.canceled {
-    background-color: #ffebee;
-    color: #f44336;
-  }
-  
-  /* Action Buttons */
-  .action-cell {
-    white-space: nowrap;
+    display: block;
+    overflow-x: auto;
   }
   
   .appointment-actions {
-    display: inline-flex;
-    gap: 5px;
+    flex-wrap: wrap;
   }
-  
-  .btn-action {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: white;
-  }
-  
-  .btn-action.accept {
-    background-color: #4caf50;
-  }
-  
-  .btn-action.accept:hover {
-    background-color: #43a047;
-  }
-  
-  .btn-action.reject,
-  .btn-action.cancel {
-    background-color: #f44336;
-  }
-  
-  .btn-action.reject:hover,
-  .btn-action.cancel:hover {
-    background-color: #e53935;
-  }
-  
-  .btn-action.complete {
-    background-color: #2196f3;
-  }
-  
-  .btn-action.complete:hover {
-    background-color: #1e88e5;
-  }
-  
-  .btn-action.view {
-    background-color: #9e9e9e;
-  }
-  
-  .btn-action.view:hover {
-    background-color: #757575;
-  }
-  
-  /* Empty State */
-  .empty-state {
-    background-color: white;
-    border-radius: 8px;
-    padding: 40px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  
-  .empty-icon {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    color: #e0e0e0;
-  }
-  
-  .empty-state h3 {
-    margin-bottom: 10px;
-    color: #333;
-  }
-  
-  .empty-state p {
-    color: #666;
-    margin-bottom: 20px;
-  }
-  
-  .btn {
-    padding: 12px 20px;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.3s;
-  }
-  
-  .btn-secondary {
-    background-color: white;
-    color: #333;
-    border: 1px solid #ddd;
-  }
-  
-  .btn-secondary:hover {
-    background-color: #f5f5f5;
-  }
-  
-  /* Responsive styling */
-  @media (max-width: 768px) {
-    .appointments-filters {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    
-    .filter-group {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 5px;
-    }
-    
-    .filter-group select,
-    .filter-group input {
-      width: 100%;
-      min-width: auto;
-    }
-    
-    .appointments-table {
-      display: block;
-      overflow-x: auto;
-    }
-  }
+}

@@ -366,4 +366,21 @@ export class AppointmentListComponent implements OnInit, OnDestroy {
       alert('Fehler beim Markieren des Termins als erledigt.');
     });
   }
+  moveAppointment(appointmentId: string): void {
+    // Hier kann später die tatsächliche Verschiebungslogik implementiert werden
+    // Zum Beispiel einen Dialog zum Auswählen eines neuen Datums/Uhrzeit öffnen
+    alert('Termin verschieben-Funktion wird implementiert.');
+    
+    // Die Detailansicht schließen, falls sie geöffnet ist
+    if (this.selectedAppointment && this.selectedAppointment.id === appointmentId) {
+      this.selectedAppointment = null;
+    }
+  }
+  createAppointment(): void {
+    // Hier könnte die Logik zum Öffnen eines Dialogs zum Erstellen eines neuen Termins implementiert werden
+    alert('Funktion zum Erstellen eines neuen Termins wird implementiert.');
+    
+    // Alternativ könnte hier die Navigation zu einer Terminformular-Route erfolgen
+    // this.router.navigate(['/appointment-form']);
+  }
 }
