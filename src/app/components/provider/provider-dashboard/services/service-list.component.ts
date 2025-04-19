@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -23,7 +23,7 @@ type ProviderWithId = Provider & { providerId: string };
   templateUrl: './service-list.component.html',
   styleUrls: ['./service-list.component.css']
 })
-export class ServiceListComponent implements OnInit, OnDestroy {
+export class ServiceListComponent implements OnInit, OnDestroy, OnChanges {
   @Input() provider: ProviderWithId | null = null;
   
   services: Service[] = [];
@@ -35,6 +35,14 @@ export class ServiceListComponent implements OnInit, OnDestroy {
   
   private serviceService = inject(ServiceService);
   private loadingService = inject(LoadingService);
+  
+  ngOnChanges(changes: SimpleChanges): void {
+    // Prüfe, ob sich der Provider-Input geändert hat und jetzt verfügbar ist
+    if (changes['provider'] && changes['provider'].currentValue) {
+      console.log('Provider-Daten haben sich geändert, lade Dienstleistungen...');
+      this.loadServices();
+    }
+  }
   
   ngOnInit(): void {
     if (this.provider) {

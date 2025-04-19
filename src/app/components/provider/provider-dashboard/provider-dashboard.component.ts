@@ -10,7 +10,6 @@ import { DashboardOverviewComponent } from './dashboard-overview/dashboard-overv
 import { AppointmentListComponent } from './appointments/appointment-list.component';
 import { ServiceListComponent } from './services/service-list.component';
 import { CustomersListComponent } from './customers/customers-list.component';
-// Import the calendar component
 import { CalendarComponent } from './calendar/calendar.component';
 
 // Extended provider type with providerId
@@ -26,7 +25,7 @@ type ProviderWithId = Provider & { providerId: string };
     AppointmentListComponent, 
     ServiceListComponent, 
     CustomersListComponent,
-    CalendarComponent // Add the calendar component to imports
+    CalendarComponent
   ],
   templateUrl: './provider-dashboard.component.html',
   styleUrls: ['./provider-dashboard.component.css']
@@ -46,22 +45,30 @@ export class ProviderDashboardComponent implements OnInit, OnDestroy {
   
     // Check if user is authenticated and is a provider
     const userSub = this.authService.user.subscribe(userWithCustomer => {
-      if (!userWithCustomer.user) {
+      // Explizitere Prüfung, um TypeScript zufriedenzustellen
+      if (userWithCustomer.user === null) {
         this.router.navigate(['/provider-login']);
         return;
       }
   
+      // An diesem Punkt weiß TypeScript, dass user nicht null ist
+      const uid = userWithCustomer.user.uid;
+      
       // Get provider info using Auth UID
-      const providerSub = this.providerService.getProvider(userWithCustomer.user.uid)
+      const providerSub = this.providerService.getProvider(uid)
         .subscribe(provider => {
+          // Rest des Codes bleibt gleich
           if (provider) {
-            // Cast to the expected ProviderWithId type
-            this.provider = provider as ProviderWithId;
+            this.provider = {...provider, providerId: uid} as ProviderWithId;
+            console.log('Provider-Daten geladen:', this.provider);
+            
+            setTimeout(() => {
+              this.loadingService.setLoading(false);
+            }, 500);
           } else {
-            // User is not a provider, redirect to provider registration
+            this.loadingService.setLoading(false);
             this.router.navigate(['/provider-registration']);
           }
-          this.loadingService.setLoading(false);
         });
   
       this.subscriptions.push(providerSub);

@@ -21,8 +21,8 @@
       (click)="changeTab('statistics')">Statistik</button>
   </nav>
 
-  <!-- Tab-Inhalte werden abhängig vom aktuellen Tab angezeigt -->
-  <div class="tab-content" [ngSwitch]="currentTab">
+  <!-- Tab-Inhalte werden nur gerendert, wenn der Provider vorhanden ist -->
+  <div *ngIf="provider" class="tab-content" [ngSwitch]="currentTab">
     <!-- Dashboard-Tab -->
     <app-dashboard-overview *ngSwitchCase="'dashboard'" [provider]="provider"></app-dashboard-overview>
 

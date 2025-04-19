@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AppointmentService } from '../../../../services/appointment.service';
@@ -22,7 +22,7 @@ type ProviderWithId = Provider & { providerId: string };
   templateUrl: './dashboard-overview.component.html',
   styleUrls: ['./dashboard-overview.component.css']
 })
-export class DashboardOverviewComponent implements OnInit, OnDestroy {
+export class DashboardOverviewComponent implements OnInit, OnDestroy, OnChanges {
   @Input() provider: ProviderWithId | null = null;
 
   today: Date = new Date();
@@ -37,6 +37,16 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
   private serviceService = inject(ServiceService);
   private loadingService = inject(LoadingService);
   private notificationService = inject(NotificationService);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Prüfe, ob sich der Provider-Input geändert hat und jetzt verfügbar ist
+    if (changes['provider'] && changes['provider'].currentValue) {
+      console.log('Provider-Daten haben sich geändert, lade Dashboard-Daten...');
+      this.initializeNotifications();
+      this.loadTodayAppointments();
+      this.loadServices();
+    }
+  }
 
   ngOnInit(): void {
     if (this.provider) {
